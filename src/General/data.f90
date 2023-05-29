@@ -37,11 +37,9 @@ module data_module
 
       procedure, public :: Exchange_virtual_space_blocking
 
-
       procedure, private ::Set_send_buf
 
       procedure, private ::Get_recv_buf
-
 
       procedure, public :: Exchange_virtual_space_nonblocking
 
