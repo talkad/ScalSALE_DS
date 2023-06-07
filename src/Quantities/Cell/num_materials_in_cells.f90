@@ -64,7 +64,7 @@ contains
       do k = 1, d3
          do j = 1, d2
             do i = 1, d1
-               if (mat_cell(i, j, k) /= 0) then
+               if (mat_cell(i, j, k) /= 0) then  
                   init_values(i, j, k) = init_values(i, j, k) + 1
                end if
             end do

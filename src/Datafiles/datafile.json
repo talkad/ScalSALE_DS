@@ -137,17 +137,17 @@
     	"number_layers_j": 2,
         "number_cells_j": [
             1,
-            119
+            239
         ], 
         "number_layers_i": 2, 
         "number_cells_i": [
             1,
-            119
+            239
         ],
         "number_layers_k":2,
         "number_cells_k": [
             1,
-            119
+            239
         ],
         "materials": [
             "Air", 
@@ -179,9 +179,9 @@
         "rezone_type": "lagrange"
     },
 "parallel":{
-"np":1,
-"npz":1,
-"npy":1,
-"npx":1
+"np":8,
+"npz":2,
+"npy":2,
+"npx":2
 }
 }

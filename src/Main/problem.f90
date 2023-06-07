@@ -695,9 +695,9 @@ contains
                         !call this%Write_to_files()
         ncyc = 1
         if (this%rezone_type == 0) then
-            max_ncyc = 21
+            max_ncyc = 11
         else
-            max_ncyc = 21
+            max_ncyc = 11
         end if
 
         if (this%mesh%dimension == 2) then
