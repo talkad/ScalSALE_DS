@@ -1,4 +1,4 @@
-module naive
+module naive_mod
 
    type, abstract :: data_type
 
@@ -16,6 +16,13 @@ module naive
 
 
     abstract interface
+        subroutine init_interface(this, d1, d2, d3, d4, is_parallel)
+            import :: data_type
+            class(data_type), intent(inout) :: this
+            integer, intent(in) :: d1, d2, d3, d4
+            logical, intent(in) :: is_parallel
+        end subroutine init_interface
+
         pure function get_value_interface(this, m, i, j, k) result(value)
             import :: data_type
             class(data_type), intent(in) :: this
@@ -67,6 +74,8 @@ module naive
       real(8), dimension(:), allocatable     :: recv_buf
 
       contains 
+         procedure, public :: init => init_real
+
          procedure, public :: get_value => get_value_real
          procedure, public :: get_send_buf => get_send_buf_real
          procedure, public :: get_recv_buf => get_recv_buf_real
@@ -82,6 +91,8 @@ module naive
       integer, dimension(:), allocatable     :: recv_buf
 
       contains 
+         procedure, public :: init => init_int
+
          procedure, public :: get_value => get_value_int
          procedure, public :: get_send_buf => get_send_buf_int
          procedure, public :: get_recv_buf => get_recv_buf_int
@@ -94,12 +105,24 @@ module naive
 
     contains
 
+        subroutine init_real(this, d1, d2, d3, d4, is_parallel)
+            class(data_real), intent(inout) :: this
+            integer, intent(in) :: d1, d2, d3, d4
+            logical, intent(in) :: is_parallel
+
+            allocate (this%values (1:d4, 0:d1, 0:d2, 0:d3))
+
+            if (is_parallel) then
+                ! allocate buffers
+            end if
+        end subroutine init_real
+
         pure function get_value_real(this, m, i, j, k) result(value)
             class(data_real), intent(in) :: this
             integer, intent(in) :: m, i, j, k
             real(8) :: value
 
-            value = this%values(m,i,j,k)
+            valuedata_int = this%values(m,i,j,k)
         end function get_value_real
 
         pure function get_send_buf_real(this, i) result(value)
@@ -144,7 +167,17 @@ module naive
 
 
 
+        subroutine init_int(this, d1, d2, d3, d4, is_parallel)
+            class(data_int), intent(inout) :: this
+            integer, intent(in) :: d1, d2, d3, d4
+            logical, intent(in) :: is_parallel
 
+            allocate (this%values (1:d4, 0:d1, 0:d2, 0:d3))
+
+            if (is_parallel) then
+                ! allocate buffers
+            end if
+        end subroutine init_int
 
       pure function get_value_int(this, m, i, j, k) result(value)
             class(data_int), intent(in) :: this
