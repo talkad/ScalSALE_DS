@@ -58,8 +58,6 @@ module data_module
 
    end type data_t
 
-   public :: Get_copy
-
    interface data_t
       module procedure Constructor_init_arr
       module procedure Constructor_no_init
@@ -167,13 +165,6 @@ contains
 
       ptr => this%values
    end subroutine Ptr_data
-
-   function Get_copy (this)
-      class (data_t)       , intent(in)  :: this 
-      real(8), dimension(:,:,:), pointer :: Get_copy  
-
-      Get_copy = this%values
-   end function Get_copy
 
    subroutine Clean_data (this)
       class (data_t), intent(in out) :: this  

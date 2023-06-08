@@ -1,6 +1,6 @@
 
 module quantity_module
-    use data_module, only : data_t, Get_copy
+    use data_module, only : data_t
     use communication_module, only : communication_t
     use communication_parameters_module  , only : communication_parameters_t
     use boundary_parameters_module       , only : boundary_parameters_t
@@ -232,13 +232,13 @@ contains
         call this%data(1)%Point_to_data (ptr)
     end subroutine Ptr_coordinates_1d_first
 
-    function Get_data_copy (this, i)
-        class (quantity_t), intent(in)     :: this 
-        integer           , intent(in)     :: i
-        real(8), dimension(:,:,:), pointer :: Get_data_copy  
+    ! function Get_data_copy (this, i)
+    !     class (quantity_t), intent(in)     :: this 
+    !     integer           , intent(in)     :: i
+    !     real(8), dimension(:,:,:), pointer :: Get_data_copy  
 
-        Get_data_copy = Get_copy(this%data(i))
-    end function Get_data_copy
+    !     Get_data_copy = Get_copy(this%data(i))
+    ! end function Get_data_copy    ! dasd
 
 
     subroutine Ptr_coordinates_2d (this, ptr_x, ptr_y)

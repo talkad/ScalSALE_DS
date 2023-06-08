@@ -1,5 +1,6 @@
 
 module data_4d_module
+   use iso_c_binding
    use communication_module, only : communication_t
    use communication_parameters_module, only : communication_parameters_t
    use parallel_parameters_module, only: parallel_parameters_t
@@ -11,8 +12,9 @@ module data_4d_module
    type :: data_4d_t
       private
 
-
-      real(8), dimension(:,:,:,:), pointer, public          :: values
+      integer :: data_type  ! INTEGER == 1  |   REAL == 2
+      type(c_ptr), public          :: values
+      ! real(8), dimension(:,:,:,:), pointer, public          :: values
       integer, public                                       :: nx   
       integer, public                                       :: ny   
       integer, public                                       :: nz
@@ -22,8 +24,10 @@ module data_4d_module
       type (parallel_parameters_t)   , public, pointer :: parallel_params      
 
       integer :: pre_calc(14)
-      real(8), dimension(:), allocatable     :: send_buf
-      real(8), dimension(:), allocatable     :: recv_buf
+      type(c_ptr)     :: send_buf
+      type(c_ptr)     :: recv_buf
+      ! real(8), dimension(:), allocatable     :: send_buf
+      ! real(8), dimension(:), allocatable     :: recv_buf
       integer :: request
    contains
 
@@ -50,6 +54,8 @@ module data_4d_module
 
       procedure, public :: debug_print
 
+
+
       procedure, public :: Write_data
       generic :: write(unformatted) => Write_data
 
@@ -59,44 +65,58 @@ module data_4d_module
 
    end type data_4d_t
 
-   public :: Get_copy
 
    interface data_4d_t
       module procedure Constructor_init_arr
       module procedure Constructor_init_val
-
-
    end interface data_4d_t
+
+   interface get_data
+      module procedure get_data_int
+      module procedure get_data_real
+   end interface get_data
 
 contains
 
-   type(data_4d_t) function Constructor_init_arr(initial_data, d1, d2, d3, d4)
+   subroutine get_data_real(this, values, send_buf, recv_buf)
+      class (data_4d_t)                    , intent(in)            :: this
+      real(8), dimension(:,:,:,:), pointer, intent(inout)          :: values
+      real(8), dimension(:), pointer, intent(inout)                :: send_buf
+      real(8), dimension(:), pointer, intent(inout)                :: recv_buf
+
+      call c_f_pointer(this%values, values, shape=[5]) 
+   end subroutine get_data_real
+
+
+   type(data_4d_t) function Constructor_init_arr(initial_data, d1, d2, d3, d4, data_type)
       implicit none
-      real(8), dimension(:,:,:,:), intent(in) :: initial_data
+      type(c_ptr), target, intent(in) :: initial_data
       integer                  , intent(in) :: d1           
       integer                  , intent(in) :: d2           
       integer                  , intent(in) :: d3
       integer                  , intent(in) :: d4
       integer, dimension(4) :: vals_shape
+      integer :: data_type
 
       allocate (Constructor_init_arr%values (1:d4, 0:d1, 0:d2, 0:d3))
-      Constructor_init_arr%values =  initial_data
+      Constructor_init_arr%values => initial_data
       Constructor_init_arr%nx = d1
       Constructor_init_arr%ny = d2
       Constructor_init_arr%nz = d3
       Constructor_init_arr%nmats = d4
+      Constructor_init_arr%data_type = data_type
   end function
 
    type(data_4d_t) function Constructor_init_val(initial_val, d1, d2, d3, d4)
       implicit none
-      real(8)           , intent(in) :: initial_val  
-      integer           , intent(in) :: d1           
-      integer           , intent(in) :: d2           
-      integer           , intent(in) :: d3           
+      type(c_ptr), target, intent(in) :: initial_val  
+      integer            , intent(in) :: d1           
+      integer            , intent(in) :: d2           
+      integer            , intent(in) :: d3           
       integer                  , intent(in) :: d4
 
       allocate (Constructor_init_val%values (1:d4, 0:d1, 0:d2, 0:d3))
-      Constructor_init_val%values = initial_val
+      Constructor_init_val%values => initial_val
       Constructor_init_val%nx = d1
       Constructor_init_val%ny = d2
       Constructor_init_val%nz = d3
@@ -107,17 +127,10 @@ contains
 
    subroutine Ptr_data (this, ptr)
       class (data_4d_t)                    , intent(in)  :: this
-      real(8), dimension(:,:,:,:), pointer, intent(out) :: ptr
+      type(c_ptr), pointer, intent(out) :: ptr
 
       ptr => this%values
    end subroutine Ptr_data
-
-   function Get_copy (this)
-      class (data_4d_t)       , intent(in)  :: this
-      real(8), dimension(:,:,:,:), pointer :: Get_copy
-
-      Get_copy = this%values
-   end function Get_copy
 
    subroutine Clean_data (this)
       class (data_4d_t), intent(in out) :: this
@@ -167,7 +180,7 @@ contains
 
    subroutine Exchange_virtual_space_blocking (this, ghost_width)
       class (data_4d_t), intent(in out) :: this
-      real(8), dimension(:,:,:), allocatable :: send_buf, recv_buf
+      
       integer, dimension(4) :: vals_shape
       integer, optional :: ghost_width
       integer :: ghost_width_local
