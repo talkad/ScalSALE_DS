@@ -7,57 +7,120 @@ module data_4d_module
    private
    public :: data_4d_t
 
+   type, abstract :: abstract_struct_t
 
-   type, abstract :: data_type
+        contains 
+            procedure(init_interface), deferred :: init
 
-      contains 
-         procedure, deferred :: get_value
-         procedure, deferred :: get_send_buf
-         procedure, deferred :: get_recv_buf
+            procedure(get_value_interface), deferred :: get_value
+            procedure(get_send_buf_interface), deferred :: get_send_buf
+            procedure(get_recv_buf_interface), deferred :: get_recv_buf
 
-         procedure, deferred :: set_value
-         procedure, deferred :: set_send_buf
-         procedure, deferred :: set_recv_buf
-   end type   data_type
+            procedure(set_value_interface), deferred :: set_value
+            procedure(set_send_buf_interface), deferred :: set_send_buf
+            procedure(set_recv_buf_interface), deferred :: set_recv_buf
+   end type   abstract_struct_t
 
 
-   type, extends(data_type) :: data_real
+    abstract interface
+        subroutine init_interface(this, d1, d2, d3, d4, is_parallel)
+            import :: abstract_struct_t
+            class(abstract_struct_t), intent(inout) :: this
+            integer, intent(in) :: d1, d2, d3, d4
+            logical, intent(in) :: is_parallel
+        end subroutine init_interface
+
+        pure function get_value_interface(this, m, i, j, k) result(value)
+            import :: abstract_struct_t
+            class(abstract_struct_t), intent(in) :: this
+            integer, intent(in) :: m, i, j, k
+            real(8) :: value
+        end function get_value_interface
+
+        pure function get_send_buf_interface(this, i) result(value)
+            import :: abstract_struct_t
+            class(abstract_struct_t), intent(in) :: this
+            integer, intent(in) :: i
+            real(8) :: value
+        end function get_send_buf_interface
+
+        function get_recv_buf_interface(this, i) result(value)
+            import :: abstract_struct_t
+            class(abstract_struct_t), intent(in) :: this
+            integer, intent(in) :: i
+            real(8) :: value
+        end function get_recv_buf_interface
+
+        subroutine set_value_interface(this, m, i, j, k, value)
+            import :: abstract_struct_t
+            class(abstract_struct_t), intent(inout) :: this
+            real(8), intent(in) :: value
+            integer, intent(in) :: m, i, j, k
+        end subroutine set_value_interface
+
+        subroutine set_send_buf_interface(this, i, value)
+            import :: abstract_struct_t
+            class(abstract_struct_t), intent(inout) :: this
+            real(8), intent(in) :: value
+            integer, intent(in) :: i
+        end subroutine set_send_buf_interface
+
+        subroutine set_recv_buf_interface(this, i, value)
+            import :: abstract_struct_t
+            class(abstract_struct_t), intent(inout) :: this
+            real(8), intent(in) :: value
+            integer, intent(in) :: i
+        end subroutine set_recv_buf_interface
+    end interface
+
+
+
+   type, extends(abstract_struct_t) :: data_real
       real(8), dimension(:,:,:,:), pointer, public          :: values
       real(8), dimension(:), allocatable     :: send_buf
       real(8), dimension(:), allocatable     :: recv_buf
 
       contains 
-         procedure, public :: get_value
-         procedure, public :: get_send_buf
-         procedure, public :: get_recv_buf
+         procedure, public :: init => init_real
 
-         procedure, public :: set_value
-         procedure, public :: set_send_buf
-         procedure, public :: set_recv_buf
-   end type   data_type
+         procedure, public :: get_value => get_value_real
+         procedure, public :: get_send_buf => get_send_buf_real
+         procedure, public :: get_recv_buf => get_recv_buf_real
 
+         procedure, public :: set_value => set_value_real
+         procedure, public :: set_send_buf => set_send_buf_real
+         procedure, public :: set_recv_buf => set_recv_buf_real
+   end type   data_real
 
-   type, extends(data_type) :: data_int
+   type, extends(abstract_struct_t) :: data_int
       integer, dimension(:,:,:,:), pointer, public          :: values
       integer, dimension(:), allocatable     :: send_buf
       integer, dimension(:), allocatable     :: recv_buf
 
       contains 
-         procedure, public :: get_value
-         procedure, public :: get_send_buf
-         procedure, public :: get_recv_buf
+         procedure, public :: init => init_int
 
-         procedure, public :: set_value
-         procedure, public :: set_send_buf
-         procedure, public :: set_recv_buf
-   end type   data_type
+         procedure, public :: get_value => get_value_int
+         procedure, public :: get_send_buf => get_send_buf_int
+         procedure, public :: get_recv_buf => get_recv_buf_int
+
+         procedure, public :: set_value => set_value_int
+         procedure, public :: set_send_buf => set_send_buf_int
+         procedure, public :: set_recv_buf => set_recv_buf_int
+   end type   data_int
+
+
+      
 
 
    type :: data_4d_t
       private
 
-
+      class(abstract_struct_t), pointer :: storage_struct
       ! real(8), dimension(:,:,:,:), pointer, public          :: values
+      ! real(8), dimension(:), allocatable     :: send_buf
+      ! real(8), dimension(:), allocatable     :: recv_buf
+
       integer, public                                       :: nx   
       integer, public                                       :: ny   
       integer, public                                       :: nz
@@ -67,8 +130,7 @@ module data_4d_module
       type (parallel_parameters_t)   , public, pointer :: parallel_params      
 
       integer :: pre_calc(14)
-      ! real(8), dimension(:), allocatable     :: send_buf
-      ! real(8), dimension(:), allocatable     :: recv_buf
+
       integer :: request
    contains
 
@@ -115,17 +177,21 @@ module data_4d_module
 
 contains
 
-   type(data_4d_t) function Constructor_init_arr(initial_data, d1, d2, d3, d4)
+   type(data_4d_t) function Constructor_init_arr(type, d1, d2, d3, d4, is_parallel)
       implicit none
-      real(8), dimension(:,:,:,:), intent(in) :: initial_data
-      integer                  , intent(in) :: d1           
-      integer                  , intent(in) :: d2           
-      integer                  , intent(in) :: d3
-      integer                  , intent(in) :: d4
-      integer, dimension(4) :: vals_shape
+      integer                  , intent(in) :: d1, d2, d3, d4         
+      integer                  , intent(in) :: type         
+      logical,                 , intent(in) :: is_parallel
+      type(data_real), target :: data_concrete_real
+      type(data_int), target :: data_concrete_int
 
-      allocate (Constructor_init_arr%values (1:d4, 0:d1, 0:d2, 0:d3))
-      Constructor_init_arr%values =  initial_data
+      if (type == 0) then
+         call data_concrete_real%init(d1, d2, d3, d4, is_parallel)
+         
+      else 
+
+      end if
+
       Constructor_init_arr%nx = d1
       Constructor_init_arr%ny = d2
       Constructor_init_arr%nz = d3
@@ -759,4 +825,129 @@ contains
 #endif
 
    end subroutine Read_data
+
+
+
+     subroutine init_real(this, d1, d2, d3, d4, is_parallel)
+            class(data_real), intent(inout) :: this
+            integer, intent(in) :: d1, d2, d3, d4
+            logical, intent(in) :: is_parallel
+
+            allocate (this%values (1:d4, 0:d1, 0:d2, 0:d3))
+
+            if (is_parallel) then
+                ! allocate buffers
+            end if
+        end subroutine init_real
+
+        pure function get_value_real(this, m, i, j, k) result(value)
+            class(data_real), intent(in) :: this
+            integer, intent(in) :: m, i, j, k
+            real(8) :: value
+
+            valuedata_int = this%values(m,i,j,k)
+        end function get_value_real
+
+        pure function get_send_buf_real(this, i) result(value)
+            class(data_real), intent(in) :: this
+            integer, intent(in) :: i
+            real(8) :: value
+
+            value = this%send_buf(i)
+        end function get_send_buf_real
+
+        function get_recv_buf_real(this, i) result(value)
+            class(data_real), intent(in) :: this
+            integer, intent(in) :: i
+            real(8) :: value
+
+            value = this%recv_buf(i)
+        end function get_recv_buf_real
+
+        subroutine set_value_real(this, m, i, j, k, value)
+            class(data_real), intent(inout) :: this
+            integer, intent(in) ::  m, i, j, k
+            real(8), intent(in) :: value
+
+            this%values(m,i,j,k) = value
+        end subroutine set_value_real
+
+        subroutine set_send_buf_real(this, i, value)
+            class(data_real), intent(inout) :: this
+            integer, intent(in) ::  i
+            real(8), intent(in) :: value
+
+            this%send_buf(i) = value
+        end subroutine set_send_buf_real
+
+        subroutine set_recv_buf_real(this, i, value)
+            class(data_real), intent(inout) :: this
+            integer, intent(in) ::  i
+            real(8), intent(in) :: value
+
+            this%recv_buf(i) = value
+        end subroutine set_recv_buf_real
+
+
+
+        subroutine init_int(this, d1, d2, d3, d4, is_parallel)
+            class(data_int), intent(inout) :: this
+            integer, intent(in) :: d1, d2, d3, d4
+            logical, intent(in) :: is_parallel
+
+            allocate (this%values (1:d4, 0:d1, 0:d2, 0:d3))
+
+            if (is_parallel) then
+                ! allocate buffers
+            end if
+        end subroutine init_int
+
+      pure function get_value_int(this, m, i, j, k) result(value)
+            class(data_int), intent(in) :: this
+            integer, intent(in) :: m, i, j, k
+            real(8) :: value
+
+            value = real(this%values(m,i,j,k))
+        end function get_value_int
+
+        pure function get_send_buf_int(this, i) result(value)
+            class(data_int), intent(in) :: this
+            integer, intent(in) :: i
+            real(8) :: value
+
+            value = real(this%send_buf(i))
+        end function get_send_buf_int
+
+        function get_recv_buf_int(this, i) result(value)
+            class(data_int), intent(in) :: this
+            integer, intent(in) :: i
+            real(8) :: value
+
+            value = real(this%recv_buf(i))
+        end function get_recv_buf_int
+
+        subroutine set_value_int(this, m, i, j, k, value)
+            class(data_int), intent(inout) :: this
+            integer, intent(in) ::  m, i, j, k
+            real(8), intent(in) :: value
+
+            this%values(m,i,j,k) = int(value)
+        end subroutine set_value_int
+
+        subroutine set_send_buf_int(this, i, value)
+            class(data_int), intent(inout) :: this
+            integer, intent(in) ::  i
+            real(8), intent(in) :: value
+
+            this%send_buf(i) = int(value)
+        end subroutine set_send_buf_int
+
+        subroutine set_recv_buf_int(this, i, value)
+            class(data_int), intent(inout) :: this
+            integer, intent(in) ::  i
+            real(8), intent(in) :: value
+
+            this%recv_buf(i) = int(value)
+        end subroutine set_recv_buf_int
+
 end module data_4d_module
