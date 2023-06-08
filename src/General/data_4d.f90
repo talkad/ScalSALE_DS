@@ -8,11 +8,56 @@ module data_4d_module
    public :: data_4d_t
 
 
+   type, abstract :: data_type
+
+      contains 
+         procedure, deferred :: get_value
+         procedure, deferred :: get_send_buf
+         procedure, deferred :: get_recv_buf
+
+         procedure, deferred :: set_value
+         procedure, deferred :: set_send_buf
+         procedure, deferred :: set_recv_buf
+   end type   data_type
+
+
+   type, extends(data_type) :: data_real
+      real(8), dimension(:,:,:,:), pointer, public          :: values
+      real(8), dimension(:), allocatable     :: send_buf
+      real(8), dimension(:), allocatable     :: recv_buf
+
+      contains 
+         procedure, public :: get_value
+         procedure, public :: get_send_buf
+         procedure, public :: get_recv_buf
+
+         procedure, public :: set_value
+         procedure, public :: set_send_buf
+         procedure, public :: set_recv_buf
+   end type   data_type
+
+
+   type, extends(data_type) :: data_int
+      integer, dimension(:,:,:,:), pointer, public          :: values
+      integer, dimension(:), allocatable     :: send_buf
+      integer, dimension(:), allocatable     :: recv_buf
+
+      contains 
+         procedure, public :: get_value
+         procedure, public :: get_send_buf
+         procedure, public :: get_recv_buf
+
+         procedure, public :: set_value
+         procedure, public :: set_send_buf
+         procedure, public :: set_recv_buf
+   end type   data_type
+
+
    type :: data_4d_t
       private
 
 
-      real(8), dimension(:,:,:,:), pointer, public          :: values
+      ! real(8), dimension(:,:,:,:), pointer, public          :: values
       integer, public                                       :: nx   
       integer, public                                       :: ny   
       integer, public                                       :: nz
@@ -22,8 +67,8 @@ module data_4d_module
       type (parallel_parameters_t)   , public, pointer :: parallel_params      
 
       integer :: pre_calc(14)
-      real(8), dimension(:), allocatable     :: send_buf
-      real(8), dimension(:), allocatable     :: recv_buf
+      ! real(8), dimension(:), allocatable     :: send_buf
+      ! real(8), dimension(:), allocatable     :: recv_buf
       integer :: request
    contains
 
