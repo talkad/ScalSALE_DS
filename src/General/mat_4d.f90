@@ -6,7 +6,8 @@ module mat4d_module
 
         contains
             procedure :: get_item => get_item
-            procedure :: batch_update => batch_update
+            procedure :: add_item => add_item
+            procedure :: update_struct => update_struct
     end type
     
     interface mat4d_t
@@ -22,6 +23,7 @@ module mat4d_module
 
         allocate(mat4d_constructor)
         allocate(mat4d_constructor%matrix(1:mats,0:nx,0:ny,0:nz))
+        mat4d_constructor%matrix(1:mats,0:nx,0:ny,0:nz) = 0d0
     end function
 
 
@@ -32,9 +34,20 @@ module mat4d_module
         real(8) :: get_item
 
         get_item = this%matrix(material_type, i, j, k)
-    end function
+    end function get_item
 
-    subroutine batch_update(this, ms, is, js, ks, vals)
+
+    pure subroutine add_item(this, material_type, i, j, k, val)
+        implicit none
+        class(mat4d_t), intent(inout) :: this
+        integer, intent(in) :: material_type, i, j, k
+        real(8), intent(in) :: val
+
+        this%matrix(material_type, i, j, k) = val
+    end subroutine add_item
+
+
+    subroutine update_struct(this, ms, is, js, ks, vals)
         implicit none
         class(mat4d_t), intent(inout) :: this
         integer, dimension(:), allocatable, intent(in) :: ms, is, js, ks
@@ -42,13 +55,10 @@ module mat4d_module
         integer :: idx
 
         do idx=0, size(is)
-            ! assumption cell won't be empty
-            ! if (vals(idx) == 0) EXIT
-            
+            if (vals(idx) == 0d0) return
             this%matrix(ms(idx), is(idx), js(idx), ks(idx)) = vals(idx)
         end do
-    end subroutine
+    end subroutine update_struct
 
 
 end module
-
