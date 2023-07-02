@@ -12,7 +12,7 @@ module data_4d_module
       private
 
 
-      real(8), dimension(:,:,:,:), pointer, public            :: values
+      real(8), dimension(:,:,:,:), pointer, private            :: values
       integer, public                                       :: nx   
       integer, public                                       :: ny   
       integer, public                                       :: nz
