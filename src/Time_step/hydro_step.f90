@@ -24,7 +24,7 @@ module hydro_step_module
     use energy_module                   , only : energy_t
     use volume_module                   , only : volume_t
     use rezone_module                   , only : rezone_t
-    use advect_module                   , only : advect_t
+    ! use advect_module                   , only : advect_t
     use data_module                     , only : data_t
     use time_module                     , only : time_t
     use vof_module                      , only : vof_t
@@ -56,7 +56,7 @@ module hydro_step_module
         type (volume_t)                , pointer :: total_volume         
         type (energy_t)                , pointer :: total_sie            
         type (rezone_t)                , pointer :: rezone               
-        type (advect_t)                , pointer :: advect               
+        ! type (advect_t)                , pointer :: advect               
         type (data_t)                  , pointer :: inversed_vertex_mass
         type (vof_t)                   , pointer :: total_vof            
         type (data_t)                  , pointer :: total_dt_drho        
@@ -339,17 +339,17 @@ contains
         Constructor%rezone = rezone_t(df%rezone_type, nxp, nyp, nzp, total_cell_mass%boundary_conditions,&
             velocity%boundary_conditions, mesh, velocity, vertex_mass, &
             total_cell_mass%boundary_params)
-        allocate(Constructor%advect)
+        ! allocate(Constructor%advect)
 
 
 
-        Constructor%advect = advect_t(nxp, nyp, nzp,nmats, mat_ids, total_cell_mass%boundary_conditions, velocity%boundary_conditions, &
-            total_cell_mass%boundary_params&
-            ,df%line_calc, df%shorter_advect, df%fix_overflow, Constructor%rezone, mesh, &
-            materials, mat_id, num_mat_cells, &
-            total_sie, total_vof, &
-            total_density, total_cell_mass, vertex_mass, &
-            total_volume, velocity, emf, emfm , wilkins_scheme, parallel_params)
+        ! Constructor%advect = advect_t(nxp, nyp, nzp,nmats, mat_ids, total_cell_mass%boundary_conditions, velocity%boundary_conditions, &
+        !     total_cell_mass%boundary_params&
+        !     ,df%line_calc, df%shorter_advect, df%fix_overflow, Constructor%rezone, mesh, &
+        !     materials, mat_id, num_mat_cells, &
+        !     total_sie, total_vof, &
+        !     total_density, total_cell_mass, vertex_mass, &
+        !     total_volume, velocity, emf, emfm , wilkins_scheme, parallel_params)
         Constructor%ncyc = 0
     end function
 
@@ -386,7 +386,7 @@ contains
 
         call this%Calculate_mesh_2d(time)
 
-        if (this%rezone%rezone_type /= 0) call this%advect%Calculate_advect_2d()
+        ! if (this%rezone%rezone_type /= 0) call this%advect%Calculate_advect_2d()
 
         this%ncyc = this%ncyc  + 1
     end subroutine do_time_step_2d
@@ -420,7 +420,7 @@ contains
 
         call this%Calculate_mesh_3d(time)
 
-        if (this%rezone%rezone_type /= 0) call this%advect%Calculate_advect_3d()
+        ! if (this%rezone%rezone_type /= 0) call this%advect%Calculate_advect_3d()
 
     end subroutine do_time_step_3d
 
@@ -2179,8 +2179,8 @@ call this%materials%sie%exchange_end()
 
         call this%rezone%Point_to_coordinates_2d(material_x, material_y)
         call this%rezone%mesh_velocity  %Point_to_data(mesh_velocity_x, mesh_velocity_y)
-        call this%advect%momentum       %Point_to_data(momentum_x     , momentum_y)
-        call this%advect%adv_momentum   %Point_to_data(adv_momentum_x , adv_momentum_y)
+        ! call this%advect%momentum       %Point_to_data(momentum_x     , momentum_y)
+        ! call this%advect%adv_momentum   %Point_to_data(adv_momentum_x , adv_momentum_y)
         call this%rezone%material_volume%Point_to_data(mat_vol)
 
 
@@ -2422,7 +2422,7 @@ call this%materials%sie%exchange_end()
 
 
 
-        call this%advect%Set_communication(comm, comm_params_cell, comm_params_vertex, comm_material)
+        ! call this%advect%Set_communication(comm, comm_params_cell, comm_params_vertex, comm_material)
         call this%rezone%Set_communication(comm, comm_params_cell, comm_params_vertex)
     end subroutine Set_communication
 
@@ -2613,11 +2613,11 @@ call this%materials%sie%exchange_end()
         call this%rezone%Point_to_velocities(ptr_x, ptr_y)
     end subroutine Point_to_mesh_velocity_data
 
-    subroutine Point_to_advect (this, advect_ptr)
+    subroutine Point_to_advect (this)
         class (hydro_step_t), intent(in out) :: this  
-        type(advect_t), pointer, intent(out) :: advect_ptr
+        ! type(advect_t), pointer, intent(out) :: advect_ptr
 
-        advect_ptr => this%advect
+        ! advect_ptr => this%advect
 
     end subroutine Point_to_advect
 

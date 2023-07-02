@@ -1,14 +1,12 @@
 module csr_module
-    use sparse_struct_base_module
+    use data_4d_module
 
-    type, extends(sparse_struct_base_t) :: csr_t
+    type, extends(data_4d_t) :: csr_t
 
-        real(8), dimension(:), allocatable :: values
+        real(8), dimension(:), allocatable :: nz_values
         integer, dimension(:,:,:,:), pointer :: idx_map
         integer :: padding_size
         integer :: padding_idx
-
-        integer :: nx, ny, nz, nm
 
     contains
 
@@ -38,9 +36,9 @@ module csr_module
 
         allocate(sparse_constructor)
         sparse_constructor%idx_map => indxs
-        allocate(sparse_constructor%values(0:initial_size))
+        allocate(sparse_constructor%nz_values(0:initial_size))
 
-        sparse_constructor%values(0:initial_size) = 0d0
+        sparse_constructor%nz_values(0:initial_size) = 0d0
         ! sparse_constructor%idx_map(:,:,:,:) = -1
         sparse_constructor%padding_size = space_size*mix_ratio
         sparse_constructor%padding_idx = 0
@@ -48,7 +46,7 @@ module csr_module
         sparse_constructor%nx = size(indxs, dim=2)-1
         sparse_constructor%ny = size(indxs, dim=3)-1
         sparse_constructor%nz = size(indxs, dim=4)-1
-        sparse_constructor%nm = size(indxs, dim=1)
+        sparse_constructor%nmats = size(indxs, dim=1)
     end function
 
 
@@ -60,7 +58,7 @@ module csr_module
         integer :: idx
 
         idx = this%idx_map(material_type, i, j, k)
-        if (idx > -1) this%values(idx) = val
+        if (idx > -1) this%nz_values(idx) = val
     end subroutine add_item
 
 
@@ -78,22 +76,22 @@ module csr_module
         idx = 0
 
         logic_debug = .False.
-        num_padding = size(this%values) - this%padding_idx
+        num_padding = size(this%nz_values) - this%padding_idx
         new_cells = this%count_new_cells(ms,is,js,ks)
 
         if (new_cells > num_padding) then
             ! rescalse the size of the values array 
             num_pads = (new_cells - num_padding) / this%padding_size + 1 
 
-            prev_size = size(this%values, dim=1)
+            prev_size = size(this%nz_values, dim=1)
 
             new_size = prev_size + num_pads * this%padding_size - 1
             ! write(*,*) 'reallocation', prev_size, '->', new_size
 
             allocate(temp(0:new_size))                          ! enlarge array size by factor of 2
             temp(0:new_size) = 0d0
-            temp(0:prev_size-1) = this%values(0:prev_size-1)    ! copy previous values
-            call move_alloc(temp, this%values)                  ! temp gets deallocated
+            temp(0:prev_size-1) = this%nz_values(0:prev_size-1)    ! copy previous values
+            call move_alloc(temp, this%nz_values)                  ! temp gets deallocated
         end if
 
         materials = size(this%idx_map, dim=1)
@@ -109,7 +107,7 @@ module csr_module
             end if
         end do
         
-        insertion_idx = size(this%values)-1
+        insertion_idx = size(this%nz_values)-1
         
         do k=nz, 0, -1
             do j=ny, 0, -1
@@ -119,13 +117,13 @@ module csr_module
                         current_idx = this%idx_map(m,i,j,k)
 
                         if (ms(idx)==m .and. is(idx)==i .and. js(idx)==j .and. ks(idx)==k) then
-                            this%values(insertion_idx) = vals(idx)
+                            this%nz_values(insertion_idx) = vals(idx)
                             this%idx_map(m,i,j,k) = insertion_idx
                             insertion_idx = insertion_idx - 1
                             idx = idx - 1
                         else if (current_idx > -1) then
-                            this%values(insertion_idx) = this%values(current_idx)
-                            this%values(current_idx) = 0
+                            this%nz_values(insertion_idx) = this%nz_values(current_idx)
+                            this%nz_values(current_idx) = 0
                             this%idx_map(m,i,j,k) = insertion_idx
                             insertion_idx = insertion_idx - 1
                         end if 
@@ -145,8 +143,8 @@ module csr_module
                         current_idx = this%idx_map(m,i,j,k) 
 
                         if (current_idx > -1) then
-                            this%values(idx) = this%values(current_idx) 
-                            this%values(current_idx) = 0
+                            this%nz_values(idx) = this%nz_values(current_idx) 
+                            this%nz_values(current_idx) = 0
                             this%idx_map(m,i,j,k) = idx
                             idx = idx + 1
                         end if
@@ -184,7 +182,7 @@ module csr_module
         get_item = 0d0
         idx = this%idx_map(material_type, i, j, k)
         
-        if (idx > -1) get_item = this%values(idx)
+        if (idx > -1) get_item = this%nz_values(idx)
     end function get_item
 
 
