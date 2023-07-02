@@ -34,7 +34,7 @@ module data_4d_module
 
       procedure, public :: Set_communication
 
-      procedure, public :: Debug_check_nan
+      procedure, public :: Debug_check_nan  
 
       procedure, public :: Exchange_virtual_space_blocking
 

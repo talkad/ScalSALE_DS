@@ -270,9 +270,9 @@ contains
 
     subroutine Ptr_coordinates_4d (this, ptr_x)
         class (quantity_t)         , intent(in out) :: this
-        real(8), dimension(:,:,:,:), pointer, intent(out)    :: ptr_x
+        real(8), dimension(:), pointer, intent(out)    :: ptr_x
 
-        ! call this%data_4d%Point_to_data (ptr_x) ! xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+        call this%data_4d%Point_to_data (ptr_x)
     end subroutine Ptr_coordinates_4d
 
 

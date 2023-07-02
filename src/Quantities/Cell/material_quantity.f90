@@ -1,5 +1,4 @@
 module material_quantity_module
-   use data_4d_module, only : data_4d_t
    use cell_boundary_condition_module, only : cell_boundary_condition_t, cell_bc_wrapper_t
    use quantity_module
    use boundary_parameters_module      , only : boundary_parameters_t

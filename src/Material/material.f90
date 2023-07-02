@@ -88,24 +88,13 @@ contains
         type(cell_bc_wrapper_t), dimension(:), pointer,  intent(inout) :: bc_cell
         type(boundary_parameters_t), pointer, intent(in) :: bc_params
 
-        !        type(materials_in_cells_t)   ,pointer                :: mat_cells
-        !        type(cell_bc_wrapper_t), dimension(:), pointer:: bc_cell
-        !        type(boundary_parameters_t), pointer :: bc_params
-        !        real(8), dimension(:), pointer                                          :: atomic_mass
-        !        real(8) , dimension(:), pointer                                         :: gamma_gas
-        !        real(8), dimension(:), pointer                                         :: rho_0
-        !        real(8), dimension(:), pointer                                          :: sie_0
-        !        real(8)                                          :: temperature_init
-        !        real(8), dimension(:), pointer                                          :: num_protons
-        !        real(8), dimension(:), pointer                                          :: num_protons_2
-
         real(8), dimension (:,:,:,:), pointer                          :: density_vof
-        real(8), dimension (:,:,:,:), pointer                          :: sie_vof
-        real(8), dimension (:,:,:,:), pointer                          :: mat_vof
-        real(8), dimension (:,:,:,:), pointer                          :: temp, temp_old
-        real(8), dimension (:,:,:), pointer                          :: mat_cell
-        real(8), dimension (:,:,:,:), pointer                          :: delete
-        real(8), dimension (:,:,:,:), pointer                          :: delete2
+        real(8), dimension (:), pointer                          :: sie_vof
+        real(8), dimension (:), pointer                          :: mat_vof
+        real(8), dimension (:), pointer                          :: temp, temp_old
+        real(8), dimension (:), pointer                          :: mat_cell
+        real(8), dimension (:), pointer                          :: delete
+        real(8), dimension (:), pointer                          :: delete2
         type(eos_wrapper_t), allocatable                                :: eos_c_wrap
         type(ideal_gas_t), target                                       :: ig_eos_c
 
