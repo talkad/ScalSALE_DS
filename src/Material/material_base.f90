@@ -46,10 +46,12 @@ module material_base_module
 
 contains
 
-   subroutine Init_material_base(this, nxp, nyp, nzp,nmats, mat_ids, bc_cell, bc_params)
+   subroutine Init_material_base(this, nxp, nyp, nzp,nmats, mat_ids, bc_cell, bc_params, idx_map, update_map)
       use boundary_parameters_module, only : boundary_parameters_t
       implicit none
       class(material_base_t)                , intent(in out)       :: this
+      integer, dimension(:,:,:,:), allocatable, target, intent(inout) :: idx_map
+      logical, intent(in) :: update_map
       integer,dimension(:), allocatable         , intent(in)           :: mat_ids
       integer                               , intent(in)           :: nxp           
       integer                               , intent(in)           :: nyp           
@@ -70,10 +72,10 @@ do i = 1, nmats
       this%material_ids(i) = mat_ids(i)
 end do
 
-      this%vof = material_quantity_t(0d0, nxp, nyp, nzp,nmats, bc_cell, bc_params)
-      this%sie = material_quantity_t (0d0, nxp, nyp, nzp, nmats,bc_cell, bc_params)
-      this%cell_mass = material_quantity_t (0d0, nxp, nyp, nzp,nmats, bc_cell, bc_params)
-      this%initial_layers_of_mats = material_quantity_t (0d0, nxp, nyp, nzp, nmats)
+      this%vof = material_quantity_t(0d0, nxp, nyp, nzp,nmats, bc_cell, bc_params, idx_map, update_map)
+      this%sie = material_quantity_t (0d0, nxp, nyp, nzp, nmats,bc_cell, bc_params, idx_map, update_map)
+      this%cell_mass = material_quantity_t (0d0, nxp, nyp, nzp,nmats, bc_cell, bc_params, idx_map, update_map)
+      this%initial_layers_of_mats = material_quantity_t (0d0, nxp, nyp, nzp, nmats, idx_map, update_map)
 
 !      if (sie_0(1) == 0) then
 !         this%nrg_calc = 1

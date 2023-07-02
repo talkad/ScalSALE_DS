@@ -34,8 +34,10 @@ module material_quantity_module
 
 contains
 
-   type(material_quantity_t) function Constructor(initial_val, d1, d2, d3,d4, bc, bc_params)
+   type(material_quantity_t) function Constructor(initial_val, d1, d2, d3,d4, bc, bc_params, idx_map, update_map)
       implicit none
+      integer, dimension(:,:,:,:), allocatable, target, intent(inout) :: idx_map
+      logical, intent(in) :: update_map
       real(8)                                , intent(in)     :: initial_val
       integer                                , intent(in)     :: d1
       integer                                , intent(in)     :: d2
@@ -46,14 +48,16 @@ contains
       type(boundary_parameters_t), pointer, intent(in) :: bc_params
       integer                                                 :: i
 
-      call Constructor%Init_quantity_init_val_4d (initial_val, d1, d2, d3,d4, 1, bc_params)
+      call Constructor%Init_quantity_init_val_4d (initial_val, d1, d2, d3,d4, 1, bc_params, idx_map, update_map)
       Constructor%boundary_conditions => bc
       Constructor%nmats = d4
    end function
 
 
-   type(material_quantity_t) function Constructor1( initial_val, d1, d2, d3,d4)
+   type(material_quantity_t) function Constructor1( initial_val, d1, d2, d3,d4, idx_map, update_map)
       implicit none
+      integer, dimension(:,:,:,:), allocatable, target, intent(inout) :: idx_map
+      logical, intent(in) :: update_map
       real(8)                                , intent(in)     :: initial_val
       integer                                , intent(in)     :: d1
       integer                                , intent(in)     :: d2
@@ -64,7 +68,7 @@ contains
 !      type(boundary_parameters_t), pointer, intent(in) :: bc_params
       integer                                                 :: i
 
-      call Constructor1%Init_quantity_no_bc (initial_val, d1, d2, d3,d4, 1)
+      call Constructor1%Init_quantity_no_bc (initial_val, d1, d2, d3,d4, 1, idx_map, update_map)
 !      Constructor1%boundary_conditions => bc
       Constructor1%nmats = d4
    end function

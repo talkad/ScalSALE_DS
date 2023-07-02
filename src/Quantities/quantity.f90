@@ -5,7 +5,9 @@ module quantity_module
     use communication_parameters_module  , only : communication_parameters_t
     use boundary_parameters_module       , only : boundary_parameters_t
     use parallel_parameters_module       , only : parallel_parameters_t
-    use data_4d_module, only : data_4d_t
+    ! use data_4d_module, only : data_4d_t
+    use csr_module, only : csr_t
+
     implicit none
     private
     public :: quantity_t
@@ -14,7 +16,9 @@ module quantity_module
         private
 
         type (data_t) , dimension(:), pointer, public :: data
-        type (data_4d_t), pointer, public :: data_4d
+        ! type (data_4d_t), pointer, public :: data_4d
+        type(csr_t), pointer, public :: data_4d
+
         type(boundary_parameters_t), pointer, public :: boundary_params
         type(parallel_parameters_t), pointer, public :: parallel_params
 
@@ -134,9 +138,11 @@ contains
         nullify(this%data_4d)
     end subroutine
 
-    subroutine Init_quantity_init_val_4d(this, initial_val, d1, d2, d3, d4, axises_num, bc_params)           ! xxxxxxxxxxxxxxxxxxxxxxxxxx
+    subroutine Init_quantity_init_val_4d(this, initial_val, d1, d2, d3, d4, axises_num, bc_params, idx_map, update_map)
         implicit none
         class(quantity_t) , intent(in out) :: this
+        integer, dimension(:,:,:,:), allocatable, target, intent(inout) :: idx_map
+        logical, intent(in) :: update_map
         real(8)           , intent(in)     :: initial_val
         integer           , intent(in)     :: d1
         integer           , intent(in)     :: d2
@@ -148,8 +154,8 @@ contains
         integer                            :: i
         nullify(this%data_4d)
         nullify(this%data)
-        allocate (data_4d_t :: this%data_4d)
-        this%data_4d = data_4d_t(initial_val, d1,d2,d3,d4)
+        allocate (csr_t :: this%data_4d)
+        this%data_4d = csr_t(initial_val, d1, d2, d3, d4, idx_map, update_map)
         this%d1 = d1 - 1
         this%d2 = d2 - 1
         this%d3 = d3 - 1
@@ -158,9 +164,11 @@ contains
         nullify(this%data)
     end subroutine
 
-    subroutine Init_quantity_no_bc(this, initial_val, d1, d2, d3, d4, axises_num)
+    subroutine Init_quantity_no_bc(this, initial_val, d1, d2, d3, d4, axises_num, idx_map, update_map)
         implicit none
         class(quantity_t) , intent(in out) :: this
+        integer, dimension(:,:,:,:), allocatable, target, intent(inout) :: idx_map
+        logical, intent(in) :: update_map
         real(8)           , intent(in)     :: initial_val
         integer           , intent(in)     :: d1
         integer           , intent(in)     :: d2
@@ -171,14 +179,15 @@ contains
         integer                            :: i
         nullify(this%data_4d)
         nullify(this%data)
-        allocate (data_4d_t :: this%data_4d)
-        this%data_4d = data_4d_t(initial_val, d1,d2,d3,d4)
+        allocate (csr_t :: this%data_4d)
+        this%data_4d = csr_t(initial_val, d1, d2, d3, d4, idx_map, update_map)
         this%d1 = d1 - 1
         this%d2 = d2 - 1
         this%d3 = d3 - 1
         this%number_of_axises = axises_num
         nullify(this%data)
     end subroutine
+
 
     subroutine Init_quantity_no_init(this, d1, d2, d3, axises_num, bc_params)
         implicit none
@@ -263,7 +272,7 @@ contains
         class (quantity_t)         , intent(in out) :: this
         real(8), dimension(:,:,:,:), pointer, intent(out)    :: ptr_x
 
-        call this%data_4d%Point_to_data (ptr_x)
+        ! call this%data_4d%Point_to_data (ptr_x) ! xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
     end subroutine Ptr_coordinates_4d
 
 

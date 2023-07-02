@@ -8,6 +8,8 @@ module csr_module
         integer :: padding_size
         integer :: padding_idx
 
+        real(8) :: ratio = 0.01
+
     contains
 
         procedure :: get_item => get_item
@@ -19,11 +21,85 @@ module csr_module
 
     interface csr_t
         module procedure sparse_constructor
+
+        ! module procedure Constructor_init_arr
+        module procedure Constructor_init_val
+    
+      
     end interface
 
 
     contains
     
+
+    ! type(csr_t) function Constructor_init_arr(idx_map, initial_data, d1, d2, d3, d4)
+    !     implicit none
+    !     integer, dimension(:,:,:,:), allocatable, target, intent(inout) :: idx_map
+    !     real(8), dimension(:,:,:,:), intent(in) :: initial_data
+    !     integer           , intent(in) :: d1, d2, d3, d4  
+
+
+    !     ! allocate (Constructor_init_arr%values (1:d4, 0:d1, 0:d2, 0:d3))
+    !     ! Constructor_init_arr%values =  initial_data
+    !     ! Constructor_init_arr%nx = d1
+    !     ! Constructor_init_arr%ny = d2
+    !     ! Constructor_init_arr%nz = d3
+    !     ! Constructor_init_arr%nmats = d4
+    ! end function
+
+
+    type(csr_t) function Constructor_init_val(initial_val, d1, d2, d3, d4, idx_map, update_map)
+        implicit none
+        integer, dimension(:,:,:,:), allocatable, target, intent(inout) :: idx_map
+        logical, intent(in) :: update_map
+        real(8)           , intent(in) :: initial_val  
+        integer           , intent(in) :: d1, d2, d3, d4  
+        integer :: space_size, idx
+        integer :: i, j, k, m
+
+        idx = 0
+        Constructor_init_val%nx = d1
+        Constructor_init_val%ny = d2
+        Constructor_init_val%nz = d3
+        Constructor_init_val%nmats = d4
+
+        Constructor_init_val%idx_map => idx_map
+        space_size = (d1+1) * (d2+1) * (d3+1) * d4
+
+        if (initial_val == 0d0) then
+            Constructor_init_val%padding_size = space_size*Constructor_init_val%ratio
+            Constructor_init_val%padding_idx = 0
+
+            allocate(Constructor_init_val%nz_values(0:space_size+space_size*Constructor_init_val%ratio))
+            Constructor_init_val%nz_values = 0d0
+
+            if (update_map) Constructor_init_val%idx_map = -1
+        else  
+            space_size = (d1+1) * (d2+1) * (d3+1) * d4
+            Constructor_init_val%padding_size = 0
+            Constructor_init_val%padding_idx = 0
+            allocate(Constructor_init_val%nz_values(0: space_size-1))
+            Constructor_init_val%nz_values = initial_val
+
+            if (update_map) then
+                do k=0, d3
+                    do j=0, d2
+                        do i=0, d1
+                            do m=1, d4
+                                Constructor_init_val%idx_map(m,i,j,k) = idx
+                                idx = idx + 1
+                            end do
+                        end do
+                    end do
+                end do
+            end if
+        end if
+
+        !   allocate (Constructor_init_val%values (1:d4, 0:d1, 0:d2, 0:d3))
+        ! Constructor_init_val%values = initial_val
+    end function
+
+
     function sparse_constructor(indxs)
         type(csr_t), pointer :: sparse_constructor
         integer, dimension(:,:,:,:), allocatable, target, intent(inout) :: indxs

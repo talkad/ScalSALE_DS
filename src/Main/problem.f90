@@ -143,6 +143,8 @@ contains
     type(problem_t) function Constructor(df)
         use general_utils_module, only : Compare_string, Str_eqv
         use geometry_module            , only : Create_start_index_layer
+        
+        integer, dimension(:,:,:,:), allocatable :: idx_map
 
         type(datafile_t), intent(in)                      :: df        
         logical                                           :: saw_index
@@ -369,10 +371,10 @@ contains
         call Constructor%total_volume%Point_to_data (vol)
 
 
+        allocate(idx_map(1:m,0:nx,0:ny,0:nz))
+        call Constructor%Create_materials (df, bc_c_wrap_arr, Constructor%mat_cells, idx_map, .TRUE.)  ! xxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
-        call Constructor%Create_materials (df, bc_c_wrap_arr, Constructor%mat_cells)
-
-
+        
         Constructor%total_density = density_t    (df%mat_rho_0, Constructor%mat_cells , Constructor%nxp, Constructor%nyp&
             , Constructor%nzp , bc_c_wrap_arr,Constructor%boundary_params)
 
@@ -756,10 +758,12 @@ contains
         write(*,*) "ncyc: ", ncyc-1
     end subroutine Start_calculation
 
-    subroutine Create_materials(this, df, bc_c_wrap_arr, mat_cell)
+    subroutine Create_materials(this, df, bc_c_wrap_arr, mat_cell, idx_map, update_map)
         use datafile_module
         implicit none
-        class(problem_t)                                , intent(inout) :: this          
+        class(problem_t)                                , intent(inout) :: this 
+        integer, dimension(:,:,:,:), allocatable, target, intent(inout) :: idx_map
+        logical, intent(in) :: update_map         
         type(datafile_t)                                , intent(in)    :: df            
         type(cell_bc_wrapper_t  ), dimension(:), pointer, intent(inout) :: bc_c_wrap_arr 
         type(materials_in_cells_t), pointer                      , intent(inout) :: mat_cell
@@ -788,8 +792,8 @@ contains
         !                        df%mat_atomic_mass(mat), df%mat_z(mat), df%mat_z2(mat),&
         !                        df%mat_rho_0(mat), df%init_temperature, df%mat_sie_0(mat)
         this%materials = material_t(nxp, nyp, nzp, this%n_materials, df%mat_index, df%mat_gamma_gas,&
-            df%mat_atomic_mass, df%mat_z, df%mat_z2,&
-            df%mat_rho_0, df%init_temperature, df%mat_sie_0, mat_cell, bc_c_wrap_arr, this%boundary_params)
+            df%mat_atomic_mass, df%mat_z, df%mat_z2, df%mat_rho_0, df%init_temperature, df%mat_sie_0,&
+             mat_cell, bc_c_wrap_arr, this%boundary_params, idx_map, update_map)
 
         !        nxp, nyp, nzp, nmats, mat_ids, gamma_gas, atomic_mass,&
         !        num_protons, num_protons_2, rho_0, temperature_init, sie_0, eos, mat_cells, bc_cell&
