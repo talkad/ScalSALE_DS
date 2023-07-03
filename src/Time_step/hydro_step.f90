@@ -503,15 +503,16 @@ contains
         call this%total_vof           %Point_to_data(vof)
         call this%total_sie           %Point_to_data(sie)
 
-        call this%materials%temperature%Point_to_data(temperature_vof)
-        call this%materials%temperature_old%Point_to_data(temperature_vof_old)
-        call this%materials%pressure   %Point_to_data(pressure_vof)
-        call this%materials%dp_drho    %Point_to_data(dp_drho_vof)
-        call this%materials%dp_de      %Point_to_data(dp_de_vof)
-        call this%materials%cell_mass      %Point_to_data(cell_mass_vof)
-        call this%materials%sound_vel      %Point_to_data(sound_vel_vof)
-        call this%materials%dt_de          %Point_to_data(dt_de_vof)
-        call this%materials%vof            %Point_to_data(mat_vof)
+        ! xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+        ! call this%materials%temperature%Point_to_data(temperature_vof)
+        ! call this%materials%temperature_old%Point_to_data(temperature_vof_old)
+        ! call this%materials%pressure   %Point_to_data(pressure_vof)
+        ! call this%materials%dp_drho    %Point_to_data(dp_drho_vof)
+        ! call this%materials%dp_de      %Point_to_data(dp_de_vof)
+        ! call this%materials%cell_mass      %Point_to_data(cell_mass_vof)
+        ! call this%materials%sound_vel      %Point_to_data(sound_vel_vof)
+        ! call this%materials%dt_de          %Point_to_data(dt_de_vof)
+        ! call this%materials%vof            %Point_to_data(mat_vof)
 
 
         call this%Calculate_density(this%total_volume)
@@ -659,9 +660,10 @@ contains
         call this%total_density  %Point_to_data(density)
         call this%total_cell_mass%Point_to_data(cell_mass)
         call this%total_vof      %Point_to_data(vof)
-        call this%materials%cell_mass%Point_to_data(cell_mass_vof)
-        call this%materials%density  %Point_to_data(density_vof)
-        call this%materials%vof      %Point_to_data(mat_vof)
+        ! xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+        ! call this%materials%cell_mass%Point_to_data(cell_mass_vof)
+        ! call this%materials%density  %Point_to_data(density_vof)
+        ! call this%materials%vof      %Point_to_data(mat_vof)
         call volume%Point_to_data(vol)
 
         do k = 1, this%nz
@@ -1552,14 +1554,16 @@ contains
         call this%total_sie        %Point_to_data(sie)
         call this%total_vof        %Point_to_data(vof)
         call this%a_visc           %Point_to_data(a_visc)
-        call this%materials%temperature%Point_to_data(temperature_vof)
-        call this%materials%cell_mass  %Point_to_data(cell_mass_vof1)
-        call this%materials%pressure   %Point_to_data(pressure_vof)
-        call this%materials%density    %Point_to_data(density_vof)
-        call this%materials%dp_drho    %Point_to_data(dp_drho_vof)
-        call this%materials%dp_de      %Point_to_data(dp_de_vof)
-        call this%materials%sie        %Point_to_data(sie_vof)
-        call this%materials%vof        %Point_to_data(mat_vof)
+
+        ! xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+        ! call this%materials%temperature%Point_to_data(temperature_vof)
+        ! call this%materials%cell_mass  %Point_to_data(cell_mass_vof1)
+        ! call this%materials%pressure   %Point_to_data(pressure_vof)
+        ! call this%materials%density    %Point_to_data(density_vof)
+        ! call this%materials%dp_drho    %Point_to_data(dp_drho_vof)
+        ! call this%materials%dp_de      %Point_to_data(dp_de_vof)
+        ! call this%materials%sie        %Point_to_data(sie_vof)
+        ! call this%materials%vof        %Point_to_data(mat_vof)
 
         call this%num_mat_cells    %Point_to_data(nmats_in_cell)
         do j = 1, this%ny
@@ -1780,14 +1784,14 @@ contains
         call this%rezone%material_volume%Point_to_data(mat_vol)
 
 
-
-        call this%materials%temperature%Point_to_data(temperature_vof)
-        call this%materials%cell_mass  %Point_to_data(cell_mass_vof)
-        call this%materials%pressure   %Point_to_data(pressure_vof)
-        call this%materials%dp_drho    %Point_to_data(dp_drho_vof)
-        call this%materials%dp_de      %Point_to_data(dp_de_vof)
-        call this%materials%sie        %Point_to_data(sie_vof)
-        call this%materials%vof        %Point_to_data(mat_vof)
+! xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+        ! call this%materials%temperature%Point_to_data(temperature_vof)
+        ! call this%materials%cell_mass  %Point_to_data(cell_mass_vof)
+        ! call this%materials%pressure   %Point_to_data(pressure_vof)
+        ! call this%materials%dp_drho    %Point_to_data(dp_drho_vof)
+        ! call this%materials%dp_de      %Point_to_data(dp_de_vof)
+        ! call this%materials%sie        %Point_to_data(sie_vof)
+        ! call this%materials%vof        %Point_to_data(mat_vof)
 
         do k = 1, this%nz
             do j = 1, this%ny
@@ -1908,9 +1912,10 @@ contains
         call this%total_sie        %Point_to_data(sie)
         call this%total_vof        %Point_to_data(vof)
         call this%a_visc           %Point_to_data(a_visc)
-                    call this%materials%sie      %Point_to_data(sie_vof)
-                    call this%materials%vof      %Point_to_data(mat_vof)
-                    call this%materials%cell_mass%Point_to_data(cell_mass_vof)
+        ! xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+                    ! call this%materials%sie      %Point_to_data(sie_vof)
+                    ! call this%materials%vof      %Point_to_data(mat_vof)
+                    ! call this%materials%cell_mass%Point_to_data(cell_mass_vof)
         emf1 = 1 - this%emf
 
         do j = 1, this%ny
@@ -2052,10 +2057,13 @@ contains
         sie_vof_sum_arr = 0d0
         cell_mass_vof_sum_arr = 0d0
         mat_vof_max_arr = 0
+            
+        ! xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+            ! call this%materials%sie      %Point_to_data(sie_vof)
+            ! call this%materials%vof      %Point_to_data(mat_vof)
+            ! call this%materials%cell_mass%Point_to_data(cell_mass_vof)
 
-            call this%materials%sie      %Point_to_data(sie_vof)
-            call this%materials%vof      %Point_to_data(mat_vof)
-            call this%materials%cell_mass%Point_to_data(cell_mass_vof)
+        
 !        do tmp_mat = 1, this%nmats
 !
 !

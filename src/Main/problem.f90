@@ -531,8 +531,9 @@ contains
             Constructor%total_inverse_vertex_mass)
         call Constructor%total_inverse_vertex_mass%Exchange_virtual_space_blocking()
 
-        call Constructor%materials%density%point_to_data(density_vof)
-        call Constructor%materials%cell_mass%point_to_data(cell_mass_vof)
+        ! xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+        ! call Constructor%materials%density%point_to_data(density_vof)
+        ! call Constructor%materials%cell_mass%point_to_data(cell_mass_vof)
 
         do k = 1, Constructor%nz
             do j = 1, Constructor%ny
@@ -840,8 +841,9 @@ contains
         real(8), dimension(:, :, :), pointer :: sie
         real(8), dimension(:, :, :), pointer :: t
 
-        call this%materials%sie      %Point_to_data(sie_vof)
-        call this%materials%cell_mass%Point_to_data(cell_mass_vof)
+        ! xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+        ! call this%materials%sie      %Point_to_data(sie_vof)
+        ! call this%materials%cell_mass%Point_to_data(cell_mass_vof)
 
         call this%total_sie%Point_to_data(sie)
         call this%total_cell_mass%Point_to_data(cell_mass)

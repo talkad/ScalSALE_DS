@@ -92,7 +92,7 @@ end do
    subroutine Point_to_initial_layers(this, ptr)
       implicit none
       class (material_base_t)                  , intent(in out) :: this  
-      real(8)       , dimension(:,:,:,:), pointer, intent(out)    :: ptr
+      real(8)       , dimension(:), pointer, intent(out)    :: ptr
 
       call this%initial_layers_of_mats%Point_to_data (ptr)
 

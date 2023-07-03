@@ -88,11 +88,11 @@ contains
         type(cell_bc_wrapper_t), dimension(:), pointer,  intent(inout) :: bc_cell
         type(boundary_parameters_t), pointer, intent(in) :: bc_params
 
-        real(8), dimension (:,:,:,:), pointer                          :: density_vof
+        real(8), dimension (:), pointer                          :: density_vof
         real(8), dimension (:), pointer                          :: sie_vof
         real(8), dimension (:), pointer                          :: mat_vof
         real(8), dimension (:), pointer                          :: temp, temp_old
-        real(8), dimension (:), pointer                          :: mat_cell
+        real(8), dimension (:,:,:), pointer                          :: mat_cell
         real(8), dimension (:), pointer                          :: delete
         real(8), dimension (:), pointer                          :: delete2
         type(eos_wrapper_t), allocatable                                :: eos_c_wrap
@@ -154,12 +154,13 @@ contains
             do j = 1, nyp
                 do i = 1, nxp
                     do m = 1, nmats
+                        ! xxxxxxxxxxxxxxxxxxxxxxxx
                         if (mat_cell(i, j, k) == mat_ids(m)) then
-                            density_vof(m, i, j, k) = rho_0(m)
-                            temp(m, i, j, k)        = temperature_init
-                            temp_old(m, i, j, k)    = temperature_init
-                            mat_vof(m, i, j, k)     = 1d0
-                            sie_vof(m,i,j,k) = sie_0(m)
+                            ! density_vof(m, i, j, k) = rho_0(m)
+                            ! temp(m, i, j, k)        = temperature_init
+                            ! temp_old(m, i, j, k)    = temperature_init
+                            ! mat_vof(m, i, j, k)     = 1d0
+                            ! sie_vof(m,i,j,k) = sie_0(m)
                             if (sie_0(m) == 0) then
                                 Constructor%nrg_calc(m) = 1
                             else
@@ -184,16 +185,16 @@ contains
         real(8)                            , intent(in    ) :: emf
         logical                            , intent(in    ) :: is_old_temperature
 
-        real(8), dimension (:,:,:,:), pointer :: rho
-        real(8), dimension (:,:,:,:), pointer :: p
-        real(8), dimension (:,:,:,:), pointer :: t
-        real(8), dimension (:,:,:,:), pointer :: e
-        real(8), dimension (:,:,:,:), pointer :: dp_de_p
-        real(8), dimension (:,:,:,:), pointer :: dp_drho_p
-        real(8), dimension (:,:,:,:), pointer :: dt_de_p
-        real(8), dimension (:,:,:,:), pointer :: dt_drho_p
-        real(8), dimension (:,:,:,:), pointer :: mat_vof
-        real(8), dimension (:,:,:,:), pointer :: sound_vel
+        real(8), dimension (:), pointer :: rho
+        real(8), dimension (:), pointer :: p
+        real(8), dimension (:), pointer :: t
+        real(8), dimension (:), pointer :: e
+        real(8), dimension (:), pointer :: dp_de_p
+        real(8), dimension (:), pointer :: dp_drho_p
+        real(8), dimension (:), pointer :: dt_de_p
+        real(8), dimension (:), pointer :: dt_drho_p
+        real(8), dimension (:), pointer :: mat_vof
+        real(8), dimension (:), pointer :: sound_vel
 
         integer :: m
         call this%pressure%Point_to_data(p)
@@ -211,10 +212,11 @@ contains
             call this%temperature%Point_to_data(t)
         end if
         do m = 1, this%nmats
-            call this%equation_of_state(m)%eos%Calculate(p, sound_vel, rho, e, &
-                dp_de_p, dp_drho_p, dt_de_p, dt_drho_p, this%gamma_gas(m), this%atomic_mass(m), &
-                t, m, this%nrg_calc(m),&
-                nx, ny, nz, mat_vof, emf)
+            ! xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+            ! call this%equation_of_state(m)%eos%Calculate(p, sound_vel, rho, e, &
+            !     dp_de_p, dp_drho_p, dt_de_p, dt_drho_p, this%gamma_gas(m), this%atomic_mass(m), &
+            !     t, m, this%nrg_calc(m),&
+            !     nx, ny, nz, mat_vof, emf)
         end do
         this%nrg_calc = 0
 
