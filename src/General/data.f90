@@ -1,14 +1,13 @@
 
 module data_module
-   use communication_module, only : communication_t
-   use communication_parameters_module, only : communication_parameters_t
-   use parallel_parameters_module, only: parallel_parameters_t
+   use data_struct_module
+
    implicit none
    private
+
    public :: data_t
 
-
-   type :: data_t
+   type, extends(data_struct_t) :: data_t
       private
 
 
@@ -16,34 +15,27 @@ module data_module
       integer, public                                       :: nx   
       integer, public                                       :: ny   
       integer, public                                       :: nz   
-      type(communication_t), pointer                             :: communication
-      type(communication_parameters_t), pointer :: communication_parameters
-      type (parallel_parameters_t)   , public, pointer :: parallel_params      
 
-
-      real(8), dimension(:), allocatable     :: send_buf
-      real(8), dimension(:), allocatable     :: recv_buf
-      integer :: request
    contains
 
 
       procedure, public :: Point_to_data => Ptr_data
 
-      procedure, public :: Clean_data
+      procedure, public :: Clean_data => Clean_data_imp
 
-      procedure, public :: Set_communication
+      procedure, public :: Set_communication => Set_communication_imp
 
       procedure, public :: Debug_check_nan
 
-      procedure, public :: Exchange_virtual_space_blocking
+      procedure, public :: Exchange_virtual_space_blocking => Exchange_virtual_space_blocking_imp
 
-      procedure, private ::Set_send_buf
+      procedure, private ::Set_send_buf => Set_send_buf_imp
 
-      procedure, private ::Get_recv_buf
+      procedure, private ::Get_recv_buf => Get_recv_buf_imp
 
-      procedure, public :: Exchange_virtual_space_nonblocking
+      procedure, public :: Exchange_virtual_space_nonblocking => Exchange_virtual_space_nonblocking_imp
 
-      procedure, public :: Exchange_end
+      procedure, public :: Exchange_end => Exchange_end_imp
 
       procedure, public :: debug_print
 
@@ -173,14 +165,14 @@ contains
       Get_copy = this%values
    end function Get_copy
 
-   subroutine Clean_data (this)
+   subroutine Clean_data_imp (this)
       class (data_t), intent(in out) :: this  
 
       deallocate (this%values)
-   end subroutine Clean_data
+   end subroutine Clean_data_imp
 
 
-   subroutine Set_communication (this, comm, comm_params)
+   subroutine Set_communication_imp (this, comm, comm_params)
       class (data_t), intent(in out) :: this  
       type(communication_t), pointer            :: comm
       type(communication_parameters_t), pointer :: comm_params
@@ -199,10 +191,10 @@ contains
          allocate(this%send_buf(0:2*(d2+2)*(d3+2)+2*(d1+2)*(d3+2)+2*(d1+2)*(d2+2)+4*(d3+2)+4*(d2+2)+4*(d1+2)+7))
          allocate(this%recv_buf(0:2*(d2+2)*(d3+2)+2*(d1+2)*(d3+2)+2*(d1+2)*(d2+2)+4*(d3+2)+4*(d2+2)+4*(d1+2)+7))
       end if
-   end subroutine Set_communication
+   end subroutine Set_communication_imp
 
 
-   subroutine Exchange_virtual_space_blocking (this, ghost_width)
+   subroutine Exchange_virtual_space_blocking_imp (this, ghost_width)
       class (data_t), intent(in out) :: this  
       real(8), dimension(:,:,:), allocatable :: send_buf, recv_buf
       integer, dimension(3) :: vals_shape
@@ -222,12 +214,12 @@ contains
       end if
 
 
-   end subroutine Exchange_virtual_space_blocking
+   end subroutine Exchange_virtual_space_blocking_imp
 
 
 
 
-   subroutine Exchange_virtual_space_nonblocking (this, ghost_width)
+   subroutine Exchange_virtual_space_nonblocking_imp (this, ghost_width)
       class (data_t), intent(in out) :: this  
       integer, optional :: ghost_width
       integer :: ghost_width_local
@@ -244,9 +236,9 @@ contains
 
       end if
 
-   end subroutine Exchange_virtual_space_nonblocking
+   end subroutine Exchange_virtual_space_nonblocking_imp
 
-   subroutine Exchange_end (this)
+   subroutine Exchange_end_imp (this)
       class (data_t), intent(in out) :: this  
 
       if (this%communication%is_parallel .eqv. .true.) then
@@ -255,10 +247,10 @@ contains
          call this%Get_recv_buf()
       end if
 
-   end subroutine Exchange_end
+   end subroutine Exchange_end_imp
 
 
-   subroutine Get_recv_buf(this)
+   subroutine Get_recv_buf_imp(this)
       class (data_t), intent(in out) :: this  
       integer, dimension(3) :: vals_shape
       integer :: d1, d2, d3, x, y, z
@@ -361,10 +353,10 @@ contains
 !      if (this%parallel_params%my_rank == 0) then
 !      write(*,*)this%parallel_params%my_rank,this%values
 !end if
-   end subroutine Get_recv_buf
+   end subroutine Get_recv_buf_imp
 
 
-   subroutine Set_send_buf(this)
+   subroutine Set_send_buf_imp(this)
       class (data_t), intent(in out) :: this  
       integer, dimension(3) :: vals_shape
       integer :: d1, d2, d3, x, y, z, offset
@@ -464,7 +456,7 @@ contains
       if (x-1 /= 0 .and. y-1 /= 0 .and. z-1 /= 0) then
          this%send_buf(2*(d2+2)*(d3+2)+2*(d1+2)*(d3+2)+2*(d1+2)*(d2+2)+4*(d3+2)+4*(d2+2)+4*(d1+2)+7) = this%values(1+offset, 1+offset, 1+offset)
       end if
-   end subroutine Set_send_buf
+   end subroutine Set_send_buf_imp
 
 
    subroutine Debug_check_nan(this, caller)
