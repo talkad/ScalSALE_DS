@@ -155,12 +155,15 @@ contains
                 do i = 1, nxp
                     do m = 1, nmats
                         ! xxxxxxxxxxxxxxxxxxxxxxxx
+
                         if (mat_cell(i, j, k) == mat_ids(m)) then
+                            
                             ! density_vof(m, i, j, k) = rho_0(m)
                             ! temp(m, i, j, k)        = temperature_init
                             ! temp_old(m, i, j, k)    = temperature_init
                             ! mat_vof(m, i, j, k)     = 1d0
                             ! sie_vof(m,i,j,k) = sie_0(m)
+
                             if (sie_0(m) == 0) then
                                 Constructor%nrg_calc(m) = 1
                             else
