@@ -18,6 +18,7 @@ module material_module
     use material_base_module          , only : material_base_t
     use communication_module, only : communication_t
     use communication_parameters_module, only : communication_parameters_t
+    use indexer_module
 
     implicit none
     private
@@ -97,9 +98,16 @@ contains
         real(8), dimension (:), pointer                          :: delete2
         type(eos_wrapper_t), allocatable                                :: eos_c_wrap
         type(ideal_gas_t), target                                       :: ig_eos_c
+        type(indexer_t), pointer ::  index_mapper
+        integer, dimension(:,:,:,:), pointer   ::   mapper
+        integer :: csr_idx
 
 
         integer                                                      :: i, j, k, m
+        integer :: total_debug,total_debug2
+        total_debug = 0
+        total_debug2 = 0
+
 
         allocate(Constructor%dp_de)
         allocate(Constructor%dp_drho)
@@ -150,6 +158,11 @@ contains
         call Constructor%sie%Point_to_data(sie_vof)
         call mat_cells%Point_to_data(mat_cell)
 
+        index_mapper => get_instance()
+        mapper => index_mapper%mapper
+        ! print*, 'fffffffffffffffffffff', sum(mapper)
+        csr_idx = 0
+
         do k = 1, nzp
             do j = 1, nyp
                 do i = 1, nxp
@@ -158,11 +171,16 @@ contains
 
                         if (mat_cell(i, j, k) == mat_ids(m)) then
                             
-                            ! density_vof(m, i, j, k) = rho_0(m)
-                            ! temp(m, i, j, k)        = temperature_init
-                            ! temp_old(m, i, j, k)    = temperature_init
-                            ! mat_vof(m, i, j, k)     = 1d0
-                            ! sie_vof(m,i,j,k) = sie_0(m)
+                            density_vof(csr_idx) = rho_0(m)
+                            total_debug = total_debug + 1
+
+                            temp(csr_idx)        = temperature_init
+                            temp_old(csr_idx)    = temperature_init
+                            mat_vof(csr_idx)     = 1d0
+                            sie_vof(csr_idx) = sie_0(m)
+
+                            mapper(m,i,j,k) =  csr_idx
+                            csr_idx = csr_idx + 1
 
                             if (sie_0(m) == 0) then
                                 Constructor%nrg_calc(m) = 1
@@ -174,7 +192,79 @@ contains
                 end do
             end do
         end do
+        
+        ! print*, 'aaaaaaaaaa ', total_debug, sum(mapper)
+
+        total_debug = 0
+        do k = 1, nzp
+            do j = 1, nyp
+                do i = 1, nxp
+                    do m = 1, nmats
+                        
+                        if (mapper(m,i,j,k) > -1) total_debug = total_debug + 1
+                        if (mapper(m,i,j,k) == -1) total_debug2 = total_debug2 + 1
+
+                    end do
+                end do
+            end do
+        end do
+        
+        ! print*, 'aaaaaaaaaa ', total_debug, total_debug2
+
+        !!! DEBUG !!!
+        call debug(density_vof, 'material_results/density_vof.txt', nzp, nyp, nxp, nmats)
+        call debug(temp, 'material_results/temp.txt', nzp, nyp, nxp, nmats)
+        call debug(temp_old, 'material_results/temp_old.txt', nzp, nyp, nxp, nmats)
+        call debug(mat_vof, 'material_results/mat_vof.txt', nzp, nyp, nxp, nmats)
+        call debug(sie_vof, 'material_results/sie_vof.txt', nzp, nyp, nxp, nmats)
+        !!! DEBUG !!!
+        print*, 'print materials'
     end function
+
+
+    subroutine debug(arr, file_name, nzp, nyp, nxp, nmats)
+        real(8), dimension (:), pointer, intent(in)   ::   arr
+        integer, intent(in)                              ::   nzp, nyp, nxp, nmats
+        character(len=*), intent(in)                      ::   file_name
+        type(indexer_t), pointer ::  index_mapper
+        integer, dimension(:,:,:,:), pointer   ::   mapper
+        integer :: index
+
+        integer :: i,j,k,m
+        integer :: unit
+        integer :: total_debug
+        total_debug = 0
+
+        index_mapper => get_instance()
+        mapper => index_mapper%mapper
+        ! print*, 'dddddddddddddddddddddddddddd', sum(arr)
+
+        open (unit=414, file=file_name, status = 'replace')  
+        
+        do k = 1, nzp
+            do j = 1, nyp
+                do i = 1, nxp
+                    do m = 1, nmats
+                        index = mapper(m,i,j,k) 
+
+                        if (index == -1) then
+                            write(414,*)  0d0
+                        else
+                            total_debug = total_debug + 1
+                            write(414,*) arr(index)
+                        end if
+                        
+                    end do
+                end do
+            end do
+        end do
+        
+        close (414)
+
+        ! print*, 'ccccccccccccc ', total_debug, sum(mapper)
+
+    end subroutine debug
+
 
     subroutine Apply_eos(this, nx, ny, nz, emf, is_old_temperature)
         class(material_t)                  , intent(in out)    :: this

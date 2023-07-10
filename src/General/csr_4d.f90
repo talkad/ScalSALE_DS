@@ -93,34 +93,34 @@ module csr_module
         Constructor_init_val%idx_map => idx_map
         space_size = (d1+1) * (d2+1) * (d3+1) * d4
 
-        if (initial_val == 0d0) then
-            Constructor_init_val%padding_size = space_size*Constructor_init_val%ratio
-            Constructor_init_val%padding_idx = 0
+        ! if (initial_val == 0d0) then
+        Constructor_init_val%padding_size = space_size*Constructor_init_val%ratio
+        Constructor_init_val%padding_idx = 0
 
-            allocate(Constructor_init_val%nz_values(0:space_size+int(space_size*Constructor_init_val%ratio)))
-            Constructor_init_val%nz_values = 0d0
+        allocate(Constructor_init_val%nz_values(0:space_size+int(space_size*Constructor_init_val%ratio)))
+        Constructor_init_val%nz_values = 0d0
 
-            if (update_map) Constructor_init_val%idx_map = -1
-        else  
-            space_size = (d1+1) * (d2+1) * (d3+1) * d4
-            Constructor_init_val%padding_size = 0
-            Constructor_init_val%padding_idx = 0
-            allocate(Constructor_init_val%nz_values(0: space_size-1))
-            Constructor_init_val%nz_values = initial_val
+        !     if (update_map) Constructor_init_val%idx_map = -1
+        ! else  
+        !     space_size = (d1+1) * (d2+1) * (d3+1) * d4
+        !     Constructor_init_val%padding_size = 0
+        !     Constructor_init_val%padding_idx = 0
+        !     allocate(Constructor_init_val%nz_values(0: space_size-1))
+        !     Constructor_init_val%nz_values = initial_val
 
-            if (update_map) then
-                do k=0, d3
-                    do j=0, d2
-                        do i=0, d1
-                            do m=1, d4
-                                Constructor_init_val%idx_map(m,i,j,k) = idx
-                                idx = idx + 1
-                            end do
-                        end do
-                    end do
-                end do
-            end if
-        end if
+        !     if (update_map) then
+        !         do k=0, d3
+        !             do j=0, d2
+        !                 do i=0, d1
+        !                     do m=1, d4
+        !                         Constructor_init_val%idx_map(m,i,j,k) = idx
+        !                         idx = idx + 1
+        !                     end do
+        !                 end do
+        !             end do
+        !         end do
+        !     end if
+        ! end if
     end function
 
 
@@ -830,7 +830,7 @@ module csr_module
         end do
     end subroutine debug_print
 
-    
+
     subroutine Write_data(this, unit, iostat, iomsg)
         class (csr_t), intent(in) :: this
         integer,      intent(in)     :: unit

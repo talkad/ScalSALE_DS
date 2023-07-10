@@ -46,6 +46,7 @@ module problem_module
     use boundary_parameters_module      , only : boundary_parameters_t
     use data_4d_module, only: data_4d_t
     use material_quantity_module    , only : material_quantity_t
+    use indexer_module
     !   use hdf5
     !   use cr_module                       , only : cr_t
     use mpi
@@ -144,7 +145,7 @@ contains
         use general_utils_module, only : Compare_string, Str_eqv
         use geometry_module            , only : Create_start_index_layer
         
-        integer, dimension(:,:,:,:), allocatable :: idx_map
+        type(indexer_t), pointer ::  index_mapper
 
         type(datafile_t), intent(in)                      :: df        
         logical                                           :: saw_index
@@ -370,9 +371,11 @@ contains
 
         call Constructor%total_volume%Point_to_data (vol)
 
+        ! print*,  'bbbbbbbbbbbbbbbbbbbbb', num_mat  ! still not right arg
+        ! index_mapper => get_instance(2, nx, ny, nz) 
+        index_mapper => get_instance(2, nxp, nyp, nzp) 
 
-        allocate(idx_map(1:m,0:nx,0:ny,0:nz))
-        call Constructor%Create_materials (df, bc_c_wrap_arr, Constructor%mat_cells, idx_map, .TRUE.)  ! xxxxxxxxxxxxxxxxxxxxxxxxxxxx
+        call Constructor%Create_materials (df, bc_c_wrap_arr, Constructor%mat_cells, index_mapper%mapper, .TRUE.)  ! xxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
         
         Constructor%total_density = density_t    (df%mat_rho_0, Constructor%mat_cells , Constructor%nxp, Constructor%nyp&
@@ -551,7 +554,7 @@ contains
         call Constructor%materials%temperature%Exchange_virtual_space_blocking()
 
 
-        call Constructor%Initialize_sie(Constructor%emf)
+        call Constructor%Initialize_sie(Constructor%emf) ! xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
         call Constructor%a_visc%Initialize(df%quad_visc_fac, df%linear_visc_fac, df%to_radial_index_sphere,&
             df%from_radial_index_sphere, df%start_layer_index_r,df%no_xl_flag, df%start_no_xl_visc, df%end_no_xl_visc, df%offset_no_xl_visc)
         call Constructor%velocity%Initialize(df%to_radial_index_sphere,&
@@ -828,7 +831,7 @@ contains
     end subroutine Create_inverse_vertex_mass
 
 
-    subroutine Initialize_sie(this, emf)
+    subroutine Initialize_sie(this, emf) ! yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy
         implicit none
         class(problem_t), intent(inout)      :: this             
         real(8)         , intent(in)         :: emf              
