@@ -3,6 +3,7 @@ module ideal_gas_module
    use equation_of_state_module, only : equation_of_state_t
    use data_module, only : data_t
    use constants_module, only : AVOGADRO, K_BOLTZMAN
+   use indexer_module
    implicit none
    private
 
@@ -28,15 +29,15 @@ contains
                                    nx, ny, nz, vof, emf)
       implicit none
       class (ideal_gas_t)                , intent (inout) :: this        
-      real(8), dimension (:,:,:,:), pointer, intent (inout) :: pressure
-      real(8), dimension (:,:,:,:), pointer, intent (inout) :: sound_vel
-      real(8), dimension (:,:,:,:), pointer, intent (inout) :: density
-      real(8), dimension (:,:,:,:), pointer, intent (inout) :: sie
-      real(8), dimension (:,:,:,:), pointer, intent (inout) :: temperature
-      real(8), dimension (:,:,:,:), pointer, intent (inout) :: dp_de
-      real(8), dimension (:,:,:,:), pointer, intent (inout) :: dp_drho
-      real(8), dimension (:,:,:,:), pointer, intent (inout) :: dt_de
-      real(8), dimension (:,:,:,:), pointer, intent (inout) :: dt_drho
+      real(8), dimension (:), pointer, intent (inout) :: pressure
+      real(8), dimension (:), pointer, intent (inout) :: sound_vel
+      real(8), dimension (:), pointer, intent (inout) :: density
+      real(8), dimension (:), pointer, intent (inout) :: sie
+      real(8), dimension (:), pointer, intent (inout) :: temperature
+      real(8), dimension (:), pointer, intent (inout) :: dp_de
+      real(8), dimension (:), pointer, intent (inout) :: dp_drho
+      real(8), dimension (:), pointer, intent (inout) :: dt_de
+      real(8), dimension (:), pointer, intent (inout) :: dt_drho
       real(8)                            , intent (in)    :: atomic_mass 
       real(8)                            , intent (in)    :: gamma_gas   
       integer                            , intent (in)    :: mat_num     
@@ -45,33 +46,45 @@ contains
       integer                            , intent (in) :: nx  
       integer                            , intent (in) :: ny  
       integer                            , intent (in) :: nz  
-      real(8), dimension (:,:,:,:), pointer, intent (in) :: vof
+      real(8), dimension (:), pointer, intent (in) :: vof
       real(8)                            , intent (in) :: emf 
 
       real(8) :: gamma1 
       real(8) :: atomic_weight 
       integer :: i, j, k
+      type(indexer_t), pointer ::  index_mapper
+      integer, dimension(:,:,:,:), pointer   ::   mapper
+      integer :: csr_idx
+
       gamma1 = gamma_gas - 1d0
       atomic_weight = atomic_mass / AVOGADRO
+
+      index_mapper => get_instance()
+      mapper => index_mapper%mapper
+
       do k = 1, nz
          do j = 1, ny
             do i = 1, nx
-               if (vof(mat_num, i, j, k) >= emf) then
+
+               csr_idx = mapper(mat_num,i,j,k)
+               if (csr_idx == -1) cycle
+
+               if (vof(csr_idx) >= emf) then
                   if (nrg_or_tmp == 1) then
-                     sie(mat_num, i, j, k) = 1d0 / gamma1 * K_BOLTZMAN * temperature(mat_num, i, j, k) / atomic_weight
+                     sie(csr_idx) = 1d0 / gamma1 * K_BOLTZMAN * temperature(csr_idx) / atomic_weight
                   else
-                     temperature(mat_num, i, j, k) = atomic_weight * sie(mat_num, i, j, k) * gamma1 / K_BOLTZMAN
+                     temperature(csr_idx) = atomic_weight * sie(csr_idx) * gamma1 / K_BOLTZMAN
                   end if
-                  pressure (mat_num, i, j, k) = gamma1 * sie(mat_num, i, j, k) * density(mat_num, i, j, k) + 1d-25
-                  sound_vel(mat_num, i, j, k) = gamma1 * gamma_gas * sie(mat_num, i, j, k)
-                  dp_de    (mat_num, i, j, k) = gamma1 * density(mat_num, i, j, k)
-                  dp_drho  (mat_num, i, j, k) = gamma1 * sie(mat_num, i, j, k)
-                  dt_de    (mat_num, i, j, k) = atomic_weight * gamma1 / K_BOLTZMAN
-                  dt_drho  (mat_num, i, j, k) = 0d0
-                  if (sound_vel(mat_num, i, j, k) <= 0d0) then
-                     sound_vel(mat_num, i, j, k) = 1d-10
-                     dp_drho  (mat_num, i, j, k) = 1d-20
-                     pressure (mat_num, i, j, k) = 1d-25
+                  pressure (csr_idx) = gamma1 * sie(csr_idx) * density(csr_idx) + 1d-25
+                  sound_vel(csr_idx) = gamma1 * gamma_gas * sie(csr_idx)
+                  dp_de    (csr_idx) = gamma1 * density(csr_idx)
+                  dp_drho  (csr_idx) = gamma1 * sie(csr_idx)
+                  dt_de    (csr_idx) = atomic_weight * gamma1 / K_BOLTZMAN
+                  dt_drho  (csr_idx) = 0d0
+                  if (sound_vel(csr_idx) <= 0d0) then
+                     sound_vel(csr_idx) = 1d-10
+                     dp_drho  (csr_idx) = 1d-20
+                     pressure (csr_idx) = 1d-25
                   end if
                end if
             end do

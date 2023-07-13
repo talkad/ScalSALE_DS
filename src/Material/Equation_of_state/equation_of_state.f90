@@ -18,15 +18,15 @@ module equation_of_state_module
                                       nx, ny, nz, vof, emf)
          import :: equation_of_state_t, data_t
          class (equation_of_state_t)        , intent (inout) :: this        
-         real(8), dimension (:,:,:,:), pointer, intent (inout) :: pressure
-         real(8), dimension (:,:,:,:), pointer, intent (inout) :: sound_vel
-         real(8), dimension (:,:,:,:), pointer, intent (inout) :: density
-         real(8), dimension (:,:,:,:), pointer, intent (inout) :: sie
-         real(8), dimension (:,:,:,:), pointer, intent (inout) :: temperature
-         real(8), dimension (:,:,:,:), pointer, intent (inout) :: dp_de
-         real(8), dimension (:,:,:,:), pointer, intent (inout) :: dp_drho
-         real(8), dimension (:,:,:,:), pointer, intent (inout) :: dt_de
-         real(8), dimension (:,:,:,:), pointer, intent (inout) :: dt_drho
+         real(8), dimension (:), pointer, intent (inout) :: pressure
+         real(8), dimension (:), pointer, intent (inout) :: sound_vel
+         real(8), dimension (:), pointer, intent (inout) :: density
+         real(8), dimension (:), pointer, intent (inout) :: sie
+         real(8), dimension (:), pointer, intent (inout) :: temperature
+         real(8), dimension (:), pointer, intent (inout) :: dp_de
+         real(8), dimension (:), pointer, intent (inout) :: dp_drho
+         real(8), dimension (:), pointer, intent (inout) :: dt_de
+         real(8), dimension (:), pointer, intent (inout) :: dt_drho
          real(8)                            , intent (in)    :: atomic_mass 
          real(8)                            , intent (in)    :: gamma_gas   
          integer                            , intent (in   ) :: mat_num     
@@ -35,7 +35,7 @@ module equation_of_state_module
          integer                            , intent (in   ) :: nx
          integer                            , intent (in   ) :: ny
          integer                            , intent (in   ) :: nz
-         real(8), dimension (:,:,:,:), pointer, intent (in   ) :: vof
+         real(8), dimension (:), pointer, intent (in   ) :: vof
          real(8)                            , intent (in   ) :: emf
 
 

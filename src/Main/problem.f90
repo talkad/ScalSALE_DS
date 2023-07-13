@@ -175,12 +175,14 @@ contains
         integer                                           :: counter, text_diag_counter, hdf5_diag_counter, tmp_mat
         character(len=80)       :: word
         integer, dimension(:, :), allocatable :: start_index
-        real(8), dimension(:,:,:,:), pointer :: cell_mass_vof,density_vof
+        real(8), dimension(:), pointer :: cell_mass_vof,density_vof
 
         integer :: myid, numprocs, ierr
         integer :: nxp, nyp, nzp, nx,ny,nz, m
         character(5) :: my_id
         integer :: rank 
+        integer :: csr_idx
+        integer, dimension(:,:,:,:), pointer   ::   mapper
 
         call Constructor%Initialize_communication(df)
         call Constructor%Initialize_openmp(df%threads)
@@ -535,18 +537,26 @@ contains
         call Constructor%total_inverse_vertex_mass%Exchange_virtual_space_blocking()
 
         ! xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-        ! call Constructor%materials%density%point_to_data(density_vof)
-        ! call Constructor%materials%cell_mass%point_to_data(cell_mass_vof)
+        call Constructor%materials%density%point_to_data(density_vof)
+        call Constructor%materials%cell_mass%point_to_data(cell_mass_vof)
+
+        mapper => index_mapper%mapper
 
         do k = 1, Constructor%nz
             do j = 1, Constructor%ny
                 do i = 1, Constructor%nx
                     do tmp_mat=1, Constructor%n_materials
-                        cell_mass_vof(tmp_mat, i,j,k) = vol(i,j,k) * density_vof(tmp_mat,i,j,k)
+
+                        csr_idx = mapper(tmp_mat,i,j,k)
+                        if (csr_idx == -1) cycle
+
+                        cell_mass_vof(csr_idx) = vol(i,j,k) * density_vof(csr_idx)
                     end do
                 end do
             end do
         end do
+
+        ! call debug(cell_mass_vof, 'material_results/cell_mass_vof.txt', Constructor%nz, Constructor%ny, Constructor%nx, Constructor%n_materials)
 
         call Constructor%materials%sie%Exchange_virtual_space_blocking()
         call Constructor%materials%density%Exchange_virtual_space_blocking()
@@ -701,9 +711,9 @@ contains
                         !call this%Write_to_files()
         ncyc = 1
         if (this%rezone_type == 0) then
-            max_ncyc = 21
+            max_ncyc = 2
         else
-            max_ncyc = 21
+            max_ncyc = 2
         end if
 
         if (this%mesh%dimension == 2) then
@@ -735,10 +745,7 @@ contains
         
 
         ! open (unit=411, file='total_pressure_result.txt', status = 'replace')  
-        ! write(411,*) this%total_pressure%data(1)%values(1:this%nx:10, 1:this%ny:10, 1:this%nz:10) 
-        ! close (411)
-        ! open (unit=412, file='velocity_result.txt', status = 'replace')  
-        ! write(412,*) this%velocity%data(1)%values(1:this%nx:10, 1:this%ny:10, 1:this%nz:10) 
+ 
         ! close (412)
         ! open (unit=413, file='total_cell_mass_result.txt', status = 'replace')  
         ! write(413,*) this%total_cell_mass%data(1)%values(1:this%nx:10, 1:this%ny:10, 1:this%nz:10) 
@@ -838,27 +845,35 @@ contains
 
 
         integer                              :: i, j, k, tmp_mat
-        real(8), dimension(:, :,:, :), pointer :: sie_vof
-        real(8), dimension(:, :,:, :), pointer :: cell_mass_vof
+        real(8), dimension(:), pointer :: sie_vof
+        real(8), dimension(:), pointer :: cell_mass_vof
         real(8), dimension(:, :, :), pointer :: cell_mass    
         real(8), dimension(:, :, :), pointer :: sie
         real(8), dimension(:, :, :), pointer :: t
+        type(indexer_t), pointer ::  index_mapper
+        integer, dimension(:,:,:,:), pointer   ::   mapper
+        integer :: csr_idx
 
-        ! xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-        ! call this%materials%sie      %Point_to_data(sie_vof)
-        ! call this%materials%cell_mass%Point_to_data(cell_mass_vof)
+        call this%materials%sie      %Point_to_data(sie_vof)
+        call this%materials%cell_mass%Point_to_data(cell_mass_vof)
+
 
         call this%total_sie%Point_to_data(sie)
         call this%total_cell_mass%Point_to_data(cell_mass)
         call this%materials%Apply_eos(this%nx, this%ny, this%nz,emf,.false.)
 
-
+        index_mapper => get_instance()
+        mapper => index_mapper%mapper
 
         do k = 1, this%nz
             do j = 1, this%ny
                 do i = 1, this%nx
                     do tmp_mat = 1, this%n_materials
-                        sie(i, j, k) = sie(i, j, k) + sie_vof(tmp_mat, i, j, k) * cell_mass_vof(tmp_mat, i, j, k)
+                        csr_idx = mapper(tmp_mat,i,j,k)
+
+                        if (csr_idx == -1) cycle
+
+                        sie(i, j, k) = sie(i, j, k) + sie_vof(csr_idx) * cell_mass_vof(csr_idx)
                     end do
                 end do
             end do
@@ -873,7 +888,49 @@ contains
             end do
         end do
 
+        ! call debug(sie_vof, 'material_results/Initialize_sie.txt', this%nz, this%ny, this%nx, this%n_materials)
     end subroutine Initialize_sie
+
+
+    subroutine debug(arr, file_name, nzp, nyp, nxp, nmats)
+        real(8), dimension (:), pointer, intent(in)   ::   arr
+        integer, intent(in)                              ::   nzp, nyp, nxp, nmats
+        character(len=*), intent(in)                      ::   file_name
+        type(indexer_t), pointer ::  index_mapper
+        integer, dimension(:,:,:,:), pointer   ::   mapper
+        integer :: index
+
+        integer :: i,j,k,m
+        integer :: unit
+        integer :: total_debug
+        total_debug = 0
+
+        index_mapper => get_instance()
+        mapper => index_mapper%mapper
+
+        open (unit=414, file=file_name, status = 'replace')  
+        
+        do k = 1, nzp
+            do j = 1, nyp
+                do i = 1, nxp
+                    do m = 1, nmats
+                        index = mapper(m,i,j,k) 
+
+                        if (index == -1) then
+                            write(414,*)  0d0
+                        else
+                            total_debug = total_debug + 1
+                            write(414,*) arr(index)
+                        end if
+                        
+                    end do
+                end do
+            end do
+        end do
+        
+        close (414)
+
+    end subroutine debug
 
 
     subroutine Initialize_communication(this, df)
