@@ -7,6 +7,8 @@ module quantity_module
     use parallel_parameters_module       , only : parallel_parameters_t
     ! use data_4d_module, only : data_4d_t
     use csr_module, only : csr_t
+    
+    use indexer_module
 
     implicit none
     private
@@ -28,7 +30,7 @@ module quantity_module
         integer                     , public              :: number_of_axises  
     contains
 
-
+        procedure, public  :: print_data
         procedure, public  :: Init_quantity_init_arr
         procedure, public  :: Init_quantity_no_bc
 
@@ -396,6 +398,50 @@ contains
             call this%data(i)%debug_print(caller // " Axis:" // axis_num, width)
         end if
     end subroutine debug_print
+
+
+
+    subroutine print_data(this, file_name)
+        class (quantity_t), intent(in out) :: this 
+        real(8), dimension (:), pointer  ::   arr
+        integer                        ::   nzp, nyp, nxp, nmats
+        character(len=*), intent(in)                      ::   file_name
+        type(indexer_t), pointer ::  index_mapper
+        integer, dimension(:,:,:,:), pointer   ::   mapper
+        integer :: index
+
+        integer :: i,j,k,m
+        integer :: unit
+
+        index_mapper => get_instance()
+        mapper => index_mapper%mapper
+
+        arr => this%data_4d%nz_values
+
+        open (unit=69, file=file_name, position="append", status="old", action="write")
+        
+        do k = 1, nzp
+            do j = 1, nyp
+                do i = 1, nxp
+                    do m = 1, nmats
+                        index = mapper(m,i,j,k) 
+
+                        if (index == -1) then
+                            write(69,*)  0d0
+                        else
+                            write(69,*) arr(index)
+                        end if
+                        
+                    end do
+                end do
+            end do
+        end do
+        
+        close (69)
+
+    end subroutine print_data
+
+    
 
     subroutine Write_quantity_abstract(this, unit, iostat, iomsg)
         class (quantity_t), intent(in) :: this  

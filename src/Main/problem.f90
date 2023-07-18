@@ -711,9 +711,9 @@ contains
                         !call this%Write_to_files()
         ncyc = 1
         if (this%rezone_type == 0) then
-            max_ncyc = 2
+            max_ncyc = 100
         else
-            max_ncyc = 2
+            max_ncyc = 100
         end if
 
         if (this%mesh%dimension == 2) then
@@ -744,15 +744,19 @@ contains
         !these values should indicate whether your code is correct or not.
         
 
-        ! open (unit=411, file='total_pressure_result.txt', status = 'replace')  
- 
-        ! close (412)
-        ! open (unit=413, file='total_cell_mass_result.txt', status = 'replace')  
-        ! write(413,*) this%total_cell_mass%data(1)%values(1:this%nx:10, 1:this%ny:10, 1:this%nz:10) 
-        ! close (413)
-        ! open (unit=414, file='total_sie_result.txt', status = 'replace')  
-        ! write(414,*) this%total_sie%data(1)%values(1:this%nx:10, 1:this%ny:10, 1:this%nz:10) 
-        ! close (414)
+        open (unit=411, file='total_pressure_result.txt', status = 'replace')  
+        write(411,*) this%total_pressure%data(1)%values(1:this%nx:10, 1:this%ny:10, 1:this%nz:10) 
+        close (411)
+        open (unit=412, file='velocity_result.txt', status = 'replace')  
+        write(412,*) this%velocity%data(1)%values(1:this%nx:10, 1:this%ny:10, 1:this%nz:10) 
+        close (412)
+        open (unit=413, file='total_cell_mass_result.txt', status = 'replace')  
+        write(413,*) this%total_cell_mass%data(1)%values(1:this%nx:10, 1:this%ny:10, 1:this%nz:10) 
+        close (413)
+        open (unit=414, file='total_sie_result.txt', status = 'replace')  
+        write(414,*) this%total_sie%data(1)%values(1:this%nx:10, 1:this%ny:10, 1:this%nz:10) 
+        close (414)
+        
 
         call this%Close_files()
         if (this%parallel_params%my_rank == 0) then
@@ -908,7 +912,7 @@ contains
         index_mapper => get_instance()
         mapper => index_mapper%mapper
 
-        open (unit=414, file=file_name, status = 'replace')  
+        open (unit=414, file=file_name, position="append", status="old", action="write")
         
         do k = 1, nzp
             do j = 1, nyp

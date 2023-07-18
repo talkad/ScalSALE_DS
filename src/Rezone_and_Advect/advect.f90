@@ -2421,18 +2421,8 @@ contains
         end if
 
 
-
-
-
-
-
-
-
         call this%line_calc_3d(0, i_start, i_end, j_start, j_end, k_start, k_end)
         call this%line_calc_3d(1, i_start, i_end, j_start, j_end, k_start, k_end)
-
-
-
 
 
         !        do tmp_mat=1, this%n_materials

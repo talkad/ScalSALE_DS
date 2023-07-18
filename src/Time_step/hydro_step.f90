@@ -422,6 +422,7 @@ contains
 
         call this%Calculate_mesh_3d(time)
 
+        ! xxxxxxxxxxxxxxxxxx
         ! if (this%rezone%rezone_type /= 0) call this%advect%Calculate_advect_3d()
 
     end subroutine do_time_step_3d
@@ -476,8 +477,6 @@ contains
         integer :: csr_idx
         
 
-        print*, 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
-
         tmp = omp_get_wtime()
         call this%total_sie%Exchange_virtual_space_nonblocking()
         call this%total_cell_mass%Exchange_virtual_space_nonblocking()
@@ -513,9 +512,6 @@ contains
         call this%materials%sound_vel      %Point_to_data(sound_vel_vof)
         call this%materials%dt_de          %Point_to_data(dt_de_vof)
         call this%materials%vof            %Point_to_data(mat_vof)
-
-
-        ! call debug(dt_de_vof, 'material_results/dt_de_vof.txt', this%nz, this%ny, this%nx, this%nmats)
 
 
         call this%Calculate_density(this%total_volume)
@@ -593,8 +589,6 @@ contains
         end do
 
         
-
-
         call this%total_pressure%Exchange_virtual_space_nonblocking()
         call this%total_density%Apply_boundary(.false.)
 
@@ -658,10 +652,10 @@ contains
         call this%Calculate_inversed_vertex_mass()
         call this%inversed_vertex_mass%Exchange_virtual_space_blocking()
 
-
-
         
-        ! call debug(mat_vof, 'material_results/mat_vof.txt', this%nz, this%ny, this%nx, this%nmats)
+        call debug(temperature_vof, 'material_results/temperature.txt', this%nz, this%ny, this%nx, this%nmats)
+        call debug(pressure_vof, 'material_results/pressure.txt', this%nz, this%ny, this%nx, this%nmats)
+        call debug(mat_vof, 'material_results/mat.txt', this%nz, this%ny, this%nx, this%nmats)
 
     end subroutine Calculate_thermodynamics
 
@@ -2129,9 +2123,9 @@ contains
         real(8), dimension(:, :, :), pointer :: vof                 
         real(8), dimension(:, :, :), pointer :: sie                 
 
-        real(8), dimension(:, :, :, :), pointer :: cell_mass_vof
-        real(8), dimension(:, :, :, :), pointer :: mat_vof
-        real(8), dimension(:, :, :, :), pointer :: sie_vof
+        real(8), dimension(:), pointer :: cell_mass_vof
+        real(8), dimension(:), pointer :: mat_vof
+        real(8), dimension(:), pointer :: sie_vof
 
         real(8), dimension(:, :, :), allocatable :: vof_sum_arr          
         real(8), dimension(:, :, :), allocatable :: vof_max_arr          
@@ -2175,10 +2169,10 @@ contains
         cell_mass_vof_sum_arr = 0d0
         mat_vof_max_arr = 0
             
-        ! xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-            ! call this%materials%sie      %Point_to_data(sie_vof)
-            ! call this%materials%vof      %Point_to_data(mat_vof)
-            ! call this%materials%cell_mass%Point_to_data(cell_mass_vof)
+
+            call this%materials%sie      %Point_to_data(sie_vof)
+            call this%materials%vof      %Point_to_data(mat_vof)
+            call this%materials%cell_mass%Point_to_data(cell_mass_vof)
 
         
 !        do tmp_mat = 1, this%nmats
@@ -2257,6 +2251,11 @@ call this%materials%sie%exchange_end()
         deallocate(mat_vof_max_arr)
         call this%total_vof%Apply_boundarY(.false.)
             call this%materials%vof%Apply_boundarY(is_blocking=.false.)
+
+
+            ! call debug(cell_mass_vof, 'material_results/cell_mass_vof.txt', this%nz, this%ny, this%nx, this%nmats)
+            ! call debug(mat_vof, 'material_results/mat_vof.txt', this%nz, this%ny, this%nx, this%nmats)
+            ! call debug(sie_vof, 'material_results/sie_vof.txt', this%nz, this%ny, this%nx, this%nmats)
 
         return
     end subroutine Fix_vof_3d
