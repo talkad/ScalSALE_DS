@@ -1,4 +1,5 @@
 module csr_module
+    use indexer_module
     use data_struct_module
 
     type, extends(data_struct_t) :: csr_t
@@ -11,7 +12,7 @@ module csr_module
 
         !! CSR Arguments 
         real(8), dimension(:), pointer :: nz_values
-        integer, dimension(:,:,:,:), pointer :: idx_map
+        integer, dimension(:,:,:,:), pointer :: idx_map        
         integer :: padding_size
         integer :: padding_idx
 
@@ -55,6 +56,7 @@ module csr_module
         procedure :: update_struct => update_struct
         procedure, private, nopass :: append_real
         procedure, private :: count_new_cells
+        procedure, private :: add_boundary
 
     end type
 
@@ -62,29 +64,26 @@ module csr_module
 
 
     interface csr_t
-        module procedure sparse_constructor
-
-        ! module procedure Constructor_init_arr
         module procedure Constructor_init_val
-    
-      
     end interface
 
 
     contains
     
 
-
-    type(csr_t) function Constructor_init_val(initial_val, d1, d2, d3, d4, idx_map, update_map)
+    type(csr_t) function Constructor_init_val(initial_val, d1, d2, d3, d4, idx_map)
         implicit none
         integer, dimension(:,:,:,:), allocatable, target, intent(inout) :: idx_map
-        logical, intent(in) :: update_map
+
         real(8)           , intent(in) :: initial_val  
         integer           , intent(in) :: d1, d2, d3, d4  
-        integer :: space_size, idx
+        integer :: space_size
         integer :: i, j, k, m
+        
+        allocate(Constructor_init_val%values(0:1,0:1,0:1,0:1))
+        Constructor_init_val%values = 0
 
-        idx = 0
+
         Constructor_init_val%nx = d1
         Constructor_init_val%ny = d2
         Constructor_init_val%nz = d3
@@ -93,64 +92,106 @@ module csr_module
         Constructor_init_val%idx_map => idx_map
         space_size = (d1+1) * (d2+1) * (d3+1) * d4
 
-        ! if (initial_val == 0d0) then
         Constructor_init_val%padding_size = space_size*Constructor_init_val%ratio
         Constructor_init_val%padding_idx = 0
 
         allocate(Constructor_init_val%nz_values(0:space_size+int(space_size*Constructor_init_val%ratio)))
         Constructor_init_val%nz_values = 0d0
 
-        !     if (update_map) Constructor_init_val%idx_map = -1
-        ! else  
-        !     space_size = (d1+1) * (d2+1) * (d3+1) * d4
-        !     Constructor_init_val%padding_size = 0
-        !     Constructor_init_val%padding_idx = 0
-        !     allocate(Constructor_init_val%nz_values(0: space_size-1))
-        !     Constructor_init_val%nz_values = initial_val
+        call Constructor_init_val%add_boundary()
 
-        !     if (update_map) then
-        !         do k=0, d3
-        !             do j=0, d2
-        !                 do i=0, d1
-        !                     do m=1, d4
-        !                         Constructor_init_val%idx_map(m,i,j,k) = idx
-        !                         idx = idx + 1
-        !                     end do
-        !                 end do
-        !             end do
-        !         end do
-        !     end if
-        ! end if
     end function
 
 
+    subroutine add_boundary(this)
+        implicit none
+        class(csr_t), intent(inout) :: this
+        type(indexer_t), pointer ::  index_mapper
+        integer :: i,j,k,m
+        integer :: csr_idx
+        
+        index_mapper => get_instance()
+        csr_idx = 0
+        i = 0
+        do k = 0, this%nz
+            do j = 0, this%ny
+                do m = 1, this%nmats
+                    this%idx_map(m,i,j,k) = csr_idx
+                    this%nz_values(csr_idx) = 0
+
+                    csr_idx = csr_idx + 1
+                end do
+            end do
+        end do
 
 
+        i = this%nx
+        do k = 0, this%nz
+            do j = 0, this%ny
+                do m = 1, this%nmats
+                    this%idx_map(m,i,j,k) = csr_idx
+                    this%nz_values(csr_idx) = 0
 
-    function sparse_constructor(indxs)
-        type(csr_t), pointer :: sparse_constructor
-        integer, dimension(:,:,:,:), allocatable, target, intent(inout) :: indxs
-        integer, parameter :: ratio = 0.1
-        real(8), parameter :: mix_ratio = 0.01
-        integer :: space_size, initial_size
+                    csr_idx = csr_idx + 1
+                end do
+            end do
+        end do
 
-        space_size = size(indxs, dim=2)*size(indxs, dim=3)*size(indxs, dim=4)
-        initial_size = space_size + ratio * space_size
 
-        allocate(sparse_constructor)
-        sparse_constructor%idx_map => indxs
-        allocate(sparse_constructor%nz_values(0:initial_size))
+        j = 0
+        do k = 0, this%nz
+            do i = 0, this%nx
+                do m = 1, this%nmats
+                    this%idx_map(m,i,j,k) = csr_idx
+                    this%nz_values(csr_idx) = 0
 
-        sparse_constructor%nz_values(0:initial_size) = 0d0
-        ! sparse_constructor%idx_map(:,:,:,:) = -1
-        sparse_constructor%padding_size = space_size*mix_ratio
-        sparse_constructor%padding_idx = 0
+                    csr_idx = csr_idx + 1
+                end do
+            end do
+        end do
 
-        sparse_constructor%nx = size(indxs, dim=2)-1
-        sparse_constructor%ny = size(indxs, dim=3)-1
-        sparse_constructor%nz = size(indxs, dim=4)-1
-        sparse_constructor%nmats = size(indxs, dim=1)
-    end function
+
+        j = this%ny
+        do k = 0, this%nz
+            do i = 0, this%nx
+                do m = 1, this%nmats
+                    this%idx_map(m,i,j,k) = csr_idx
+                    this%nz_values(csr_idx) = 0
+
+                    csr_idx = csr_idx + 1
+                end do
+            end do
+        end do
+
+
+        k = 0
+        do j = 0, this%ny
+            do i = 0, this%nx
+                do m = 1, this%nmats
+                    this%idx_map(m,i,j,k) = csr_idx
+                    this%nz_values(csr_idx) = 0
+
+                    csr_idx = csr_idx + 1
+                end do
+            end do
+        end do
+
+        k = this%nz
+        do j = 0, this%ny
+            do i = 0, this%nx
+                do m = 1, this%nmats
+                    this%idx_map(m,i,j,k) = csr_idx
+                    this%nz_values(csr_idx) = 0
+
+                    csr_idx = csr_idx + 1
+                end do
+            end do
+        end do
+
+        index_mapper%last_idx = csr_idx
+    
+    end subroutine add_boundary
+
 
 
     pure subroutine add_item(this, material_type, i, j, k, val)
@@ -331,13 +372,13 @@ module csr_module
         class (csr_t)       , intent(in)  :: this
         real(8), dimension(:,:,:,:), pointer :: Get_copy
 
-        Get_copy = this%values
+        ! Get_copy = this%values
     end function Get_copy
 
     subroutine Clean_data_imp (this)
         class (csr_t), intent(in out) :: this
 
-        deallocate (this%values)
+        deallocate (this%nz_values)
     end subroutine Clean_data_imp
 
 
@@ -345,7 +386,7 @@ module csr_module
         class (csr_t), intent(in out) :: this
         type(communication_t), pointer            :: comm
         type(communication_parameters_t), pointer :: comm_params
-        integer, dimension(4) :: vals_shape
+        ! integer, dimension(4) :: vals_shape
         integer :: d1,d2,d3
 
         this%communication => comm
@@ -353,10 +394,15 @@ module csr_module
 
         this%parallel_params => this%communication%parallel_params
         if (this%communication%is_parallel .eqv. .true.) then
-        vals_shape = shape(this%values)
-        d1 = vals_shape(2) - 2
-        d2 = vals_shape(3) - 2
-        d3 = vals_shape(4) - 2
+        ! vals_shape = shape(this%values)
+        ! d1 = vals_shape(2) - 2
+        ! d2 = vals_shape(3) - 2
+        ! d3 = vals_shape(4) - 2
+
+        d1 = this%nx - 2
+        d2 = this%ny - 2
+        d3 = this%nz - 2
+
         allocate(this%send_buf(0:this%nmats * (2*(d2+2)*(d3+2)+2*(d1+2)*(d3+2)+2*(d1+2)*(d2+2)+4*(d3+2)+4*(d2+2)+4*(d1+2)+8)-1))
         allocate(this%recv_buf(0:this%nmats * (2*(d2+2)*(d3+2)+2*(d1+2)*(d3+2)+2*(d1+2)*(d2+2)+4*(d3+2)+4*(d2+2)+4*(d1+2)+8)-1))
         end if
@@ -381,7 +427,6 @@ module csr_module
         call this%communication%Send_recv_neighbors_diag (this%communication_parameters, this%send_buf, this%recv_buf)
         call this%Get_recv_buf()
         end if
-
 
     end subroutine Exchange_virtual_space_blocking_imp
 

@@ -24,7 +24,7 @@ module hydro_step_module
     use energy_module                   , only : energy_t
     use volume_module                   , only : volume_t
     use rezone_module                   , only : rezone_t
-    ! use advect_module                   , only : advect_t
+    use advect_module                   , only : advect_t
     use data_module                     , only : data_t
     use time_module                     , only : time_t
     use vof_module                      , only : vof_t
@@ -58,7 +58,7 @@ module hydro_step_module
         type (volume_t)                , pointer :: total_volume         
         type (energy_t)                , pointer :: total_sie            
         type (rezone_t)                , pointer :: rezone               
-        ! type (advect_t)                , pointer :: advect               
+        type (advect_t)                , pointer :: advect               
         type (data_t)                  , pointer :: inversed_vertex_mass
         type (vof_t)                   , pointer :: total_vof            
         type (data_t)                  , pointer :: total_dt_drho        
@@ -414,15 +414,15 @@ contains
         call this%Calculate_artificial_viscosity_3d(time)
 
         call this%Calculate_velocity_3d(time%dt_mid)
+
         call this%rezone%Calculate_rezone_3d(time%dt)
 
-        call this%Calculate_energy_3d(this%init_temperature, time%dt)
+        ! call this%Calculate_energy_3d(this%init_temperature, time%dt)
 
-        call this%Fix_vof_3d(time%dt, 0)
+        ! call this%Fix_vof_3d(time%dt, 0)
 
-        call this%Calculate_mesh_3d(time)
+        ! call this%Calculate_mesh_3d(time)
 
-        ! xxxxxxxxxxxxxxxxxx
         ! if (this%rezone%rezone_type /= 0) call this%advect%Calculate_advect_3d()
 
     end subroutine do_time_step_3d
@@ -589,6 +589,7 @@ contains
         end do
 
         
+        
         call this%total_pressure%Exchange_virtual_space_nonblocking()
         call this%total_density%Apply_boundary(.false.)
 
@@ -660,9 +661,9 @@ contains
     end subroutine Calculate_thermodynamics
 
 
-    subroutine debug(arr, file_name, nzp, nyp, nxp, nmats)
+    subroutine debug(arr, file_name, nz, ny, nx, nmats)
         real(8), dimension (:), pointer, intent(in)   ::   arr
-        integer, intent(in)                              ::   nzp, nyp, nxp, nmats
+        integer, intent(in)                              ::   nz, ny, nx, nmats
         character(len=*), intent(in)                      ::   file_name
         type(indexer_t), pointer ::  index_mapper
         integer, dimension(:,:,:,:), pointer   ::   mapper
@@ -678,9 +679,9 @@ contains
 
         open (unit=414, file=file_name, status = 'replace')  
         
-        do k = 1, nzp
-            do j = 1, nyp
-                do i = 1, nxp
+        do k = 0, nz+1
+            do j = 0, ny+1
+                do i = 0, nx+1
                     do m = 1, nmats
                         index = mapper(m,i,j,k) 
 
@@ -2545,8 +2546,7 @@ call this%materials%sie%exchange_end()
         type(communication_parameters_t), pointer :: comm_params_cell, comm_params_vertex, comm_material
 
 
-
-        ! call this%advect%Set_communication(comm, comm_params_cell, comm_params_vertex, comm_material)
+        call this%advect%Set_communication(comm, comm_params_cell, comm_params_vertex, comm_material)
         call this%rezone%Set_communication(comm, comm_params_cell, comm_params_vertex)
     end subroutine Set_communication
 
@@ -2737,9 +2737,9 @@ call this%materials%sie%exchange_end()
         call this%rezone%Point_to_velocities(ptr_x, ptr_y)
     end subroutine Point_to_mesh_velocity_data
 
-    subroutine Point_to_advect (this)
+    subroutine Point_to_advect (this, advect_ptr)
         class (hydro_step_t), intent(in out) :: this  
-        ! type(advect_t), pointer, intent(out) :: advect_ptr
+        type(advect_t), pointer, intent(out) :: advect_ptr
 
         ! advect_ptr => this%advect
 

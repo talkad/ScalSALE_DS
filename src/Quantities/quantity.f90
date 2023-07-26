@@ -140,11 +140,10 @@ contains
         nullify(this%data_4d)
     end subroutine
 
-    subroutine Init_quantity_init_val_4d(this, initial_val, d1, d2, d3, d4, axises_num, bc_params, idx_map, update_map)
+    subroutine Init_quantity_init_val_4d(this, initial_val, d1, d2, d3, d4, axises_num, bc_params)
         implicit none
         class(quantity_t) , intent(in out) :: this
-        integer, dimension(:,:,:,:), allocatable, target, intent(inout) :: idx_map
-        logical, intent(in) :: update_map
+
         real(8)           , intent(in)     :: initial_val
         integer           , intent(in)     :: d1
         integer           , intent(in)     :: d2
@@ -154,10 +153,16 @@ contains
 
         integer           , intent(in)     :: axises_num
         integer                            :: i
+        type(indexer_t), pointer ::  index_mapper
+        integer, dimension(:,:,:,:), pointer   ::   mapper
+
+        index_mapper => get_instance()
+        mapper => index_mapper%mapper
+
         nullify(this%data_4d)
         nullify(this%data)
         allocate (csr_t :: this%data_4d)
-        this%data_4d = csr_t(initial_val, d1, d2, d3, d4, idx_map, update_map)
+        this%data_4d = csr_t(initial_val, d1, d2, d3, d4, index_mapper%mapper)
         this%d1 = d1 - 1
         this%d2 = d2 - 1
         this%d3 = d3 - 1
@@ -166,11 +171,10 @@ contains
         nullify(this%data)
     end subroutine
 
-    subroutine Init_quantity_no_bc(this, initial_val, d1, d2, d3, d4, axises_num, idx_map, update_map)
+    subroutine Init_quantity_no_bc(this, initial_val, d1, d2, d3, d4, axises_num)
         implicit none
         class(quantity_t) , intent(in out) :: this
-        integer, dimension(:,:,:,:), allocatable, target, intent(inout) :: idx_map
-        logical, intent(in) :: update_map
+
         real(8)           , intent(in)     :: initial_val
         integer           , intent(in)     :: d1
         integer           , intent(in)     :: d2
@@ -179,10 +183,15 @@ contains
 
         integer           , intent(in)     :: axises_num
         integer                            :: i
+
+        type(indexer_t), pointer ::  index_mapper
+
+        index_mapper => get_instance()
+
         nullify(this%data_4d)
         nullify(this%data)
         allocate (csr_t :: this%data_4d)
-        this%data_4d = csr_t(initial_val, d1, d2, d3, d4, idx_map, update_map)
+        this%data_4d = csr_t(initial_val, d1, d2, d3, d4, index_mapper%mapper)
         this%d1 = d1 - 1
         this%d2 = d2 - 1
         this%d3 = d3 - 1
@@ -285,7 +294,9 @@ contains
         type(communication_parameters_t), pointer :: comm_params
         integer :: i
         if (associated(this%data)) then
+            print*, 'aaaaaaaaaa'
             do i=1, this%number_of_axises
+                print*, i
                 call this%data(i)%Set_communication (comm, comm_params)
             end do
         else

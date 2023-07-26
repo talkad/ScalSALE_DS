@@ -376,9 +376,7 @@ contains
         ! print*,  'bbbbbbbbbbbbbbbbbbbbb', num_mat  ! still not right arg
         ! index_mapper => get_instance(2, nx, ny, nz) 
         index_mapper => get_instance(2, nxp, nyp, nzp) 
-
-        call Constructor%Create_materials (df, bc_c_wrap_arr, Constructor%mat_cells, index_mapper%mapper, .TRUE.)  ! xxxxxxxxxxxxxxxxxxxxxxxxxxxx
-
+        call Constructor%Create_materials (df, bc_c_wrap_arr, Constructor%mat_cells)  ! xxxxxxxxxxxxxxxxxxxxxxxxxxxx
         
         Constructor%total_density = density_t    (df%mat_rho_0, Constructor%mat_cells , Constructor%nxp, Constructor%nyp&
             , Constructor%nzp , bc_c_wrap_arr,Constructor%boundary_params)
@@ -440,6 +438,7 @@ contains
 
         text_diag_counter = 1
         hdf5_diag_counter = 1
+        print*,'hello'
 
         do i=1, size(df%diag_types(:))
             word = df%diag_types(i)
@@ -467,8 +466,10 @@ contains
             !    hdf5_diag_counter = hdf5_diag_counter + 1
             end if
         end do
+        print*,'hello'
 
         call Constructor%Set_communication()
+        print*,'hello'
 
         call Constructor%mesh%Exchange_virtual_space_blocking()
         call Constructor%total_vof%Exchange_virtual_space_blocking()
@@ -536,6 +537,7 @@ contains
             Constructor%total_inverse_vertex_mass)
         call Constructor%total_inverse_vertex_mass%Exchange_virtual_space_blocking()
 
+
         ! xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
         call Constructor%materials%density%point_to_data(density_vof)
         call Constructor%materials%cell_mass%point_to_data(cell_mass_vof)
@@ -587,7 +589,7 @@ contains
         call this%mat_cells%Set_communication(this%communication, this%communication_parameters_cell)
 
         call this%mesh%Set_communication(this%communication, this%communication_parameters_vertex)
-
+        print*, 'nooooooooooooo'
         call this%total_temperature%Set_communication(this%communication, this%communication_parameters_cell)
         call this%velocity%Set_communication(this%communication, this%communication_parameters_vertex)
         call this%acceleration%Set_communication(this%communication, this%communication_parameters_vertex)
@@ -600,26 +602,31 @@ contains
         call this%total_pressure_sum%Set_communication(this%communication, this%communication_parameters_cell)
         call this%total_sound_vel%Set_communication(this%communication, this%communication_parameters_cell)
         call this%a_visc%Set_communication(this%communication, this%communication_parameters_cell)
+        print*, 'nooooooooooooo'
 
         call this%total_sie%Set_communication(this%communication, this%communication_parameters_cell)
         call this%total_vof%Set_communication(this%communication, this%communication_parameters_cell)
         call this%num_mat_cells%Set_communication(this%communication, this%communication_parameters_cell)
         call this%total_inverse_vertex_mass%Set_communication(this%communication, this%communication_parameters_cell)
+        print*, 'nooooooooooooo'
 
         !        do i = 1, this%n_materials
         call this%materials%Set_communication_material(this%communication, this%communication_parameters_material)
         !        end do
+        print*, 'nooooooooooooo'
 
         call this%total_density%Set_communication(this%communication, this%communication_parameters_cell)
         call this%total_cell_mass%Set_communication(this%communication, this%communication_parameters_cell)
         call this%total_vertex_mass%Set_communication(this%communication, this%communication_parameters_vertex)
 
         call this%boundary_params%Set_communication(this%communication, this%communication_parameters_cell)
+        print*, 'nooooooooooooo'
 
         if (this%wilkins_scheme == 1) then
             call this%previous_cell_mass%Set_communication(this%communication, this%communication_parameters_cell)
             call this%previous_vertex_mass%Set_communication(this%communication, this%communication_parameters_vertex)
         end if
+        print*, 'nooooooooooooo'
 
         call this%hydro%Set_communication(this%communication, this%communication_parameters_cell, &
             this%communication_parameters_vertex, this%communication_parameters_material)
@@ -727,6 +734,7 @@ contains
 
         else if (this%mesh%dimension == 3) then
             do while (this%time%Should_continue() .and. ncyc < max_ncyc)
+
                 reem_start = omp_get_wtime()
                 call this%hydro%do_time_step_3d(this%time)
                 call this%time%Update_time()
@@ -773,12 +781,10 @@ contains
         write(*,*) "ncyc: ", ncyc-1
     end subroutine Start_calculation
 
-    subroutine Create_materials(this, df, bc_c_wrap_arr, mat_cell, idx_map, update_map)
+    subroutine Create_materials(this, df, bc_c_wrap_arr, mat_cell)
         use datafile_module
         implicit none
         class(problem_t)                                , intent(inout) :: this 
-        integer, dimension(:,:,:,:), allocatable, target, intent(inout) :: idx_map
-        logical, intent(in) :: update_map         
         type(datafile_t)                                , intent(in)    :: df            
         type(cell_bc_wrapper_t  ), dimension(:), pointer, intent(inout) :: bc_c_wrap_arr 
         type(materials_in_cells_t), pointer                      , intent(inout) :: mat_cell
@@ -808,7 +814,7 @@ contains
         !                        df%mat_rho_0(mat), df%init_temperature, df%mat_sie_0(mat)
         this%materials = material_t(nxp, nyp, nzp, this%n_materials, df%mat_index, df%mat_gamma_gas,&
             df%mat_atomic_mass, df%mat_z, df%mat_z2, df%mat_rho_0, df%init_temperature, df%mat_sie_0,&
-             mat_cell, bc_c_wrap_arr, this%boundary_params, idx_map, update_map)
+             mat_cell, bc_c_wrap_arr, this%boundary_params)
 
         !        nxp, nyp, nzp, nmats, mat_ids, gamma_gas, atomic_mass,&
         !        num_protons, num_protons_2, rho_0, temperature_init, sie_0, eos, mat_cells, bc_cell&

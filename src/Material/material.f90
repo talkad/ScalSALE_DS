@@ -65,12 +65,10 @@ contains
 
     type(material_t) function Constructor(nxp, nyp, nzp, nmats, mat_ids, gamma_gas, atomic_mass,&
         num_protons, num_protons_2, rho_0, temperature_init, sie_0, mat_cells, bc_cell&
-        , bc_params, idx_map, update_map)
+        , bc_params)
         use boundary_parameters_module, only : boundary_parameters_t
 
         implicit none
-        integer, dimension(:,:,:,:), allocatable, target, intent(inout) :: idx_map
-        logical, intent(in) :: update_map
 
         !        type (eos_wrapper_t), dimension(:), pointer                  , intent(in out)       :: eos
         integer, dimension(:), allocatable        , intent(in)           :: mat_ids
@@ -126,17 +124,17 @@ contains
         allocate(eos_wrapper_t :: Constructor%equation_of_state (nmats))
 
 
-        call Constructor%Init_material_base(nxp, nyp, nzp, nmats, mat_ids, bc_cell, bc_params, idx_map, update_map)
+        call Constructor%Init_material_base(nxp, nyp, nzp, nmats, mat_ids, bc_cell, bc_params)
 
-        Constructor%dp_de   = material_quantity_t(0d0, nxp, nyp, nzp, nmats, idx_map, update_map)
-        Constructor%dp_drho = material_quantity_t(0d0, nxp, nyp, nzp, nmats, idx_map, update_map)
-        Constructor%dt_de   = material_quantity_t(0d0, nxp, nyp, nzp, nmats, idx_map, update_map)
-        Constructor%dt_drho = material_quantity_t(0d0, nxp, nyp, nzp, nmats, idx_map, update_map)
-        Constructor%density = material_quantity_t(0d0, nxp, nyp, nzp, nmats, bc_cell, bc_params, idx_map, update_map)
-        Constructor%pressure = material_quantity_t (0d0, nxp, nyp, nzp, nmats, bc_cell, bc_params, idx_map, update_map)
-        Constructor%temperature = material_quantity_t (0d0, nxp, nyp, nzp, nmats, bc_cell, bc_params, idx_map, update_map)
-        Constructor%temperature_old = material_quantity_t (0d0, nxp, nyp, nzp, nmats, bc_cell, bc_params, idx_map, update_map)
-        Constructor%sound_vel = material_quantity_t (0d0, nxp, nyp, nzp, nmats, bc_cell, bc_params, idx_map, update_map)
+        Constructor%dp_de   = material_quantity_t(0d0, nxp, nyp, nzp, nmats)
+        Constructor%dp_drho = material_quantity_t(0d0, nxp, nyp, nzp, nmats)
+        Constructor%dt_de   = material_quantity_t(0d0, nxp, nyp, nzp, nmats)
+        Constructor%dt_drho = material_quantity_t(0d0, nxp, nyp, nzp, nmats)
+        Constructor%density = material_quantity_t(0d0, nxp, nyp, nzp, nmats, bc_cell, bc_params)
+        Constructor%pressure = material_quantity_t (0d0, nxp, nyp, nzp, nmats, bc_cell, bc_params)
+        Constructor%temperature = material_quantity_t (0d0, nxp, nyp, nzp, nmats, bc_cell, bc_params)
+        Constructor%temperature_old = material_quantity_t (0d0, nxp, nyp, nzp, nmats, bc_cell, bc_params)
+        Constructor%sound_vel = material_quantity_t (0d0, nxp, nyp, nzp, nmats, bc_cell, bc_params)
 
         allocate(eos_c_wrap)
         eos_c_wrap%eos => ig_eos_c
@@ -161,7 +159,7 @@ contains
         index_mapper => get_instance()
         mapper => index_mapper%mapper
         ! print*, 'fffffffffffffffffffff', sum(mapper)
-        csr_idx = 0
+        csr_idx = index_mapper%last_idx
 
         do k = 1, nzp
             do j = 1, nyp
@@ -193,23 +191,6 @@ contains
             end do
         end do
         
-        ! print*, 'aaaaaaaaaa ', total_debug, sum(mapper)
-
-        ! total_debug = 0
-        ! do k = 1, nzp
-        !     do j = 1, nyp
-        !         do i = 1, nxp
-        !             do m = 1, nmats
-                        
-        !                 if (mapper(m,i,j,k) > -1) total_debug = total_debug + 1
-        !                 if (mapper(m,i,j,k) == -1) total_debug2 = total_debug2 + 1
-
-        !             end do
-        !         end do
-        !     end do
-        ! end do
-        
-
     end function
 
 

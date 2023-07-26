@@ -59,11 +59,9 @@ module material_advect_module
 
 contains
 
-    type(material_advect_t) function Constructor(nxp, nyp, nzp, nmats, mat_ids, bc_cell, bc_params, idx_map, update_map)
+    type(material_advect_t) function Constructor(nxp, nyp, nzp, nmats, mat_ids, bc_cell, bc_params)
         use boundary_parameters_module, only : boundary_parameters_t
-        implicit none
-        integer, dimension(:,:,:,:), allocatable, target, intent(inout) :: idx_map
-        logical, intent(in) :: update_map
+
         integer                               , intent(in)           :: nmats
         integer,dimension(:), allocatable         , intent(in)           :: mat_ids
 
@@ -74,7 +72,7 @@ contains
         type(cell_bc_wrapper_t), dimension(:), pointer,  intent(in) :: bc_cell
         type(boundary_parameters_t), pointer, intent(in) :: bc_params
 
-        call Constructor%Init_material_base(nxp, nyp, nzp, nmats, mat_ids, bc_cell, bc_params, idx_map, update_map)
+        call Constructor%Init_material_base(nxp, nyp, nzp, nmats, mat_ids, bc_cell, bc_params)
 
         allocate(Constructor%area_left_in(nmats))
         allocate(Constructor%area_left_out(nmats))
@@ -95,12 +93,12 @@ contains
         allocate(Constructor%side)
         allocate(Constructor%area_top_out)
         allocate(Constructor%area_top_in)
-        Constructor%area_top_in = material_quantity_t (0d0, nxp, 1, 1, nmats, idx_map, update_map)
-        Constructor%area_top_out = material_quantity_t (0d0, nxp, 1, 1, nmats, idx_map, update_map)
-        Constructor%a = material_quantity_t(0d0, nxp, nyp, nzp, nmats, idx_map, update_map)
-        Constructor%b = material_quantity_t(0d0, nxp, nyp, nzp, nmats, idx_map, update_map)
-        Constructor%c = material_quantity_t(0d0, nxp, nyp, nzp, nmats, idx_map, update_map)
-        Constructor%side = material_quantity_t(0d0, nxp, nyp, nzp, nmats, idx_map, update_map)
+        Constructor%area_top_in = material_quantity_t (0d0, nxp, 1, 1, nmats)
+        Constructor%area_top_out = material_quantity_t (0d0, nxp, 1, 1, nmats)
+        Constructor%a = material_quantity_t(0d0, nxp, nyp, nzp, nmats)
+        Constructor%b = material_quantity_t(0d0, nxp, nyp, nzp, nmats)
+        Constructor%c = material_quantity_t(0d0, nxp, nyp, nzp, nmats)
+        Constructor%side = material_quantity_t(0d0, nxp, nyp, nzp, nmats)
         Constructor%area_left_in = 0
         Constructor%area_left_out = 0
         Constructor%area_right_in = 0

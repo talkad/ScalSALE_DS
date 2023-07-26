@@ -7,15 +7,16 @@ def convert_data(file_path):
     return data
 
 
-file_path1 = '/home/talkad_k/Desktop/ScalSALE_DS/src/Scripts/material_results/pressure.txt'
-file_path2 = '/home/talkad_k/Desktop/ScalSALE_original/ScalSALE_DS/src/Scripts/material_results/pressure.txt'
+files = ['pressure', 'mat', 'temperature', 'sie_vof']
 
-data1, data2 = convert_data(file_path1), convert_data(file_path2)
+for file in files:
+    file_path1 = f'/home/talkad_k/Desktop/ScalSALE_DS/src/Scripts/material_results/{file}.txt'
+    file_path2 = f'/home/talkad_k/Desktop/ScalSALE_original/ScalSALE_DS/src/Scripts/material_results/{file}.txt'
 
-print(f"data len {len(data1)}")
+    data1, data2 = convert_data(file_path1), convert_data(file_path2)
 
-for val1, val2 in zip(data1, data2):
-    if val1 != val2:
-        print("You piss of shit")
+    for val1, val2 in zip(data1, data2):
+        if val1 != val2:
+            print(f"You piss of shit - {file}")
 
 print("MY GUY")

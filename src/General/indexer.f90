@@ -5,6 +5,7 @@ module indexer_module
 
         logical :: initiated = .False.
         integer :: m, nx, ny, nz
+        integer :: last_idx
 
         contains
             procedure, nopass, private :: mapper_constructor    
@@ -25,6 +26,7 @@ module indexer_module
         allocate(mapper_constructor%mapper(1:m,0:nx,0:ny,0:nz))
 
         mapper_constructor%mapper(1:m,0:nx,0:ny,0:nz) = -1
+        print*, m ,nx,ny,nz
 
     end function mapper_constructor
 
