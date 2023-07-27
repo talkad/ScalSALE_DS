@@ -108,6 +108,8 @@ contains
 
 
         integer                                                      :: i, j, k, m
+        integer :: total_debug
+        total_debug = 0
 
         allocate(Constructor%dp_de)
         allocate(Constructor%dp_drho)
@@ -164,7 +166,10 @@ contains
                 do i = 1, nxp
                     do m = 1, nmats
                         if (mat_cell(i, j, k) == mat_ids(m)) then
-                            density_vof(m, i, j, k) = rho_0(m)
+
+                            density_vof(m, i, j, k) =  rho_0(m)
+                            ! total_debug = total_debug + rho_0(m)
+
                             temp(m, i, j, k)        = temperature_init
                             temp_old(m, i, j, k)    = temperature_init
                             mat_vof(m, i, j, k)     = 1d0
@@ -179,7 +184,11 @@ contains
                 end do
             end do
         end do
+
     end function
+
+
+
 
     subroutine Apply_eos(this, nx, ny, nz, emf, is_old_temperature)
         class(material_t)                  , intent(in out)    :: this

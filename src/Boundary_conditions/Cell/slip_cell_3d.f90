@@ -27,6 +27,7 @@ contains
         nxp = c_quantity%d1 + 1
         nyp = c_quantity%d2 + 1
         nzp = c_quantity%d3 + 1
+
         if (associated(c_quantity%data_4d)) then
             call c_quantity%Point_to_data(values_4d)
             nmats = c_quantity%data_4d%nmats

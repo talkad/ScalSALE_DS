@@ -372,6 +372,7 @@ contains
 
         call Constructor%Create_materials (df, bc_c_wrap_arr, Constructor%mat_cells)
 
+        ! call debug(dt_de_vof, 'material_results/dt_de_vof.txt', this%nz, this%ny, this%nx, this%nmats)
 
         Constructor%total_density = density_t    (df%mat_rho_0, Constructor%mat_cells , Constructor%nxp, Constructor%nyp&
             , Constructor%nzp , bc_c_wrap_arr,Constructor%boundary_params)
@@ -542,6 +543,9 @@ contains
             end do
         end do
 
+        ! call debug(cell_mass_vof, 'material_results/cell_mass_vof.txt', Constructor%nz, Constructor%ny, Constructor%nx, Constructor%n_materials)
+
+
         call Constructor%materials%sie%Exchange_virtual_space_blocking()
         call Constructor%materials%density%Exchange_virtual_space_blocking()
         call Constructor%materials%cell_mass%Exchange_virtual_space_blocking()
@@ -695,9 +699,9 @@ contains
                         !call this%Write_to_files()
         ncyc = 1
         if (this%rezone_type == 0) then
-            max_ncyc = 11
+            max_ncyc = 100
         else
-            max_ncyc = 11
+            max_ncyc = 100
         end if
 
         if (this%mesh%dimension == 2) then
@@ -726,7 +730,6 @@ contains
         !you should expect the same result for each correct execution you make. 
         !we print the values in a stride of 10 in each axis to save on storage and I/O operations.
         !these values should indicate whether your code is correct or not.
-        
 
         open (unit=411, file='total_pressure_result.txt', status = 'replace')  
         write(411,*) this%total_pressure%data(1)%values(1:this%nx:10, 1:this%ny:10, 1:this%nz:10) 
@@ -864,7 +867,42 @@ contains
             end do
         end do
 
+        ! call debug(sie_vof, 'material_results/Initialize_sie.txt', this%nz, this%ny, this%nx, this%n_materials)
     end subroutine Initialize_sie
+
+
+    
+    subroutine debug(arr, file_name, nzp, nyp, nxp, nmats)
+        real(8), dimension(:,:,:,:), pointer, intent(in)   ::   arr
+        integer, intent(in)                              ::   nzp, nyp, nxp, nmats
+        character(len=*), intent(in)                      ::   file_name
+
+        integer :: i,j,k,m
+        integer :: unit
+        integer :: total_debug
+        total_debug = 0
+
+
+        open (unit=414, file=file_name, position="append", status="old", action="write")
+        
+        
+        do k = 1, nzp
+            do j = 1, nyp
+                do i = 1, nxp
+                    do m = 1, nmats
+
+                        if (arr(m,i,j,k) == 0)   total_debug = total_debug + 1
+                        write(414,*) arr(m,i,j,k)
+                    end do
+                end do
+            end do
+        end do
+        
+        close (414)
+
+
+    end subroutine debug
+
 
 
     subroutine Initialize_communication(this, df)

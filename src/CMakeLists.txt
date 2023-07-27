@@ -11,10 +11,10 @@ enable_language (Fortran)
 add_definitions($ENV{DEFS})
 
 if (CMAKE_Fortran_COMPILER_ID STREQUAL "GNU")
-set(ENV{JSONFORTRAN} "/home/talkad/Desktop/ScalSALE_DS/json-fortran/build")
+set(ENV{JSONFORTRAN} "/home/talkad_k/Desktop/json-fortran/build")
 set(CMAKE_Fortran_FLAGS "-fPIC -cpp -fopenmp -g -shared-libgcc -ffree-line-length-512")
 else()
-set(ENV{JSONFORTRAN} "/home/talkad/Desktop/ScalSALE_DS/json-fortran/build")
+set(ENV{JSONFORTRAN} "/home/talkad_k/Desktop/json-fortran/build")
 set(CMAKE_Fortran_FLAGS "-fPIC -cpp -fpp -g -qopenmp ")
 endif()
 
