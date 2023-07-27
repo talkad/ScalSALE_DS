@@ -589,7 +589,6 @@ contains
         call this%mat_cells%Set_communication(this%communication, this%communication_parameters_cell)
 
         call this%mesh%Set_communication(this%communication, this%communication_parameters_vertex)
-        print*, 'nooooooooooooo'
         call this%total_temperature%Set_communication(this%communication, this%communication_parameters_cell)
         call this%velocity%Set_communication(this%communication, this%communication_parameters_vertex)
         call this%acceleration%Set_communication(this%communication, this%communication_parameters_vertex)
@@ -602,31 +601,26 @@ contains
         call this%total_pressure_sum%Set_communication(this%communication, this%communication_parameters_cell)
         call this%total_sound_vel%Set_communication(this%communication, this%communication_parameters_cell)
         call this%a_visc%Set_communication(this%communication, this%communication_parameters_cell)
-        print*, 'nooooooooooooo'
 
         call this%total_sie%Set_communication(this%communication, this%communication_parameters_cell)
         call this%total_vof%Set_communication(this%communication, this%communication_parameters_cell)
         call this%num_mat_cells%Set_communication(this%communication, this%communication_parameters_cell)
         call this%total_inverse_vertex_mass%Set_communication(this%communication, this%communication_parameters_cell)
-        print*, 'nooooooooooooo'
 
         !        do i = 1, this%n_materials
         call this%materials%Set_communication_material(this%communication, this%communication_parameters_material)
         !        end do
-        print*, 'nooooooooooooo'
 
         call this%total_density%Set_communication(this%communication, this%communication_parameters_cell)
         call this%total_cell_mass%Set_communication(this%communication, this%communication_parameters_cell)
         call this%total_vertex_mass%Set_communication(this%communication, this%communication_parameters_vertex)
 
         call this%boundary_params%Set_communication(this%communication, this%communication_parameters_cell)
-        print*, 'nooooooooooooo'
 
         if (this%wilkins_scheme == 1) then
             call this%previous_cell_mass%Set_communication(this%communication, this%communication_parameters_cell)
             call this%previous_vertex_mass%Set_communication(this%communication, this%communication_parameters_vertex)
         end if
-        print*, 'nooooooooooooo'
 
         call this%hydro%Set_communication(this%communication, this%communication_parameters_cell, &
             this%communication_parameters_vertex, this%communication_parameters_material)
@@ -718,9 +712,9 @@ contains
                         !call this%Write_to_files()
         ncyc = 1
         if (this%rezone_type == 0) then
-            max_ncyc = 100
+            max_ncyc = 2
         else
-            max_ncyc = 100
+            max_ncyc = 2
         end if
 
         if (this%mesh%dimension == 2) then

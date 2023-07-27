@@ -178,11 +178,11 @@ contains
       type(communication_parameters_t), pointer :: comm_params
       integer, dimension(3) :: vals_shape
       integer :: d1,d2,d3
-
       this%communication => comm
       this%communication_parameters => comm_params
 
       this%parallel_params => this%communication%parallel_params
+
       if (this%communication%is_parallel .eqv. .true.) then
          vals_shape = shape(this%values)
          d1 = vals_shape(1) - 2

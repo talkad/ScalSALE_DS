@@ -341,17 +341,17 @@ contains
         Constructor%rezone = rezone_t(df%rezone_type, nxp, nyp, nzp, total_cell_mass%boundary_conditions,&
             velocity%boundary_conditions, mesh, velocity, vertex_mass, &
             total_cell_mass%boundary_params)
-        ! allocate(Constructor%advect)
+        allocate(Constructor%advect)
 
 
 
-        ! Constructor%advect = advect_t(nxp, nyp, nzp,nmats, mat_ids, total_cell_mass%boundary_conditions, velocity%boundary_conditions, &
-        !     total_cell_mass%boundary_params&
-        !     ,df%line_calc, df%shorter_advect, df%fix_overflow, Constructor%rezone, mesh, &
-        !     materials, mat_id, num_mat_cells, &
-        !     total_sie, total_vof, &
-        !     total_density, total_cell_mass, vertex_mass, &
-        !     total_volume, velocity, emf, emfm , wilkins_scheme, parallel_params)
+        Constructor%advect = advect_t(nxp, nyp, nzp,nmats, mat_ids, total_cell_mass%boundary_conditions, velocity%boundary_conditions, &
+            total_cell_mass%boundary_params&
+            ,df%line_calc, df%shorter_advect, df%fix_overflow, Constructor%rezone, mesh, &
+            materials, mat_id, num_mat_cells, &
+            total_sie, total_vof, &
+            total_density, total_cell_mass, vertex_mass, &
+            total_volume, velocity, emf, emfm , wilkins_scheme, parallel_params)
         Constructor%ncyc = 0
     end function
 
@@ -417,7 +417,7 @@ contains
 
         call this%rezone%Calculate_rezone_3d(time%dt)
 
-        ! call this%Calculate_energy_3d(this%init_temperature, time%dt)
+        call this%Calculate_energy_3d(this%init_temperature, time%dt)
 
         ! call this%Fix_vof_3d(time%dt, 0)
 
@@ -430,6 +430,7 @@ contains
 
     subroutine Calculate_thermodynamics(this)
         use omp_lib
+
         implicit none
         class (hydro_step_t) , intent(inout)   :: this
 
@@ -563,16 +564,12 @@ contains
         call this%materials%Apply_eos(this%nx, this%ny, this%nz, this%emf, .true.)
 
 
-        ! call debug(cell_mass_vof, 'material_results/cell_mass_vof.txt', this%nz, this%ny, this%nx, this%nmats)
-        ! call debug(dt_de_vof, 'material_results/dt_de_vof.txt', this%nz, this%ny, this%nx, this%nmats)
-
-
         do k = 1, this%nz
             do j = 1, this%ny
                 do i = 1, this%nx
                     do tmp_mat = 1, this%nmats
                         csr_idx = mapper(tmp_mat,i,j,k)
-                        ! if (csr_idx == -1) cycle
+                        if (csr_idx == -1) cycle
 
                         if (mat_vof(csr_idx) <= this%emf) cycle
 
@@ -627,7 +624,10 @@ contains
         call this%materials%cell_mass%Apply_boundary(.false.)
         call this%materials%density  %Apply_boundary(.false.)
         call this%materials%sie      %Apply_boundary(.false.)
-        call this%materials%vof      %Apply_boundary(.false.)
+
+        ! call debug(mat_vof, 'material_results/mat_vof1.txt', this%nz, this%ny, this%nx, this%nmats)
+        ! call this%materials%vof      %Apply_boundary(.false.)  ! ????????????????
+        ! call debug(mat_vof, 'material_results/mat_vof2.txt', this%nz, this%ny, this%nx, this%nmats)
 
 
 
@@ -2544,7 +2544,6 @@ call this%materials%sie%exchange_end()
         class (hydro_step_t)            :: this 
         type(communication_t), pointer            :: comm
         type(communication_parameters_t), pointer :: comm_params_cell, comm_params_vertex, comm_material
-
 
         call this%advect%Set_communication(comm, comm_params_cell, comm_params_vertex, comm_material)
         call this%rezone%Set_communication(comm, comm_params_cell, comm_params_vertex)

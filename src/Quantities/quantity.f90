@@ -293,10 +293,9 @@ contains
         type(communication_t), pointer            :: comm
         type(communication_parameters_t), pointer :: comm_params
         integer :: i
+
         if (associated(this%data)) then
-            print*, 'aaaaaaaaaa'
             do i=1, this%number_of_axises
-                print*, i
                 call this%data(i)%Set_communication (comm, comm_params)
             end do
         else

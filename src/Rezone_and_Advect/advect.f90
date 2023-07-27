@@ -3568,8 +3568,7 @@ contains
         type(communication_parameters_t), pointer :: comm_params_cell, comm_params_vertex, comm_material
         integer :: i, num_mat
 
-
-        ! call this%adv_cell_mass%Set_communication(comm, comm_params_cell)
+        call this%adv_cell_mass%Set_communication(comm, comm_params_cell)
         ! call this%adv_vertex_mass%Set_communication(comm, comm_params_vertex)
         ! call this%adv_sie%Set_communication(comm, comm_params_cell)
         ! call this%vel_adv_weight%Set_communication(comm, comm_params_vertex)
