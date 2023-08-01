@@ -102,9 +102,7 @@ contains
 
 
         integer                                                      :: i, j, k, m
-        integer :: total_debug,total_debug2
-        total_debug = 0
-        total_debug2 = 0
+
 
 
         allocate(Constructor%dp_de)
@@ -125,15 +123,24 @@ contains
 
 
         call Constructor%Init_material_base(nxp, nyp, nzp, nmats, mat_ids, bc_cell, bc_params)
-
+        print*, 'dp_de'
         Constructor%dp_de   = material_quantity_t(0d0, nxp, nyp, nzp, nmats)
+        print*, 'dp_drho'
         Constructor%dp_drho = material_quantity_t(0d0, nxp, nyp, nzp, nmats)
+        print*, 'dt_de'
         Constructor%dt_de   = material_quantity_t(0d0, nxp, nyp, nzp, nmats)
+        print*, 'dt_drho'
         Constructor%dt_drho = material_quantity_t(0d0, nxp, nyp, nzp, nmats)
+
+        print*, 'density'
         Constructor%density = material_quantity_t(0d0, nxp, nyp, nzp, nmats, bc_cell, bc_params)
+        print*, 'pressure'
         Constructor%pressure = material_quantity_t (0d0, nxp, nyp, nzp, nmats, bc_cell, bc_params)
+        print*, 'temperature'
         Constructor%temperature = material_quantity_t (0d0, nxp, nyp, nzp, nmats, bc_cell, bc_params)
+        print*, 'temperature_old'
         Constructor%temperature_old = material_quantity_t (0d0, nxp, nyp, nzp, nmats, bc_cell, bc_params)
+        print*, 'sound_vel'
         Constructor%sound_vel = material_quantity_t (0d0, nxp, nyp, nzp, nmats, bc_cell, bc_params)
 
         allocate(eos_c_wrap)
@@ -158,19 +165,16 @@ contains
 
         index_mapper => get_instance()
         mapper => index_mapper%mapper
-        ! print*, 'fffffffffffffffffffff', sum(mapper)
         csr_idx = index_mapper%last_idx
 
         do k = 1, nzp
             do j = 1, nyp
                 do i = 1, nxp
                     do m = 1, nmats
-                        ! xxxxxxxxxxxxxxxxxxxxxxxx
 
                         if (mat_cell(i, j, k) == mat_ids(m)) then
                             
                             density_vof(csr_idx) = rho_0(m)
-                            total_debug = total_debug + 1
 
                             temp(csr_idx)        = temperature_init
                             temp_old(csr_idx)    = temperature_init
@@ -191,8 +195,56 @@ contains
             end do
         end do
         
+
+
+        ! call debug(temp, 'material_results/vofff.txt', nzp, nyp, nxp, nmats)
+        ! call debug(mat_vof, 'material_results/mat_vofff2.txt', nzp, nyp, nxp, nmats)
+        ! call debug(sie_vof, 'material_results/sie_vofff.txt', nzp, nyp, nxp, nmats)
+
+
+
     end function
 
+
+    subroutine debug(arr, file_name, nzp, nyp, nxp, nmats)
+        real(8), dimension (:), pointer, intent(in)   ::   arr
+        integer, intent(in)                              ::   nzp, nyp, nxp, nmats
+        character(len=*), intent(in)                      ::   file_name
+        type(indexer_t), pointer ::  index_mapper
+        integer, dimension(:,:,:,:), pointer   ::   mapper
+        integer :: index
+
+        integer :: i,j,k,m
+        integer :: unit
+        integer :: total_debug
+        total_debug = 0
+
+        index_mapper => get_instance()
+        mapper => index_mapper%mapper
+
+        open (unit=414, file=file_name, status = 'replace')  
+        
+        do k = 1, nzp
+            do j = 1, nyp
+                do i = 1, nxp
+                    do m = 1, nmats
+                        index = mapper(m,i,j,k) 
+
+                        if (index == -1) then
+                            write(414,*)  0d0
+                        else
+                            total_debug = total_debug + 1
+                            write(414,*) arr(index)
+                        end if
+                        
+                    end do
+                end do
+            end do
+        end do
+        
+        close (414)
+
+    end subroutine debug
 
 
     subroutine Apply_eos(this, nx, ny, nz, emf, is_old_temperature)
@@ -250,7 +302,6 @@ contains
         type(communication_parameters_t), pointer :: comm_params
 
         call this%Set_communication_material_base(comm, comm_params)
-
         call this%dp_de%Set_communication(comm, comm_params)
         call this%dp_drho%Set_communication(comm, comm_params)
         call this%dt_de%Set_communication(comm, comm_params)

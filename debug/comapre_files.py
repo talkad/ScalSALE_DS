@@ -7,7 +7,8 @@ def convert_data(file_path):
     return data
 
 
-files = ['pressure', 'mat', 'temperature' , 'sie_vof']
+files = ['sound_vel', 'temperature', 'density', 'dp_de', 'dt_de', 'dt_drho', 'vof', 'sie', 'cell_mass']
+
 
 for file in files:
     file_path1 = f'/home/talkad_k/Desktop/ScalSALE_DS/src/Scripts/material_results/{file}.txt'
@@ -17,7 +18,7 @@ for file in files:
 
     for val1, val2 in zip(data1, data2):
         if val1 != val2:
-            print(f"You piss of shit - {file}")
+            print(f"You piece of shit - {file}")
             break
 
 print("MY GUY")

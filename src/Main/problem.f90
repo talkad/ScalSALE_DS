@@ -375,8 +375,13 @@ contains
 
         ! print*,  'bbbbbbbbbbbbbbbbbbbbb', num_mat  ! still not right arg
         ! index_mapper => get_instance(2, nx, ny, nz) 
+        ! call debug(Constructor%materials%vof%data_4d%nz_values, 'material_results/vof1.txt', Constructor%nz, Constructor%ny, Constructor%nx, 2)   
+        
         index_mapper => get_instance(2, nxp, nyp, nzp) 
         call Constructor%Create_materials (df, bc_c_wrap_arr, Constructor%mat_cells)  ! xxxxxxxxxxxxxxxxxxxxxxxxxxxx
+        
+        ! call debug(Constructor%materials%vof%data_4d%nz_values, 'material_results/vof2.txt', Constructor%nz, Constructor%ny, Constructor%nx, 2)   
+
         
         Constructor%total_density = density_t    (df%mat_rho_0, Constructor%mat_cells , Constructor%nxp, Constructor%nyp&
             , Constructor%nzp , bc_c_wrap_arr,Constructor%boundary_params)
@@ -415,6 +420,9 @@ contains
         !        a_visc, total_dp_de, total_dp_drho, total_dt_de, total_dt_drho, init_temperature, &
         !        nmats, materials, num_mat_cells, mat_id, emf, emfm, parallel_params, mat_ids
 
+        ! print*, 'hello there', Constructor%nz, Constructor%ny, Constructor%nx, 2
+        ! call debug(Constructor%materials%vof%data_4d%nz_values, 'material_results/vof3.txt', Constructor%nz, Constructor%ny, Constructor%nx, 2)   
+
         Constructor%hydro = hydro_step_t(df, Constructor%nx , Constructor%ny , Constructor%nz, Constructor%nxp         ,&
             Constructor%nyp, Constructor%nzp, Constructor%wilkins_scheme, Constructor%mesh,&
             Constructor%velocity , Constructor%acceleration, Constructor%total_volume     ,&
@@ -438,7 +446,6 @@ contains
 
         text_diag_counter = 1
         hdf5_diag_counter = 1
-        print*,'hello'
 
         do i=1, size(df%diag_types(:))
             word = df%diag_types(i)
@@ -466,10 +473,8 @@ contains
             !    hdf5_diag_counter = hdf5_diag_counter + 1
             end if
         end do
-        print*,'hello'
 
         call Constructor%Set_communication()
-        print*,'hello'
 
         call Constructor%mesh%Exchange_virtual_space_blocking()
         call Constructor%total_vof%Exchange_virtual_space_blocking()
@@ -558,12 +563,16 @@ contains
             end do
         end do
 
-        ! call debug(cell_mass_vof, 'material_results/cell_mass_vof.txt', Constructor%nz, Constructor%ny, Constructor%nx, Constructor%n_materials)
-
         call Constructor%materials%sie%Exchange_virtual_space_blocking()
         call Constructor%materials%density%Exchange_virtual_space_blocking()
         call Constructor%materials%cell_mass%Exchange_virtual_space_blocking()
         call Constructor%materials%temperature%Exchange_virtual_space_blocking()
+
+        ! call debug(cell_mass_vof, 'material_results/cell_mass_vof.txt', Constructor%nz, Constructor%ny, Constructor%nx, Constructor%n_materials)
+        ! call debug(Constructor%materials%temperature%data_4d%nz_values, 'material_results/temperature.txt', Constructor%nz, Constructor%ny, Constructor%nx, Constructor%n_materials)
+        ! call debug(Constructor%materials%density%data_4d%nz_values, 'material_results/density.txt', Constructor%nz, Constructor%ny, Constructor%nx, Constructor%n_materials)
+        ! call debug(Constructor%materials%sie%data_4d%nz_values, 'material_results/sie.txt', Constructor%nz, Constructor%ny, Constructor%nx, Constructor%n_materials)
+
 
 
         call Constructor%Initialize_sie(Constructor%emf) ! xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
@@ -573,6 +582,7 @@ contains
             df%from_radial_index_sphere, df%no_move_layer, df%start_layer_index_r)
 
         write (*,*) "finished building problem"
+        ! call debug(Constructor%materials%sie%data_4d%nz_values, 'material_results/sie.txt', Constructor%nz, Constructor%ny, Constructor%nx, Constructor%n_materials)
 
     end function
 
@@ -712,9 +722,9 @@ contains
                         !call this%Write_to_files()
         ncyc = 1
         if (this%rezone_type == 0) then
-            max_ncyc = 2
+            max_ncyc = 20
         else
-            max_ncyc = 2
+            max_ncyc = 20
         end if
 
         if (this%mesh%dimension == 2) then
@@ -912,7 +922,7 @@ contains
         index_mapper => get_instance()
         mapper => index_mapper%mapper
 
-        open (unit=414, file=file_name, position="append", status="old", action="write")
+        open (unit=414, file=file_name, status = 'replace')  
         
         do k = 1, nzp
             do j = 1, nyp

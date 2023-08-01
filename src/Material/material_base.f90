@@ -71,9 +71,13 @@ do i = 1, nmats
       this%material_ids(i) = mat_ids(i)
 end do
 
+      print*, 'vof'
       this%vof = material_quantity_t(0d0, nxp, nyp, nzp,nmats, bc_cell, bc_params)
+      print*, 'sie'
       this%sie = material_quantity_t (0d0, nxp, nyp, nzp, nmats,bc_cell, bc_params)
+      print*, 'cell_mass'
       this%cell_mass = material_quantity_t (0d0, nxp, nyp, nzp,nmats, bc_cell, bc_params)
+      print*, 'initial_layers_of_mats'
       this%initial_layers_of_mats = material_quantity_t (0d0, nxp, nyp, nzp, nmats)
 
 !      if (sie_0(1) == 0) then

@@ -89,8 +89,12 @@ module csr_module
         Constructor_init_val%nz = d3
         Constructor_init_val%nmats = d4
 
+        ! print*, 'aaaaaaaaaa', d4, d3, d2, d1
+
         Constructor_init_val%idx_map => idx_map
-        space_size = (d1+1) * (d2+1) * (d3+1) * d4
+        space_size = (d1+1) * (d2+1) * (d3+1) * d4 * 4
+
+        print*, 'nz_size', space_size
 
         Constructor_init_val%padding_size = space_size*Constructor_init_val%ratio
         Constructor_init_val%padding_idx = 0
@@ -111,10 +115,13 @@ module csr_module
         integer :: csr_idx
         
         index_mapper => get_instance()
+        ! print*, 'aaaaaaaaaa', shape(this%idx_map)
+        ! print*, 'bbbbbbbbbb', this%nmats, this%nx, this%ny, this%nz 
+        ! print*, 'aaaaaaaaaaaaaa', this%nx, this%ny, this%nz, this%nmats
         csr_idx = 0
         i = 0
-        do k = 0, this%nz
-            do j = 0, this%ny
+        do k = 0, this%nz+1
+            do j = 0, this%ny+1
                 do m = 1, this%nmats
                     this%idx_map(m,i,j,k) = csr_idx
                     this%nz_values(csr_idx) = 0
@@ -138,55 +145,55 @@ module csr_module
         end do
 
 
-        j = 0
-        do k = 0, this%nz
-            do i = 0, this%nx
-                do m = 1, this%nmats
-                    this%idx_map(m,i,j,k) = csr_idx
-                    this%nz_values(csr_idx) = 0
+        ! j = 0
+        ! do k = 0, this%nz
+        !     do i = 0, this%nx
+        !         do m = 1, this%nmats
+        !             this%idx_map(m,i,j,k) = csr_idx
+        !             this%nz_values(csr_idx) = 0
 
-                    csr_idx = csr_idx + 1
-                end do
-            end do
-        end do
-
-
-        j = this%ny
-        do k = 0, this%nz
-            do i = 0, this%nx
-                do m = 1, this%nmats
-                    this%idx_map(m,i,j,k) = csr_idx
-                    this%nz_values(csr_idx) = 0
-
-                    csr_idx = csr_idx + 1
-                end do
-            end do
-        end do
+        !             csr_idx = csr_idx + 1
+        !         end do
+        !     end do
+        ! end do
 
 
-        k = 0
-        do j = 0, this%ny
-            do i = 0, this%nx
-                do m = 1, this%nmats
-                    this%idx_map(m,i,j,k) = csr_idx
-                    this%nz_values(csr_idx) = 0
+        ! j = this%ny
+        ! do k = 0, this%nz
+        !     do i = 0, this%nx
+        !         do m = 1, this%nmats
+        !             this%idx_map(m,i,j,k) = csr_idx
+        !             this%nz_values(csr_idx) = 0
 
-                    csr_idx = csr_idx + 1
-                end do
-            end do
-        end do
+        !             csr_idx = csr_idx + 1
+        !         end do
+        !     end do
+        ! end do
 
-        k = this%nz
-        do j = 0, this%ny
-            do i = 0, this%nx
-                do m = 1, this%nmats
-                    this%idx_map(m,i,j,k) = csr_idx
-                    this%nz_values(csr_idx) = 0
 
-                    csr_idx = csr_idx + 1
-                end do
-            end do
-        end do
+        ! k = 0
+        ! do j = 0, this%ny
+        !     do i = 0, this%nx
+        !         do m = 1, this%nmats
+        !             this%idx_map(m,i,j,k) = csr_idx
+        !             this%nz_values(csr_idx) = 0
+
+        !             csr_idx = csr_idx + 1
+        !         end do
+        !     end do
+        ! end do
+
+        ! k = this%nz
+        ! do j = 0, this%ny
+        !     do i = 0, this%nx
+        !         do m = 1, this%nmats
+        !             this%idx_map(m,i,j,k) = csr_idx
+        !             this%nz_values(csr_idx) = 0
+
+        !             csr_idx = csr_idx + 1
+        !         end do
+        !     end do
+        ! end do
 
         index_mapper%last_idx = csr_idx
     

@@ -21,6 +21,9 @@ module advect_module
     use communication_parameters_module , only : communication_parameters_t
     use communication_module            , only : communication_t
     use material_quantity_module        , only : material_quantity_t
+
+    use indexer_module
+
     implicit none
     private
     public :: advect_t
@@ -243,9 +246,13 @@ contains
             Constructor%nz  = 1
         else
             Constructor%nz  = nzp - 1
+            print*, 'a'
             Constructor%a = material_quantity_t(0d0, nxp, nyp, nzp, 1)
+            print*, 'b'
             Constructor%b = material_quantity_t(0d0, nxp, nyp, nzp, 1)
+            print*, 'c'
             Constructor%c = material_quantity_t(0d0, nxp, nyp, nzp, 1)
+            print*, 'side'
             Constructor%side = material_quantity_t(0d0, nxp, nyp, nzp,1 )
         end if
 
@@ -2219,231 +2226,242 @@ contains
 
     subroutine Calculate_advect_3d(this)
         use geometry_module, only : Tetrahederon_volume, Hexahedron_volume, Vertex_interp_3d
+        ! use indexer_module, only : indexer_t, get_instance
         implicit none
         class(advect_t), intent(in out) :: this
 
-        ! real(8), dimension(:, :, :), pointer :: x
-        ! real(8), dimension(:, :, :), pointer :: y
-        ! real(8), dimension(:, :, :), pointer :: z
-        ! real(8), dimension(:, :, :), pointer :: material_x
-        ! real(8), dimension(:, :, :), pointer :: material_y
-        ! real(8), dimension(:, :, :), pointer :: material_z
-        ! real(8), dimension(:, :, :), pointer :: velocity_x
-        ! real(8), dimension(:, :, :), pointer :: velocity_y
-        ! real(8), dimension(:, :, :), pointer :: velocity_z
+        real(8), dimension(:, :, :), pointer :: x
+        real(8), dimension(:, :, :), pointer :: y
+        real(8), dimension(:, :, :), pointer :: z
+        real(8), dimension(:, :, :), pointer :: material_x
+        real(8), dimension(:, :, :), pointer :: material_y
+        real(8), dimension(:, :, :), pointer :: material_z
+        real(8), dimension(:, :, :), pointer :: velocity_x
+        real(8), dimension(:, :, :), pointer :: velocity_y
+        real(8), dimension(:, :, :), pointer :: velocity_z
 
-        ! real(8), allocatable, dimension(:, :, :) :: velocity_x_adv
-        ! real(8), allocatable, dimension(:, :, :) :: velocity_y_adv
-        ! real(8), allocatable, dimension(:, :, :) :: velocity_z_adv
+        real(8), allocatable, dimension(:, :, :) :: velocity_x_adv
+        real(8), allocatable, dimension(:, :, :) :: velocity_y_adv
+        real(8), allocatable, dimension(:, :, :) :: velocity_z_adv
 
-        ! real(8), dimension(:, :, :), pointer :: vol
-        ! real(8), dimension(:, :, :), pointer :: vof
-        ! real(8), dimension(:, :, :), pointer :: sie
-        ! real(8), dimension(:, :, :), pointer :: density
-        ! real(8), dimension(:, :, :), pointer :: cell_mass
-        ! real(8), dimension(:, :, :), pointer :: vertex_mass
-        ! real(8), dimension(:, :, :), pointer :: n_materials_in_cell
-        ! real(8), dimension(:, :, :), pointer :: mat_id
+        real(8), dimension(:, :, :), pointer :: vol
+        real(8), dimension(:, :, :), pointer :: vof
+        real(8), dimension(:, :, :), pointer :: sie
+        real(8), dimension(:, :, :), pointer :: density
+        real(8), dimension(:, :, :), pointer :: cell_mass
+        real(8), dimension(:, :, :), pointer :: vertex_mass
+        real(8), dimension(:, :, :), pointer :: n_materials_in_cell
+        real(8), dimension(:, :, :), pointer :: mat_id
 
-        ! real(8), dimension(:, :, :, :), pointer :: mat_vof
-        ! real(8), dimension(:, :, :, :), pointer :: sie_vof
-        ! real(8), dimension(:, :, :, :), pointer :: density_vof
-        ! real(8), dimension(:, :, :, :), pointer :: cell_mass_vof
+        real(8), dimension(:), pointer :: mat_vof
+        real(8), dimension(:), pointer :: sie_vof
+        real(8), dimension(:), pointer :: density_vof
+        real(8), dimension(:), pointer :: cell_mass_vof
 
-        ! real(8), dimension(:, :, :), pointer :: vof_adv
-        ! real(8), dimension(:, :, :, :), pointer :: mat_vof_adv
-        ! real(8), dimension(:, :, :, :), pointer :: sie_vof_adv
-        ! real(8), dimension(:, :, :, :), pointer :: mat_cell_mass_adv
-        ! real(8), dimension(:, :, :), pointer :: cell_mass_adv
+        real(8), dimension(:, :, :), pointer :: vof_adv
+        real(8), dimension(:), pointer :: mat_vof_adv
+        real(8), dimension(:), pointer :: sie_vof_adv
+        real(8), dimension(:), pointer :: mat_cell_mass_adv
+        real(8), dimension(:, :, :), pointer :: cell_mass_adv
 
-        ! real(8), dimension(:, :, :, :), pointer :: init_mat_layers
+        real(8), dimension(:), pointer :: init_mat_layers
 
-        ! real(8), dimension(:, :, :, :), pointer :: init_mat_layers_adv
+        real(8), dimension(:), pointer :: init_mat_layers_adv
 
-        ! real(8), dimension(:, :, :), pointer :: vel_adv_w
+        real(8), dimension(:, :, :), pointer :: vel_adv_w
 
-        ! integer :: i, j, k, tmp_mat
-        ! integer :: i_start, i_end
-        ! integer :: j_start, j_end
-        ! integer :: k_start, k_end
-        ! integer :: i1, j1, k1, i2, j2, k2
-        ! integer :: i3, j3, k3, i4, j4, k4
-        ! integer :: i_face, j_face, k_face
-        ! integer :: face
-        ! integer :: tet_counter
-        ! integer :: is_iregular
-        ! integer :: id, jd, kd
-        ! integer :: ia, ja, ka
-        ! integer :: tet_counter_min
-        ! integer :: i_tet1, j_tet1, k_tet1
-        ! integer :: i_tet2, j_tet2, k_tet2
-        ! integer :: i_tet3, j_tet3, k_tet3
+        integer :: i, j, k, tmp_mat
+        integer :: i_start, i_end
+        integer :: j_start, j_end
+        integer :: k_start, k_end
+        integer :: i1, j1, k1, i2, j2, k2
+        integer :: i3, j3, k3, i4, j4, k4
+        integer :: i_face, j_face, k_face
+        integer :: face
+        integer :: tet_counter
+        integer :: is_iregular
+        integer :: id, jd, kd
+        integer :: ia, ja, ka
+        integer :: tet_counter_min
+        integer :: i_tet1, j_tet1, k_tet1
+        integer :: i_tet2, j_tet2, k_tet2
+        integer :: i_tet3, j_tet3, k_tet3
 
-        ! real(8) :: emf1
-        ! real(8) :: x1, x2, x3, x4
-        ! real(8) :: y1, y2, y3, y4
-        ! real(8) :: z1, z2, z3, z4
-        ! real(8) :: x_lag1, x_lag2, x_lag3, x_lag4
-        ! real(8) :: y_lag1, y_lag2, y_lag3, y_lag4
-        ! real(8) :: z_lag1, z_lag2, z_lag3, z_lag4
-        ! real(8) :: x_mid1, y_mid1, z_mid1
-        ! real(8) :: x_mid2, y_mid2, z_mid2
-        ! real(8) :: x_mid_lag1, x_mid_lag2
-        ! real(8) :: y_mid_lag1, y_mid_lag2
-        ! real(8) :: z_mid_lag1, z_mid_lag2
-        ! real(8) :: sign_tet_vol1, sign_tet_vol2
-        ! real(8) :: dx_avg, dy_avg, dz_avg
-        ! real(8) :: hexa_vol1, hexa_vol2
-        ! real(8) :: hexa_vol3, hexa_vol4
-        ! real(8) :: adv_vol
-        ! real(8) :: weight
-        ! real(8) :: hexa_vol_quart
-        ! real(8) :: material_tet_vol
-        ! real(8) :: material_tet_vol_sign
-        ! real(8) :: donnor_mass
-        ! real(8) :: donnor_sie
-        ! real(8) :: donnor_init_mat_layer
-        ! real(8) :: vol_temp
-        ! real(8),dimension(:,:,:),allocatable :: vof_correction
-        ! real(8) :: vof_factor
-        ! real(8) :: tet_vol_diff
-        ! real(8) :: tet_vol_diff_min
-        ! real(8) :: symmetry_factor
-        ! real(8) :: weight0, weight1
-        ! real(8) :: weight2, weight3
-        ! real(8) :: vel_x_min, vel_y_min, vel_z_min
-        ! real(8) :: vel_x_max, vel_y_max, vel_z_max
-        ! real(8) :: vel_factor
-        ! real(8) :: velocity_sq
-        ! real(8) :: dvof
-        ! real(8) :: delete1,delete2,delete3
-        ! logical :: associated_mat_vof
-        ! real(8), dimension(4) :: tet_vol
+        real(8) :: emf1
+        real(8) :: x1, x2, x3, x4
+        real(8) :: y1, y2, y3, y4
+        real(8) :: z1, z2, z3, z4
+        real(8) :: x_lag1, x_lag2, x_lag3, x_lag4
+        real(8) :: y_lag1, y_lag2, y_lag3, y_lag4
+        real(8) :: z_lag1, z_lag2, z_lag3, z_lag4
+        real(8) :: x_mid1, y_mid1, z_mid1
+        real(8) :: x_mid2, y_mid2, z_mid2
+        real(8) :: x_mid_lag1, x_mid_lag2
+        real(8) :: y_mid_lag1, y_mid_lag2
+        real(8) :: z_mid_lag1, z_mid_lag2
+        real(8) :: sign_tet_vol1, sign_tet_vol2
+        real(8) :: dx_avg, dy_avg, dz_avg
+        real(8) :: hexa_vol1, hexa_vol2
+        real(8) :: hexa_vol3, hexa_vol4
+        real(8) :: adv_vol
+        real(8) :: weight
+        real(8) :: hexa_vol_quart
+        real(8) :: material_tet_vol
+        real(8) :: material_tet_vol_sign
+        real(8) :: donnor_mass
+        real(8) :: donnor_sie
+        real(8) :: donnor_init_mat_layer
+        real(8) :: vol_temp
+        real(8),dimension(:,:,:),allocatable :: vof_correction
+        real(8) :: vof_factor
+        real(8) :: tet_vol_diff
+        real(8) :: tet_vol_diff_min
+        real(8) :: symmetry_factor
+        real(8) :: weight0, weight1
+        real(8) :: weight2, weight3
+        real(8) :: vel_x_min, vel_y_min, vel_z_min
+        real(8) :: vel_x_max, vel_y_max, vel_z_max
+        real(8) :: vel_factor
+        real(8) :: velocity_sq
+        real(8) :: dvof
+        real(8) :: delete1,delete2,delete3
+        logical :: associated_mat_vof
+        real(8), dimension(4) :: tet_vol
 
-        ! integer, dimension(6) :: face_i = [-1,  0,  0, 1, 0, 0]
-        ! integer, dimension(6) :: face_j = [ 0, -1,  0, 0, 1, 0]
-        ! integer, dimension(6) :: face_k = [ 0,  0, -1, 0, 0, 1]
+        integer, dimension(6) :: face_i = [-1,  0,  0, 1, 0, 0]
+        integer, dimension(6) :: face_j = [ 0, -1,  0, 0, 1, 0]
+        integer, dimension(6) :: face_k = [ 0,  0, -1, 0, 0, 1]
 
-        ! integer, dimension(4, 6) :: face_vert_i = reshape([ 0, 0, 0, 0, &
-        !     1, 1, 0, 0, &
-        !     0, 1, 1, 0, &
-        !     1, 1, 1, 1, &
-        !     0, 0, 1, 1, &
-        !     0, 1, 1, 0  ], [4, 6])
-        ! integer, dimension(4, 6) :: face_vert_j = reshape([ 0, 1, 1, 0, &
-        !     0, 0, 0, 0, &
-        !     1, 1, 0, 0, &
-        !     0, 1, 1, 0, &
-        !     1, 1, 1, 1, &
-        !     0, 0, 1, 1  ], [4, 6])
-        ! integer, dimension(4, 6) :: face_vert_k = reshape([ 1, 1, 0, 0, &
-        !     0, 1, 1, 0, &
-        !     0, 0, 0, 0, &
-        !     0, 0, 1, 1, &
-        !     0, 1, 1, 0, &
-        !     1, 1, 1, 1  ], [4, 6])
+        integer, dimension(4, 6) :: face_vert_i = reshape([ 0, 0, 0, 0, &
+            1, 1, 0, 0, &
+            0, 1, 1, 0, &
+            1, 1, 1, 1, &
+            0, 0, 1, 1, &
+            0, 1, 1, 0  ], [4, 6])
+        integer, dimension(4, 6) :: face_vert_j = reshape([ 0, 1, 1, 0, &
+            0, 0, 0, 0, &
+            1, 1, 0, 0, &
+            0, 1, 1, 0, &
+            1, 1, 1, 1, &
+            0, 0, 1, 1  ], [4, 6])
+        integer, dimension(4, 6) :: face_vert_k = reshape([ 1, 1, 0, 0, &
+            0, 1, 1, 0, &
+            0, 0, 0, 0, &
+            0, 0, 1, 1, &
+            0, 1, 1, 0, &
+            1, 1, 1, 1  ], [4, 6])
 
-        ! integer, dimension(8) :: i_1_add = [ 1,  0, -1,  0,  1,  0, -1,  0 ]
-        ! integer, dimension(8) :: j_1_add = [ 0,  1,  0, -1,  0,  1, 0 , -1 ]
-        ! integer, dimension(8) :: k_1_add = [ 0,  0,  0,  0,  0,  0, 0 ,  0 ]
-        ! integer, dimension(8) :: i_2_add = [ 0, -1,  0,  1,  0,  1, 0 , -1 ]
-        ! integer, dimension(8) :: j_2_add = [ 1,  0, -1,  0, -1,  0, 1 ,  0 ]
-        ! integer, dimension(8) :: k_2_add = [ 0,  0,  0,  0,  0,  0, 0 ,  0 ]
-        ! integer, dimension(8) :: i_3_add = [ 0,  0,  0,  0,  0,  0, 0 ,  0 ]
-        ! integer, dimension(8) :: j_3_add = [ 0,  0,  0,  0,  0,  0, 0 ,  0 ]
-        ! integer, dimension(8) :: k_3_add = [ 1,  1,  1,  1, -1, -1, -1, -1 ]
+        integer, dimension(8) :: i_1_add = [ 1,  0, -1,  0,  1,  0, -1,  0 ]
+        integer, dimension(8) :: j_1_add = [ 0,  1,  0, -1,  0,  1, 0 , -1 ]
+        integer, dimension(8) :: k_1_add = [ 0,  0,  0,  0,  0,  0, 0 ,  0 ]
+        integer, dimension(8) :: i_2_add = [ 0, -1,  0,  1,  0,  1, 0 , -1 ]
+        integer, dimension(8) :: j_2_add = [ 1,  0, -1,  0, -1,  0, 1 ,  0 ]
+        integer, dimension(8) :: k_2_add = [ 0,  0,  0,  0,  0,  0, 0 ,  0 ]
+        integer, dimension(8) :: i_3_add = [ 0,  0,  0,  0,  0,  0, 0 ,  0 ]
+        integer, dimension(8) :: j_3_add = [ 0,  0,  0,  0,  0,  0, 0 ,  0 ]
+        integer, dimension(8) :: k_3_add = [ 1,  1,  1,  1, -1, -1, -1, -1 ]
 
-        ! logical :: wall_x_top, wall_x_bot, wall_y_top, wall_y_bot, wall_z_top, wall_z_bot
-        ! integer :: virt_i_1, virt_i_nxp,virt_j_1, virt_j_nyp,virt_k_1, virt_k_nzp
-        ! integer :: virt_nxp, virt_nyp, virt_nzp
+        logical :: wall_x_top, wall_x_bot, wall_y_top, wall_y_bot, wall_z_top, wall_z_bot
+        integer :: virt_i_1, virt_i_nxp,virt_j_1, virt_j_nyp,virt_k_1, virt_k_nzp
+        integer :: virt_nxp, virt_nyp, virt_nzp
 
-        ! virt_nxp = this%parallel_params%virt_nxp
-        ! virt_nyp = this%parallel_params%virt_nyp
-        ! virt_nzp = this%parallel_params%virt_nzp
-        ! wall_x_top = this%parallel_params%is_wall_x_top
-        ! wall_x_bot = this%parallel_params%is_wall_x_bot
-        ! wall_y_top = this%parallel_params%is_wall_y_top
-        ! wall_y_bot = this%parallel_params%is_wall_y_bot
-        ! wall_z_top = this%parallel_params%is_wall_z_top
-        ! wall_z_bot = this%parallel_params%is_wall_z_bot
+        type(indexer_t), pointer ::  index_mapper
+        integer, dimension(:,:,:,:), pointer   ::   mapper
 
+        integer :: csr_idx
 
-        ! call this%rezone  %Point_to_coordinates_3d(material_x, material_y, material_z)
-        ! call this%mesh    %Point_to_data          (         x,          y,          z)
-        ! call this%velocity%Point_to_data          (velocity_x, velocity_y, velocity_z)
+        index_mapper => get_instance()
+        mapper => index_mapper%mapper
 
-        ! call this%total_vof%Point_to_data(vof)
-        ! call this%volume   %Point_to_data(vol)
-        ! call this%mat_cells%Point_to_data(mat_id)
-        ! call this%total_sie        %Point_to_data(sie)
-        ! call this%total_density    %Point_to_data(density)
-        ! call this%total_cell_mass  %Point_to_data(cell_mass)
-        ! call this%adv_cell_mass  %Point_to_data(cell_mass_adv)
-        ! call this%vertex_mass%Point_to_data(vertex_mass)
-        ! call this%num_mat_cells%Point_to_data(n_materials_in_cell)
-        ! call this%vof_advect%Point_to_data(vof_adv)
-        ! call this%adv_mats%vof%Point_to_data(mat_vof_adv)
-        ! call this%adv_mats%Point_to_initial_layers(init_mat_layers_adv)
-        ! call this%adv_mats%cell_mass%Point_to_data(mat_cell_mass_adv)
-        ! call this%adv_mats%sie%Point_to_data(sie_vof_adv)
-
-        ! call this%materials%vof%Point_to_data(mat_vof)
-        ! call this%materials%density%Point_to_data(density_vof)
-        ! call this%materials%sie%Point_to_data(sie_vof)
-        ! call this%materials%cell_mass%Point_to_data(cell_mass_vof)
-        ! call this%materials%Point_to_initial_layers(init_mat_layers)
-
-        ! allocate(vof_correction(this%nx, this%ny, this%nz))
-
-        ! i_start = 0
-        ! j_start = 0
-        ! k_start = 0
-        ! i_end = this%nxp
-        ! j_end = this%nyp
-        ! k_end = this%nzp
-
-        ! if (this%parallel_params%is_parallel .eqv. .true.) then
-        !     virt_i_1 = this%parallel_params%i_virt(1)
-        !     virt_i_nxp = this%parallel_params%i_virt(this%nxp)
-
-        !     virt_j_1 = this%parallel_params%j_virt(1)
-        !     virt_j_nyp = this%parallel_params%j_virt(this%nyp)
-
-        !     virt_k_1 = this%parallel_params%k_virt(1)
-        !     virt_k_nzp = this%parallel_params%k_virt(this%nzp)
-
-        !     if (virt_i_1 /= 1 .or. wall_x_bot .eqv. .false.) i_start = 1
-        !     if (virt_j_1 /= 1 .or. wall_y_bot .eqv. .false.) j_start = 1
-        !     if (virt_k_1 /= 1 .or. wall_z_bot .eqv. .false.) k_start = 1
-        !     if (virt_i_nxp /= virt_nxp .or. wall_x_top .eqv. .false.) i_end = i_end - 1
-        !     if (virt_j_nyp /= virt_nyp .or. wall_y_top .eqv. .false.) j_end = j_end - 1
-        !     if (virt_k_nzp /= virt_nzp .or. wall_z_top .eqv. .false.) k_end = k_end - 1
-        ! end if
+        virt_nxp = this%parallel_params%virt_nxp
+        virt_nyp = this%parallel_params%virt_nyp
+        virt_nzp = this%parallel_params%virt_nzp
+        wall_x_top = this%parallel_params%is_wall_x_top
+        wall_x_bot = this%parallel_params%is_wall_x_bot
+        wall_y_top = this%parallel_params%is_wall_y_top
+        wall_y_bot = this%parallel_params%is_wall_y_bot
+        wall_z_top = this%parallel_params%is_wall_z_top
+        wall_z_bot = this%parallel_params%is_wall_z_bot
 
 
-        ! call this%line_calc_3d(0, i_start, i_end, j_start, j_end, k_start, k_end)
-        ! call this%line_calc_3d(1, i_start, i_end, j_start, j_end, k_start, k_end)
+        call this%rezone  %Point_to_coordinates_3d(material_x, material_y, material_z)
+        call this%mesh    %Point_to_data          (         x,          y,          z)
+        call this%velocity%Point_to_data          (velocity_x, velocity_y, velocity_z)
+
+        call this%total_vof%Point_to_data(vof)
+        call this%volume   %Point_to_data(vol)
+        call this%mat_cells%Point_to_data(mat_id)
+        call this%total_sie        %Point_to_data(sie)
+        call this%total_density    %Point_to_data(density)
+        call this%total_cell_mass  %Point_to_data(cell_mass)
+        call this%adv_cell_mass  %Point_to_data(cell_mass_adv)
+        call this%vertex_mass%Point_to_data(vertex_mass)
+        call this%num_mat_cells%Point_to_data(n_materials_in_cell)
+        call this%vof_advect%Point_to_data(vof_adv)
+        call this%adv_mats%vof%Point_to_data(mat_vof_adv)
+        call this%adv_mats%Point_to_initial_layers(init_mat_layers_adv)
+        call this%adv_mats%cell_mass%Point_to_data(mat_cell_mass_adv)
+        call this%adv_mats%sie%Point_to_data(sie_vof_adv)
+
+        call this%materials%vof%Point_to_data(mat_vof)
+        call this%materials%density%Point_to_data(density_vof)
+        call this%materials%sie%Point_to_data(sie_vof)
+        call this%materials%cell_mass%Point_to_data(cell_mass_vof)
+        call this%materials%Point_to_initial_layers(init_mat_layers)
+
+        allocate(vof_correction(this%nx, this%ny, this%nz))
+
+        i_start = 0
+        j_start = 0
+        k_start = 0
+        i_end = this%nxp
+        j_end = this%nyp
+        k_end = this%nzp
+
+        if (this%parallel_params%is_parallel .eqv. .true.) then
+            virt_i_1 = this%parallel_params%i_virt(1)
+            virt_i_nxp = this%parallel_params%i_virt(this%nxp)
+
+            virt_j_1 = this%parallel_params%j_virt(1)
+            virt_j_nyp = this%parallel_params%j_virt(this%nyp)
+
+            virt_k_1 = this%parallel_params%k_virt(1)
+            virt_k_nzp = this%parallel_params%k_virt(this%nzp)
+
+            if (virt_i_1 /= 1 .or. wall_x_bot .eqv. .false.) i_start = 1
+            if (virt_j_1 /= 1 .or. wall_y_bot .eqv. .false.) j_start = 1
+            if (virt_k_1 /= 1 .or. wall_z_bot .eqv. .false.) k_start = 1
+            if (virt_i_nxp /= virt_nxp .or. wall_x_top .eqv. .false.) i_end = i_end - 1
+            if (virt_j_nyp /= virt_nyp .or. wall_y_top .eqv. .false.) j_end = j_end - 1
+            if (virt_k_nzp /= virt_nzp .or. wall_z_top .eqv. .false.) k_end = k_end - 1
+        end if
 
 
-        ! !        do tmp_mat=1, this%n_materials
-        ! call this%adv_mats%a%Exchange_virtual_space_blocking()
-        ! call this%adv_mats%b%Exchange_virtual_space_blocking()
-        ! call this%adv_mats%c%Exchange_virtual_space_blocking()
-        ! call this%adv_mats%side%Exchange_virtual_space_blocking()
-        ! !        end do
-
-        ! call this%num_mat_cells%Exchange_virtual_space_blocking()
+        call this%line_calc_3d(0, i_start, i_end, j_start, j_end, k_start, k_end)
+        call this%line_calc_3d(1, i_start, i_end, j_start, j_end, k_start, k_end)
 
 
+        !        do tmp_mat=1, this%n_materials
+        call this%adv_mats%a%Exchange_virtual_space_blocking()
+        call this%adv_mats%b%Exchange_virtual_space_blocking()
+        call this%adv_mats%c%Exchange_virtual_space_blocking()
+        call this%adv_mats%side%Exchange_virtual_space_blocking()
+        !        end do
 
-        ! vof_adv = 0d0
-        ! mat_vof_adv = 0d0
+        call this%num_mat_cells%Exchange_virtual_space_blocking()
+
+
+
+        vof_adv = 0d0
+        mat_vof_adv = 0d0
 
 
         ! do k = 0, this%nzp
         !     do j = 0, this%nyp
         !         do i = 0, this%nxp
         !             do tmp_mat = 1, this%n_materials
+
+        !                 csr_idx = mapper(tmp_mat, i, j, k)
 
         !                 init_mat_layers_adv(tmp_mat, i, j, k) = init_mat_layers(tmp_mat, i, j, k) * cell_mass_vof(tmp_mat, i, j, k)
         !                 mat_cell_mass_adv  (tmp_mat, i, j, k) = cell_mass_vof(tmp_mat, i, j, k)

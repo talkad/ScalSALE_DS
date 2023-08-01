@@ -93,11 +93,17 @@ contains
         allocate(Constructor%side)
         allocate(Constructor%area_top_out)
         allocate(Constructor%area_top_in)
+        print*, 'area_top_in'
         Constructor%area_top_in = material_quantity_t (0d0, nxp, 1, 1, nmats)
+        print*, 'area_top_out'
         Constructor%area_top_out = material_quantity_t (0d0, nxp, 1, 1, nmats)
+        print*, 'a'
         Constructor%a = material_quantity_t(0d0, nxp, nyp, nzp, nmats)
+        print*, 'b'
         Constructor%b = material_quantity_t(0d0, nxp, nyp, nzp, nmats)
+        print*, 'c'
         Constructor%c = material_quantity_t(0d0, nxp, nyp, nzp, nmats)
+        print*, 'side'
         Constructor%side = material_quantity_t(0d0, nxp, nyp, nzp, nmats)
         Constructor%area_left_in = 0
         Constructor%area_left_out = 0

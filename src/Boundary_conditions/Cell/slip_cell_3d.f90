@@ -47,6 +47,9 @@ contains
                             do m = 1, nmats
                                 csr_idx_new = mapper(m, i-1, j, k)
                                 csr_idx_old = mapper(m, i, j, k)
+                                
+                                ! if (csr_idx_new < 0)   print*, 'idx_new aaaaaaaaa', csr_idx_new
+                                ! print*, 'idx_new', m, i-1, j, k, csr_idx_new
 
                                 if (csr_idx_old == -1) then
                                     values_4d(csr_idx_new) = 0

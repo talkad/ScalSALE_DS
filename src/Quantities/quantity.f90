@@ -162,6 +162,7 @@ contains
         nullify(this%data_4d)
         nullify(this%data)
         allocate (csr_t :: this%data_4d)
+        ! print*, 'bbbbbbbbbbbb', d1, d2, d3, d4
         this%data_4d = csr_t(initial_val, d1, d2, d3, d4, index_mapper%mapper)
         this%d1 = d1 - 1
         this%d2 = d2 - 1
@@ -191,6 +192,7 @@ contains
         nullify(this%data_4d)
         nullify(this%data)
         allocate (csr_t :: this%data_4d)
+        ! print*, 'cccccccccc', d1, d2, d3, d4
         this%data_4d = csr_t(initial_val, d1, d2, d3, d4, index_mapper%mapper)
         this%d1 = d1 - 1
         this%d2 = d2 - 1
