@@ -368,9 +368,12 @@ contains
 
         call Constructor%total_volume%Point_to_data (vol)
 
-
-
+        ! call debug(Constructor%materials%vof%data_4d%nz_values, 'material_results/vof1.txt', Constructor%nz, Constructor%ny, Constructor%nx, 2)   
         call Constructor%Create_materials (df, bc_c_wrap_arr, Constructor%mat_cells)
+        ! call debug(Constructor%materials%vof%data_4d%values, 'material_results/vof2.txt', Constructor%nz, Constructor%ny, Constructor%nx, 2)   
+
+
+        
 
         ! call debug(dt_de_vof, 'material_results/dt_de_vof.txt', this%nz, this%ny, this%nx, this%nmats)
 
@@ -410,6 +413,8 @@ contains
         !        previous_vertex_mass, inversed_vertex_mass, total_sound_vel,&
         !        a_visc, total_dp_de, total_dp_drho, total_dt_de, total_dt_drho, init_temperature, &
         !        nmats, materials, num_mat_cells, mat_id, emf, emfm, parallel_params, mat_ids
+        
+        ! call debug(Constructor%materials%vof%data_4d%values, 'material_results/vof3.txt', Constructor%nz, Constructor%ny, Constructor%nx, 2)
 
         Constructor%hydro = hydro_step_t(df, Constructor%nx , Constructor%ny , Constructor%nz, Constructor%nxp         ,&
             Constructor%nyp, Constructor%nzp, Constructor%wilkins_scheme, Constructor%mesh,&
@@ -543,13 +548,17 @@ contains
             end do
         end do
 
-        ! call debug(cell_mass_vof, 'material_results/cell_mass_vof.txt', Constructor%nz, Constructor%ny, Constructor%nx, Constructor%n_materials)
-
 
         call Constructor%materials%sie%Exchange_virtual_space_blocking()
         call Constructor%materials%density%Exchange_virtual_space_blocking()
         call Constructor%materials%cell_mass%Exchange_virtual_space_blocking()
         call Constructor%materials%temperature%Exchange_virtual_space_blocking()
+
+        
+        ! call debug(cell_mass_vof, 'material_results/cell_mass_vof.txt', Constructor%nz, Constructor%ny, Constructor%nx, Constructor%n_materials)
+        ! call debug(Constructor%materials%temperature%data_4d%values, 'material_results/temperature.txt', Constructor%nz, Constructor%ny, Constructor%nx, Constructor%n_materials)
+        ! call debug(Constructor%materials%density%data_4d%values, 'material_results/density.txt', Constructor%nz, Constructor%ny, Constructor%nx, Constructor%n_materials)
+        ! call debug(Constructor%materials%sie%data_4d%values, 'material_results/sie.txt', Constructor%nz, Constructor%ny, Constructor%nx, Constructor%n_materials)
 
 
         call Constructor%Initialize_sie(Constructor%emf)
@@ -559,6 +568,8 @@ contains
             df%from_radial_index_sphere, df%no_move_layer, df%start_layer_index_r)
 
         write (*,*) "finished building problem"
+        ! call debug(Constructor%materials%sie%data_4d%values, 'material_results/sie.txt', Constructor%nz, Constructor%ny, Constructor%nx, Constructor%n_materials)
+
 
     end function
 
@@ -699,9 +710,9 @@ contains
                         !call this%Write_to_files()
         ncyc = 1
         if (this%rezone_type == 0) then
-            max_ncyc = 100
+            max_ncyc = 20
         else
-            max_ncyc = 100
+            max_ncyc = 20
         end if
 
         if (this%mesh%dimension == 2) then
@@ -862,7 +873,6 @@ contains
             do j = 1, this%ny
                 do i = 1, this%nx
                     sie(i, j, k) = sie(i, j, k) / (cell_mass(i, j, k) + 1.d-30)
-
                 end do
             end do
         end do
@@ -883,7 +893,7 @@ contains
         total_debug = 0
 
 
-        open (unit=414, file=file_name, position="append", status="old", action="write")
+        open (unit=414, file=file_name,  status = 'replace')  
         
         
         do k = 1, nzp

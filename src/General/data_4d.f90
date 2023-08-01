@@ -85,6 +85,8 @@ contains
       Constructor_init_arr%ny = d2
       Constructor_init_arr%nz = d3
       Constructor_init_arr%nmats = d4
+
+      ! print*, 'aaaaaaaaaa', shape(Constructor_init_arr%values)
   end function
 
    type(data_4d_t) function Constructor_init_val(initial_val, d1, d2, d3, d4)
@@ -102,6 +104,7 @@ contains
       Constructor_init_val%nz = d3
       Constructor_init_val%nmats = d4
 
+      print*, 'aaaaaaaaaa', d4, d3, d2, d1
    end function
 
 

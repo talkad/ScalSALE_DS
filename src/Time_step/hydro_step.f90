@@ -234,6 +234,8 @@ module hydro_step_module
 
         procedure, public :: Read_hydro_step
         generic :: read(unformatted) => Read_hydro_step
+
+        procedure :: print_materials
       
     end type hydro_step_t
 
@@ -295,7 +297,8 @@ contains
 
         type (material_t), pointer, intent(inout) :: materials
         integer,dimension(:), allocatable         , intent(in)           :: mat_ids
-
+        
+        ! call debug(materials%vof%data_4d%values, 'material_results/vof2.5.txt', nz, ny, nx, nmats)
 
         Constructor%init_temperature     =  init_temperature
         Constructor%nx                   =  nx
@@ -336,13 +339,16 @@ contains
         Constructor%parallel_params => parallel_params
         allocate(Constructor%rezone)
 
+        ! print*, '????????????????', Constructor%nz, Constructor%ny, Constructor%nx, Constructor%nmats
+
+        ! call debug(Constructor%materials%vof%data_4d%values, 'material_results/vof4.txt', Constructor%nz, Constructor%ny, Constructor%nx, Constructor%nmats)
         Constructor%rezone = rezone_t(df%rezone_type, nxp, nyp, nzp, total_cell_mass%boundary_conditions,&
             velocity%boundary_conditions, mesh, velocity, vertex_mass, &
             total_cell_mass%boundary_params)
         allocate(Constructor%advect)
 
 
-
+        ! call debug(Constructor%materials%vof%data_4d%values, 'material_results/vof5.txt', Constructor%nz, Constructor%ny, Constructor%nx, Constructor%nmats)
         Constructor%advect = advect_t(nxp, nyp, nzp,nmats, mat_ids, total_cell_mass%boundary_conditions, velocity%boundary_conditions, &
             total_cell_mass%boundary_params&
             ,df%line_calc, df%shorter_advect, df%fix_overflow, Constructor%rezone, mesh, &
@@ -351,6 +357,15 @@ contains
             total_density, total_cell_mass, vertex_mass, &
             total_volume, velocity, emf, emfm , wilkins_scheme, parallel_params)
         Constructor%ncyc = 0
+
+
+
+        ! call debug(materials%temperature%data_4d%values, 'material_results/temperature.txt', Constructor%nz, Constructor%ny, Constructor%nx, Constructor%nmats)   
+        ! call debug(materials%pressure%data_4d%values, 'material_results/pressure.txt', Constructor%nz, Constructor%ny, Constructor%nx, Constructor%nmats)   
+        ! call debug(materials%sie%data_4d%values, 'material_results/sie.txt', Constructor%nz, Constructor%ny, Constructor%nx, Constructor%nmats)   
+        ! call debug(materials%vof%data_4d%values, 'material_results/vof6.txt', Constructor%nz, Constructor%ny, Constructor%nx, Constructor%nmats)   
+
+
     end function
 
 
@@ -363,28 +378,28 @@ contains
 
         call this%Calculate_thermodynamics()
 
-        call time%Calculate_dt(this%mesh, this%velocity, this%rezone%mesh_velocity, this%vertex_mass, this%total_vof, this%emfm)
+        ! call time%Calculate_dt(this%mesh, this%velocity, this%rezone%mesh_velocity, this%vertex_mass, this%total_vof, this%emfm)
 
-        this%cyc_delete = this%cyc_delete+1
+        ! this%cyc_delete = this%cyc_delete+1
 
-        if  (this%wilkins_scheme == 1) call this%Apply_wilkins_mass()
+        ! if  (this%wilkins_scheme == 1) call this%Apply_wilkins_mass()
 
-        call this%Calculate_acceleration_2d(this%wilkins_scheme, time%dt_mid)
+        ! call this%Calculate_acceleration_2d(this%wilkins_scheme, time%dt_mid)
 
 
-        call this%Calculate_artificial_viscosity_2d(time, this%wilkins_scheme)
+        ! call this%Calculate_artificial_viscosity_2d(time, this%wilkins_scheme)
 
-        call this%Calculate_velocity_2d(time%dt_mid, this%wilkins_scheme)
+        ! call this%Calculate_velocity_2d(time%dt_mid, this%wilkins_scheme)
 
-        if  (this%wilkins_scheme == 1) call this%Restore_wilkins_mass()
+        ! if  (this%wilkins_scheme == 1) call this%Restore_wilkins_mass()
 
-        call this%Calculate_energy_2d(this%init_temperature, time%dt)
+        ! call this%Calculate_energy_2d(this%init_temperature, time%dt)
 
-        call this%Fix_vof_2d(time%dt)
+        ! call this%Fix_vof_2d(time%dt)
 
-        call this%rezone%Calculate_rezone_2d(time%dt)
+        ! call this%rezone%Calculate_rezone_2d(time%dt)
 
-        call this%Calculate_mesh_2d(time)
+        ! call this%Calculate_mesh_2d(time)
 
         ! if (this%rezone%rezone_type /= 0) call this%advect%Calculate_advect_2d()
 
@@ -423,8 +438,25 @@ contains
 
         ! if (this%rezone%rezone_type /= 0) call this%advect%Calculate_advect_3d()
 
+        call this%print_materials()
+
     end subroutine do_time_step_3d
 
+
+    subroutine print_materials(this)
+        class (hydro_step_t) , intent(inout)   :: this
+        call debug(this%materials%sound_vel%data_4d%values, 'material_results/sound_vel.txt', this%nz, this%ny, this%nx, this%nmats)  
+        call debug(this%materials%temperature%data_4d%values, 'material_results/temperature.txt', this%nz, this%ny, this%nx, this%nmats)  
+        call debug(this%materials%density%data_4d%values, 'material_results/density.txt', this%nz, this%ny, this%nx, this%nmats)  
+        call debug(this%materials%dp_de%data_4d%values, 'material_results/dp_de.txt', this%nz, this%ny, this%nx, this%nmats)  
+        call debug(this%materials%dp_drho%data_4d%values, 'material_results/dp_drho.txt', this%nz, this%ny, this%nx, this%nmats)  
+        call debug(this%materials%dt_de%data_4d%values, 'material_results/dt_de.txt', this%nz, this%ny, this%nx, this%nmats)  
+        call debug(this%materials%dt_drho%data_4d%values, 'material_results/dt_drho.txt', this%nz, this%ny, this%nx, this%nmats)  
+   
+        call debug(this%materials%vof%data_4d%values, 'material_results/vof.txt', this%nz, this%ny, this%nx, this%nmats)   
+        call debug(this%materials%sie%data_4d%values, 'material_results/sie.txt', this%nz, this%ny, this%nx, this%nmats)  
+        call debug(this%materials%cell_mass%data_4d%values, 'material_results/cell_mass.txt', this%nz, this%ny, this%nx, this%nmats)  
+    end subroutine print_materials
 
     subroutine Calculate_thermodynamics(this)
         use omp_lib
@@ -506,7 +538,9 @@ contains
         call this%materials%sound_vel      %Point_to_data(sound_vel_vof)
         call this%materials%dt_de          %Point_to_data(dt_de_vof)
         call this%materials%vof            %Point_to_data(mat_vof)
+        call this%materials%sie            %Point_to_data(sie_vof)
 
+        call debug(sie_vof, 'material_results/sie_vofff1.txt', this%nz, this%ny, this%nx, this%nmats)
 
         
         call this%Calculate_density(this%total_volume)
@@ -550,6 +584,8 @@ contains
         call this%materials%cell_mass%Exchange_end()
 
         call this%materials%Apply_eos(this%nx, this%ny, this%nz, this%emf, .true.)
+        ! call debug(sie_vof, 'material_results/sie_vofff2.txt', this%nz, this%ny, this%nx, this%nmats)
+        
 
 
         ! call debug(cell_mass_vof, 'material_results/cell_mass_vof.txt', this%nz, this%ny, this%nx, this%nmats)
@@ -571,7 +607,7 @@ contains
             end do
         end do
 
-
+        ! call debug(sie_vof, 'material_results/sie_vofff3.txt', this%nz, this%ny, this%nx, this%nmats)
 
         call this%total_pressure%Exchange_virtual_space_nonblocking()
         call this%total_density%Apply_boundary(.false.)
@@ -599,7 +635,7 @@ contains
         end do
 
 
-
+        ! call debug(sie_vof, 'material_results/sie_vofff4.txt', this%nz, this%ny, this%nx, this%nmats)
         call this%total_density%Exchange_end()
 
         call this%num_mat_cells%Apply_boundary(.false.)
@@ -608,9 +644,13 @@ contains
         call this%total_vof    %Apply_boundary(.false.)
         call this%materials%cell_mass%Apply_boundary(.false.)
         call this%materials%density  %Apply_boundary(.false.)
+
+        ! call debug(sie_vof, 'material_results/sie_vof1.txt', this%nz, this%ny, this%nx, this%nmats)
         call this%materials%sie      %Apply_boundary(.false.)
+        ! call debug(sie_vof, 'material_results/sie_vof2.txt', this%nz, this%ny, this%nx, this%nmats)
+
         ! call debug(mat_vof, 'material_results/mat_vof1.txt', this%nz, this%ny, this%nx, this%nmats)
-        ! call this%materials%vof      %Apply_boundary(.false.)  ! ????????????????
+        call this%materials%vof      %Apply_boundary(.false.)  ! ????????????????
         ! call debug(mat_vof, 'material_results/mat_vof2.txt', this%nz, this%ny, this%nx, this%nmats)
 
 
@@ -633,32 +673,41 @@ contains
         call this%vertex_mass%Exchange_virtual_space_blocking()
 
         call this%Calculate_inversed_vertex_mass()
+        ! call debug(sie_vof, 'material_results/sie_vofff5.txt', this%nz, this%ny, this%nx, this%nmats)
         call this%inversed_vertex_mass%Exchange_virtual_space_blocking()
 
+        ! call debug(temperature_vof, 'material_results/temperature.txt', this%nz, this%ny, this%nx, this%nmats)
+        ! call debug(pressure_vof, 'material_results/pressure.txt', this%nz, this%ny, this%nx, this%nmats)
+        ! call debug(mat_vof, 'material_results/mat.txt', this%nz, this%ny, this%nx, this%nmats)
 
-        call debug(temperature_vof, 'material_results/temperature.txt', this%nz, this%ny, this%nx, this%nmats)
-        call debug(pressure_vof, 'material_results/pressure.txt', this%nz, this%ny, this%nx, this%nmats)
-        call debug(mat_vof, 'material_results/mat.txt', this%nz, this%ny, this%nx, this%nmats)
+        ! call debug(sie_vof, 'material_results/sie_vof1.txt', this%nz, this%ny, this%nx, this%nmats)
+        ! call debug(sie_vof, 'material_results/sie_vof2.txt', this%nz, this%ny, this%nx, this%nmats)
 
+        ! call debug(mat_vof, 'material_results/mat_vof1.txt', this%nz, this%ny, this%nx, this%nmats)
+        ! call debug(mat_vof, 'material_results/mat_vof2.txt', this%nz, this%ny, this%nx, this%nmats)
     end subroutine Calculate_thermodynamics
 
 
-    subroutine debug(arr, file_name, nz, ny, nx, nmats)
+    subroutine debug(arr, file_name, nzp, nyp, nxp, nmats)
         real(8), dimension(:,:,:,:), pointer, intent(in)   ::   arr
-        integer, intent(in)                              ::   nz, ny, nx, nmats
+        integer, intent(in)                              ::   nzp, nyp, nxp, nmats
         character(len=*), intent(in)                      ::   file_name
 
         integer :: i,j,k,m
         integer :: unit
+        integer :: total_debug
+        total_debug = 0
 
 
-        open (unit=414, file=file_name, status = 'replace')  
-     
-        do k = 0, nz+1
-            do j = 0, ny+1
-                do i = 0, nx+1
+        open (unit=414, file=file_name,  status = 'replace')  
+        
+        
+        do k = 1, nzp
+            do j = 1, nyp
+                do i = 1, nxp
                     do m = 1, nmats
 
+                        if (arr(m,i,j,k) == 0)   total_debug = total_debug + 1
                         write(414,*) arr(m,i,j,k)
                     end do
                 end do
@@ -666,6 +715,7 @@ contains
         end do
         
         close (414)
+
 
     end subroutine debug
 
@@ -1819,6 +1869,7 @@ contains
         call this%materials%sie        %Point_to_data(sie_vof)
         call this%materials%vof        %Point_to_data(mat_vof)
 
+        ! call debug(sie_vof, 'material_results/sie_vof1.txt', this%nz, this%ny, this%nx, this%nmats)
         do k = 1, this%nz
             do j = 1, this%ny
                 do i = 1, this%nx
@@ -1882,8 +1933,7 @@ contains
         call this%total_sie%Exchange_virtual_space_nonblocking()
 
         call this%materials%sie%Exchange_virtual_space_nonblocking()
-
-        call debug(sie_vof, 'material_results/sie_vof.txt', this%nz, this%ny, this%nx, this%nmats)
+        ! call debug(sie_vof, 'material_results/sie_vof2.txt', this%nz, this%ny, this%nx, this%nmats)
 
         return
     end subroutine Calculate_energy_3d

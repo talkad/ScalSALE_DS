@@ -168,7 +168,6 @@ contains
                         if (mat_cell(i, j, k) == mat_ids(m)) then
 
                             density_vof(m, i, j, k) =  rho_0(m)
-                            ! total_debug = total_debug + rho_0(m)
 
                             temp(m, i, j, k)        = temperature_init
                             temp_old(m, i, j, k)    = temperature_init
@@ -185,9 +184,46 @@ contains
             end do
         end do
 
+
+        ! call debug(temp, 'material_results/vofff.txt', nzp, nyp, nxp, nmats)
+        ! call debug(mat_vof, 'material_results/mat_vofff2.txt', nzp, nyp, nxp, nmats)
+        ! call debug(sie_vof, 'material_results/sie_vofff.txt', nzp, nyp, nxp, nmats)
+
+
+
     end function
 
 
+    subroutine debug(arr, file_name, nzp, nyp, nxp, nmats)
+        real(8), dimension(:,:,:,:), pointer, intent(in)   ::   arr
+        integer, intent(in)                              ::   nzp, nyp, nxp, nmats
+        character(len=*), intent(in)                      ::   file_name
+
+        integer :: i,j,k,m
+        integer :: unit
+        integer :: total_debug
+        total_debug = 0
+
+
+        open (unit=414, file=file_name,  status = 'replace')  
+        
+        
+        do k = 1, nzp
+            do j = 1, nyp
+                do i = 1, nxp
+                    do m = 1, nmats
+
+                        if (arr(m,i,j,k) == 0)   total_debug = total_debug + 1
+                        write(414,*) arr(m,i,j,k)
+                    end do
+                end do
+            end do
+        end do
+        
+        close (414)
+
+
+    end subroutine debug
 
 
     subroutine Apply_eos(this, nx, ny, nz, emf, is_old_temperature)
