@@ -421,7 +421,7 @@ contains
         !        nmats, materials, num_mat_cells, mat_id, emf, emfm, parallel_params, mat_ids
 
         ! print*, 'hello there', Constructor%nz, Constructor%ny, Constructor%nx, 2
-        ! call debug(Constructor%materials%vof%data_4d%nz_values, 'material_results/vof3.txt', Constructor%nz, Constructor%ny, Constructor%nx, 2)   
+        ! call debug(Constructor%materials%vof%data_4d%nz_values, 'material_results/vof1.txt', Constructor%nz, Constructor%ny, Constructor%nx, 2)   
 
         Constructor%hydro = hydro_step_t(df, Constructor%nx , Constructor%ny , Constructor%nz, Constructor%nxp         ,&
             Constructor%nyp, Constructor%nzp, Constructor%wilkins_scheme, Constructor%mesh,&
@@ -437,6 +437,7 @@ contains
             df%init_temperature           ,&
             Constructor%n_materials, Constructor%materials, Constructor%num_mat_cells     ,&
             Constructor%mat_cells, Constructor%emf, Constructor%emfm, Constructor%parallel_params, df%mat_index)
+        ! call debug(Constructor%materials%vof%data_4d%nz_values, 'material_results/vof2.txt', Constructor%nz, Constructor%ny, Constructor%nx, 2)
 
         !Constructor%cr = cr_t(Constructor%hydro, Constructor%time,Constructor%boundary_params ,df%run_name, df%with_cr)
 
@@ -722,9 +723,9 @@ contains
                         !call this%Write_to_files()
         ncyc = 1
         if (this%rezone_type == 0) then
-            max_ncyc = 20
+            max_ncyc = 2
         else
-            max_ncyc = 20
+            max_ncyc = 2
         end if
 
         if (this%mesh%dimension == 2) then
@@ -924,9 +925,9 @@ contains
 
         open (unit=414, file=file_name, status = 'replace')  
         
-        do k = 1, nzp
-            do j = 1, nyp
-                do i = 1, nxp
+        do k = 0, nzp
+            do j = 0, nyp
+                do i = 0, nxp
                     do m = 1, nmats
                         index = mapper(m,i,j,k) 
 

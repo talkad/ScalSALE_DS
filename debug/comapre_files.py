@@ -7,7 +7,7 @@ def convert_data(file_path):
     return data
 
 
-files = ['sound_vel', 'temperature', 'density', 'dp_de', 'dt_de', 'dt_drho', 'vof', 'sie', 'cell_mass']
+files = ['split_debug2', 'split_debug1', 'sound_vel', 'temperature', 'density', 'dp_de', 'dt_de', 'dt_drho', 'vof_new', 'sie', 'cell_mass']
 
 
 for file in files:

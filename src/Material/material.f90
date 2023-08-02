@@ -163,9 +163,12 @@ contains
         call Constructor%sie%Point_to_data(sie_vof)
         call mat_cells%Point_to_data(mat_cell)
 
+        ! call debug(mat_vof, 'material_results/vof54.txt', nzp, nyp, nxp, nmats)
+
         index_mapper => get_instance()
         mapper => index_mapper%mapper
         csr_idx = index_mapper%last_idx
+        ! print*, 'aaaaaaaaaa', csr_idx, shape(temp_old)
 
         do k = 1, nzp
             do j = 1, nyp
@@ -195,9 +198,10 @@ contains
             end do
         end do
         
+        ! print*, 'bbbbbbbb', csr_idx, nzp, nyp, nxp, nmats
 
 
-        ! call debug(temp, 'material_results/vofff.txt', nzp, nyp, nxp, nmats)
+        ! call debug(mat_vof, 'material_results/vof55.txt', nzp, nyp, nxp, nmats)
         ! call debug(mat_vof, 'material_results/mat_vofff2.txt', nzp, nyp, nxp, nmats)
         ! call debug(sie_vof, 'material_results/sie_vofff.txt', nzp, nyp, nxp, nmats)
 
@@ -224,9 +228,9 @@ contains
 
         open (unit=414, file=file_name, status = 'replace')  
         
-        do k = 1, nzp
-            do j = 1, nyp
-                do i = 1, nxp
+        do k = 0, nzp
+            do j = 0, nyp
+                do i = 0, nxp
                     do m = 1, nmats
                         index = mapper(m,i,j,k) 
 

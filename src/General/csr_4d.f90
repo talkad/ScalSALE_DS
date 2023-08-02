@@ -79,7 +79,7 @@ module csr_module
         integer           , intent(in) :: d1, d2, d3, d4  
         integer :: space_size
         integer :: i, j, k, m
-        
+        print*, 'init_csr'
         allocate(Constructor_init_val%values(0:1,0:1,0:1,0:1))
         Constructor_init_val%values = 0
 
@@ -94,13 +94,14 @@ module csr_module
         Constructor_init_val%idx_map => idx_map
         space_size = (d1+1) * (d2+1) * (d3+1) * d4 * 4
 
-        print*, 'nz_size', space_size
+        ! print*, 'nz_size', space_size
 
         Constructor_init_val%padding_size = space_size*Constructor_init_val%ratio
         Constructor_init_val%padding_idx = 0
 
         allocate(Constructor_init_val%nz_values(0:space_size+int(space_size*Constructor_init_val%ratio)))
         Constructor_init_val%nz_values = 0d0
+        ! print*, 'aaaaaaaaaaaaaaaaaaaa',d4,d1,d2,d3
 
         call Constructor_init_val%add_boundary()
 
@@ -119,9 +120,10 @@ module csr_module
         ! print*, 'bbbbbbbbbb', this%nmats, this%nx, this%ny, this%nz 
         ! print*, 'aaaaaaaaaaaaaa', this%nx, this%ny, this%nz, this%nmats
         csr_idx = 0
+
         i = 0
-        do k = 0, this%nz+1
-            do j = 0, this%ny+1
+        do k = 0, this%nz
+            do j = 0, this%ny
                 do m = 1, this%nmats
                     this%idx_map(m,i,j,k) = csr_idx
                     this%nz_values(csr_idx) = 0
@@ -145,61 +147,88 @@ module csr_module
         end do
 
 
-        ! j = 0
-        ! do k = 0, this%nz
-        !     do i = 0, this%nx
-        !         do m = 1, this%nmats
-        !             this%idx_map(m,i,j,k) = csr_idx
-        !             this%nz_values(csr_idx) = 0
+        j = 0
+        do k = 0, this%nz
+            do i = 0, this%nx
+                do m = 1, this%nmats
+                    this%idx_map(m,i,j,k) = csr_idx
+                    this%nz_values(csr_idx) = 0
 
-        !             csr_idx = csr_idx + 1
-        !         end do
-        !     end do
-        ! end do
-
-
-        ! j = this%ny
-        ! do k = 0, this%nz
-        !     do i = 0, this%nx
-        !         do m = 1, this%nmats
-        !             this%idx_map(m,i,j,k) = csr_idx
-        !             this%nz_values(csr_idx) = 0
-
-        !             csr_idx = csr_idx + 1
-        !         end do
-        !     end do
-        ! end do
+                    csr_idx = csr_idx + 1
+                end do
+            end do
+        end do
 
 
-        ! k = 0
-        ! do j = 0, this%ny
-        !     do i = 0, this%nx
-        !         do m = 1, this%nmats
-        !             this%idx_map(m,i,j,k) = csr_idx
-        !             this%nz_values(csr_idx) = 0
+        j = this%ny
+        do k = 0, this%nz
+            do i = 0, this%nx
+                do m = 1, this%nmats
+                    this%idx_map(m,i,j,k) = csr_idx
+                    this%nz_values(csr_idx) = 0
 
-        !             csr_idx = csr_idx + 1
-        !         end do
-        !     end do
-        ! end do
+                    csr_idx = csr_idx + 1
+                end do
+            end do
+        end do
 
-        ! k = this%nz
-        ! do j = 0, this%ny
-        !     do i = 0, this%nx
-        !         do m = 1, this%nmats
-        !             this%idx_map(m,i,j,k) = csr_idx
-        !             this%nz_values(csr_idx) = 0
 
-        !             csr_idx = csr_idx + 1
-        !         end do
-        !     end do
-        ! end do
+        k = 0
+        do j = 0, this%ny
+            do i = 0, this%nx
+                do m = 1, this%nmats
+                    this%idx_map(m,i,j,k) = csr_idx
+                    this%nz_values(csr_idx) = 0
+
+                    csr_idx = csr_idx + 1
+                end do
+            end do
+        end do
+
+        k = this%nz
+        do j = 0, this%ny
+            do i = 0, this%nx
+                do m = 1, this%nmats
+                    this%idx_map(m,i,j,k) = csr_idx
+                    this%nz_values(csr_idx) = 0
+
+                    csr_idx = csr_idx + 1
+                end do
+            end do
+        end do
 
         index_mapper%last_idx = csr_idx
     
     end subroutine add_boundary
 
+    ! subroutine print_mapper(file_name)
 
+    !     type(indexer_t), pointer ::  index_mapper
+    !     integer, dimension(:,:,:,:), pointer   ::   mapper
+    !     integer :: index, m,i,j,k
+    !     character(len=*), intent(in)                      ::   file_name
+
+    !     index_mapper => get_instance()
+    !     mapper => index_mapper%mapper
+
+    !     open (unit=414, file=file_name, status = 'replace')  
+        
+    !     print*, shape(mapper)
+
+    !     do k = 0, size(mapper, dim=4)-1
+    !         do j = 0, size(mapper, dim=3)-1
+    !             do i = 0, size(mapper, dim=2)-1
+    !                 do m = 1, size(mapper, dim=1)
+    !                     index = mapper(m,i,j,k) 
+    !                     write(414,*) m, i , j , k , index
+    !                 end do
+    !             end do
+    !         end do
+    !     end do
+        
+    !     close (414)
+
+    ! end subroutine print_mapper
 
     pure subroutine add_item(this, material_type, i, j, k, val)
         implicit none

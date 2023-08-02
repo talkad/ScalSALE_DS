@@ -245,15 +245,15 @@ contains
         if (nzp == 1) then
             Constructor%nz  = 1
         else
-            Constructor%nz  = nzp - 1
-            print*, 'a'
-            Constructor%a = material_quantity_t(0d0, nxp, nyp, nzp, 1)
-            print*, 'b'
-            Constructor%b = material_quantity_t(0d0, nxp, nyp, nzp, 1)
-            print*, 'c'
-            Constructor%c = material_quantity_t(0d0, nxp, nyp, nzp, 1)
-            print*, 'side'
-            Constructor%side = material_quantity_t(0d0, nxp, nyp, nzp,1 )
+            ! Constructor%nz  = nzp - 1
+            ! print*, 'a'
+            ! Constructor%a = material_quantity_t(0d0, nxp, nyp, nzp, 1)
+            ! print*, 'b'
+            ! Constructor%b = material_quantity_t(0d0, nxp, nyp, nzp, 1)
+            ! print*, 'c'
+            ! Constructor%c = material_quantity_t(0d0, nxp, nyp, nzp, 1)
+            ! print*, 'side'
+            ! Constructor%side = material_quantity_t(0d0, nxp, nyp, nzp,1 )
         end if
 
         Constructor%nxp = nxp
