@@ -453,7 +453,7 @@ contains
         call debug(this%materials%dt_de%data_4d%values, 'material_results/dt_de.txt', this%nz, this%ny, this%nx, this%nmats)  
         call debug(this%materials%dt_drho%data_4d%values, 'material_results/dt_drho.txt', this%nz, this%ny, this%nx, this%nmats)  
    
-        call debug(this%materials%vof%data_4d%values, 'material_results/vof.txt', this%nz, this%ny, this%nx, this%nmats)   
+        call debug(this%materials%vof%data_4d%values, 'material_results/vof_new.txt', this%nz, this%ny, this%nx, this%nmats)   
         call debug(this%materials%sie%data_4d%values, 'material_results/sie.txt', this%nz, this%ny, this%nx, this%nmats)  
         call debug(this%materials%cell_mass%data_4d%values, 'material_results/cell_mass.txt', this%nz, this%ny, this%nx, this%nmats)  
     end subroutine print_materials
@@ -540,7 +540,7 @@ contains
         call this%materials%vof            %Point_to_data(mat_vof)
         call this%materials%sie            %Point_to_data(sie_vof)
 
-        call debug(sie_vof, 'material_results/sie_vofff1.txt', this%nz, this%ny, this%nx, this%nmats)
+        ! call debug(sie_vof, 'material_results/sie_vofff1.txt', this%nz, this%ny, this%nx, this%nmats)
 
         
         call this%Calculate_density(this%total_volume)
@@ -643,14 +643,14 @@ contains
         call this%total_sie    %Apply_boundary(.false.)
         call this%total_vof    %Apply_boundary(.false.)
         call this%materials%cell_mass%Apply_boundary(.false.)
-        call this%materials%density  %Apply_boundary(.false.)
+        ! call this%materials%density  %Apply_boundary(.false.)xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
         ! call debug(sie_vof, 'material_results/sie_vof1.txt', this%nz, this%ny, this%nx, this%nmats)
-        call this%materials%sie      %Apply_boundary(.false.)
+        ! call this%materials%sie      %Apply_boundary(.false.)
         ! call debug(sie_vof, 'material_results/sie_vof2.txt', this%nz, this%ny, this%nx, this%nmats)
 
         ! call debug(mat_vof, 'material_results/mat_vof1.txt', this%nz, this%ny, this%nx, this%nmats)
-        call this%materials%vof      %Apply_boundary(.false.)  ! ????????????????
+        ! call this%materials%vof      %Apply_boundary(.false.)  ! ????????????????
         ! call debug(mat_vof, 'material_results/mat_vof2.txt', this%nz, this%ny, this%nx, this%nmats)
 
 
@@ -702,9 +702,9 @@ contains
         open (unit=414, file=file_name,  status = 'replace')  
         
         
-        do k = 1, nzp
-            do j = 1, nyp
-                do i = 1, nxp
+        do k = 0, nzp
+            do j = 0, nyp
+                do i = 0, nxp
                     do m = 1, nmats
 
                         if (arr(m,i,j,k) == 0)   total_debug = total_debug + 1
@@ -2212,7 +2212,7 @@ call this%materials%sie%exchange_end()
         deallocate(cell_mass_vof_sum_arr)
         deallocate(mat_vof_max_arr)
         call this%total_vof%Apply_boundarY(.false.)
-            call this%materials%vof%Apply_boundarY(is_blocking=.false.)
+            ! call this%materials%vof%Apply_boundarY(is_blocking=.false.)xxxxxxxxxxxxxxxxxxxxxxxxxx
 
             ! call debug(cell_mass_vof, 'material_results/cell_mass_vof.txt', this%nz, this%ny, this%nx, this%nmats)
             ! call debug(mat_vof, 'material_results/mat_vof.txt', this%nz, this%ny, this%nx, this%nmats)

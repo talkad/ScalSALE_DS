@@ -80,7 +80,8 @@ contains
       integer, dimension(4) :: vals_shape
 
       allocate (Constructor_init_arr%values (1:d4, 0:d1, 0:d2, 0:d3))
-      Constructor_init_arr%values =  initial_data
+      ! Constructor_init_arr%values =  initial_data xxxxxxxxxxxxxxxxxxxxxxxxxxx
+      Constructor_init_arr%values = 0   
       Constructor_init_arr%nx = d1
       Constructor_init_arr%ny = d2
       Constructor_init_arr%nz = d3
@@ -98,7 +99,8 @@ contains
       integer                  , intent(in) :: d4
 
       allocate (Constructor_init_val%values (1:d4, 0:d1, 0:d2, 0:d3))
-      Constructor_init_val%values = initial_val
+      ! Constructor_init_val%values = initial_val xxxxxxxxxxxxxxxxxxxxxxxxxx
+      Constructor_init_val%values  = 0
       Constructor_init_val%nx = d1
       Constructor_init_val%ny = d2
       Constructor_init_val%nz = d3
