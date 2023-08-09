@@ -6,7 +6,10 @@ module quantity_module
     use boundary_parameters_module       , only : boundary_parameters_t
     use parallel_parameters_module       , only : parallel_parameters_t
     ! use data_4d_module, only : data_4d_t
+    use data_struct_base, only : data_struct_t
+    use data_4d_module, only : data_4d_t
     use csr_module, only : csr_t
+
     
     use indexer_module
 
@@ -19,7 +22,7 @@ module quantity_module
 
         type (data_t) , dimension(:), pointer, public :: data
         ! type (data_4d_t), pointer, public :: data_4d
-        type(csr_t), pointer, public :: data_4d
+        class(data_struct_t), allocatable, public :: data_4d
 
         type(boundary_parameters_t), pointer, public :: boundary_params
         type(parallel_parameters_t), pointer, public :: parallel_params
@@ -30,7 +33,7 @@ module quantity_module
         integer                     , public              :: number_of_axises  
     contains
 
-        procedure, public  :: print_data
+        ! procedure, public  :: print_data
         procedure, public  :: Init_quantity_init_arr
         procedure, public  :: Init_quantity_no_bc
 
@@ -100,7 +103,7 @@ contains
 
         integer                  , intent(in)     :: axises_num
         integer                                   :: i
-        nullify(this%data_4d)
+        if(allocated(this%data_4d))        deallocate(this%data_4d)
         nullify(this%data)
         allocate (data_t :: this%data (axises_num))
         do i=1, axises_num
@@ -111,7 +114,7 @@ contains
         this%d3 = d3 - 1
         this%number_of_axises = axises_num
         this%boundary_params => bc_params
-        nullify(this%data_4d)
+        if(allocated(this%data_4d))        deallocate(this%data_4d)
 
     end subroutine
 
@@ -126,7 +129,7 @@ contains
 
         integer           , intent(in)     :: axises_num
         integer                            :: i
-        nullify(this%data_4d)
+        if(allocated(this%data_4d))        deallocate(this%data_4d)
         nullify(this%data)
         allocate (data_t :: this%data (axises_num))
         do i=1, axises_num
@@ -137,10 +140,10 @@ contains
         this%d3 = d3 - 1
         this%number_of_axises = axises_num
         this%boundary_params => bc_params
-        nullify(this%data_4d)
+        if(allocated(this%data_4d))        deallocate(this%data_4d)
     end subroutine
 
-    subroutine Init_quantity_init_val_4d(this, initial_val, d1, d2, d3, d4, axises_num, bc_params)
+    subroutine Init_quantity_init_val_4d(this, initial_val, d1, d2, d3, d4, axises_num, bc_params, is_csr)
         implicit none
         class(quantity_t) , intent(in out) :: this
 
@@ -155,15 +158,22 @@ contains
         integer                            :: i
         type(indexer_t), pointer ::  index_mapper
         integer, dimension(:,:,:,:), pointer   ::   mapper
+        logical, optional, intent(in)      :: is_csr
 
         index_mapper => get_instance()
         mapper => index_mapper%mapper
 
-        nullify(this%data_4d)
+        if(allocated(this%data_4d))        deallocate(this%data_4d)
         nullify(this%data)
-        allocate (csr_t :: this%data_4d)
-        ! print*, 'bbbbbbbbbbbb', d1, d2, d3, d4
-        this%data_4d = csr_t(initial_val, d1, d2, d3, d4, index_mapper%mapper)
+
+        if (present(is_csr) .and. .not. is_csr) then
+            allocate (data_4d_t :: this%data_4d)
+            this%data_4d = data_4d_t(initial_val, d1, d2, d3, d4)
+        else
+            allocate (csr_t :: this%data_4d)
+            this%data_4d = csr_t(initial_val, d1, d2, d3, d4, index_mapper%mapper)
+        end if
+
         this%d1 = d1 - 1
         this%d2 = d2 - 1
         this%d3 = d3 - 1
@@ -172,7 +182,7 @@ contains
         nullify(this%data)
     end subroutine
 
-    subroutine Init_quantity_no_bc(this, initial_val, d1, d2, d3, d4, axises_num)
+    subroutine Init_quantity_no_bc(this, initial_val, d1, d2, d3, d4, axises_num, is_csr)
         implicit none
         class(quantity_t) , intent(in out) :: this
 
@@ -184,16 +194,22 @@ contains
 
         integer           , intent(in)     :: axises_num
         integer                            :: i
+        logical, optional , intent(in)     :: is_csr
 
         type(indexer_t), pointer ::  index_mapper
 
         index_mapper => get_instance()
 
-        nullify(this%data_4d)
+        if(allocated(this%data_4d))        deallocate(this%data_4d)
         nullify(this%data)
-        allocate (csr_t :: this%data_4d)
-        ! print*, 'cccccccccc', d1, d2, d3, d4
-        this%data_4d = csr_t(initial_val, d1, d2, d3, d4, index_mapper%mapper)
+
+        if (present(is_csr) .and. .not. is_csr) then
+            allocate (data_4d_t :: this%data_4d)
+            this%data_4d = data_4d_t(initial_val, d1, d2, d3, d4)
+        else
+            allocate (csr_t :: this%data_4d)
+            this%data_4d = csr_t(initial_val, d1, d2, d3, d4, index_mapper%mapper)
+        end if
         this%d1 = d1 - 1
         this%d2 = d2 - 1
         this%d3 = d3 - 1
@@ -212,7 +228,8 @@ contains
 
         integer           , intent(in)     :: axises_num
         integer                            :: i
-        nullify(this%data_4d)
+        if(allocated(this%data_4d))        deallocate(this%data_4d)
+
         nullify(this%data)
         allocate (data_t :: this%data (axises_num))
         do i=1, axises_num
@@ -413,45 +430,45 @@ contains
 
 
 
-    subroutine print_data(this, file_name)
-        class (quantity_t), intent(in out) :: this 
-        real(8), dimension (:), pointer  ::   arr
-        integer                        ::   nzp, nyp, nxp, nmats
-        character(len=*), intent(in)                      ::   file_name
-        type(indexer_t), pointer ::  index_mapper
-        integer, dimension(:,:,:,:), pointer   ::   mapper
-        integer :: index
+    ! subroutine print_data(this, file_name)
+    !     ! class (quantity_t), intent(in out) :: this 
+    !     ! real(8), dimension (:), pointer  ::   arr
+    !     ! integer                        ::   nzp, nyp, nxp, nmats
+    !     ! character(len=*), intent(in)                      ::   file_name
+    !     ! type(indexer_t), pointer ::  index_mapper
+    !     ! integer, dimension(:,:,:,:), pointer   ::   mapper
+    !     ! integer :: index
 
-        integer :: i,j,k,m
-        integer :: unit
+    !     ! integer :: i,j,k,m
+    !     ! integer :: unit
 
-        index_mapper => get_instance()
-        mapper => index_mapper%mapper
+    !     ! index_mapper => get_instance()
+    !     ! mapper => index_mapper%mapper
 
-        arr => this%data_4d%nz_values
+    !     ! arr => this%data_4d%nz_values
 
-        open (unit=69, file=file_name, position="append", status="old", action="write")
+    !     ! open (unit=69, file=file_name, position="append", status="old", action="write")
         
-        do k = 1, nzp
-            do j = 1, nyp
-                do i = 1, nxp
-                    do m = 1, nmats
-                        index = mapper(m,i,j,k) 
+    !     ! do k = 1, nzp
+    !     !     do j = 1, nyp
+    !     !         do i = 1, nxp
+    !     !             do m = 1, nmats
+    !     !                 index = mapper(m,i,j,k) 
 
-                        if (index == -1) then
-                            write(69,*)  0d0
-                        else
-                            write(69,*) arr(index)
-                        end if
+    !     !                 if (index == -1) then
+    !     !                     write(69,*)  0d0
+    !     !                 else
+    !     !                     write(69,*) arr(index)
+    !     !                 end if
                         
-                    end do
-                end do
-            end do
-        end do
+    !     !             end do
+    !     !         end do
+    !     !     end do
+    !     ! end do
         
-        close (69)
+    !     ! close (69)
 
-    end subroutine print_data
+    ! end subroutine print_data
 
     
 

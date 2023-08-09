@@ -449,17 +449,39 @@ contains
 
     subroutine print_materials(this)
         class (hydro_step_t) , intent(inout)   :: this
-        call debug(this%materials%sound_vel%data_4d%nz_values, 'material_results/sound_vel.txt', this%nz, this%ny, this%nx, this%nmats)  
-        call debug(this%materials%temperature%data_4d%nz_values, 'material_results/temperature.txt', this%nz, this%ny, this%nx, this%nmats)  
-        call debug(this%materials%density%data_4d%nz_values, 'material_results/density.txt', this%nz, this%ny, this%nx, this%nmats)  
-        call debug(this%materials%dp_de%data_4d%nz_values, 'material_results/dp_de.txt', this%nz, this%ny, this%nx, this%nmats)  
-        call debug(this%materials%dp_drho%data_4d%nz_values, 'material_results/dp_drho.txt', this%nz, this%ny, this%nx, this%nmats)  
-        call debug(this%materials%dt_de%data_4d%nz_values, 'material_results/dt_de.txt', this%nz, this%ny, this%nx, this%nmats)  
-        call debug(this%materials%dt_drho%data_4d%nz_values, 'material_results/dt_drho.txt', this%nz, this%ny, this%nx, this%nmats)  
+        real(8), dimension(:), pointer :: sound_vel
+        real(8), dimension(:), pointer :: temperature
+        real(8), dimension(:), pointer :: density
+        real(8), dimension(:), pointer :: dp_de
+        real(8), dimension(:), pointer :: dp_drho
+        real(8), dimension(:), pointer :: dt_de
+        real(8), dimension(:), pointer :: dt_drho
+        real(8), dimension(:), pointer :: vof
+        real(8), dimension(:), pointer :: sie
+        real(8), dimension(:), pointer :: cell_mass
+
+        call this%materials%sound_vel%Point_to_data(sound_vel)
+        call this%materials%temperature%Point_to_data(temperature)
+        call this%materials%density%Point_to_data(density)
+        call this%materials%dp_de%Point_to_data(dp_de)
+        call this%materials%dp_drho%Point_to_data(dp_drho)
+        call this%materials%dt_de%Point_to_data(dt_de)
+        call this%materials%dt_drho%Point_to_data(dt_drho)
+        call this%materials%vof%Point_to_data(vof)
+        call this%materials%sie%Point_to_data(sie)
+        call this%materials%cell_mass%Point_to_data(cell_mass)
+
+        call debug(sound_vel, 'material_results/sound_vel.txt', this%nz, this%ny, this%nx, this%nmats)  
+        call debug(temperature, 'material_results/temperature.txt', this%nz, this%ny, this%nx, this%nmats)  
+        call debug(density, 'material_results/density.txt', this%nz, this%ny, this%nx, this%nmats)  
+        call debug(dp_de, 'material_results/dp_de.txt', this%nz, this%ny, this%nx, this%nmats)  
+        call debug(dp_drho, 'material_results/dp_drho.txt', this%nz, this%ny, this%nx, this%nmats)  
+        call debug(dt_de, 'material_results/dt_de.txt', this%nz, this%ny, this%nx, this%nmats)  
+        call debug(dt_drho, 'material_results/dt_drho.txt', this%nz, this%ny, this%nx, this%nmats)  
    
-        call debug(this%materials%vof%data_4d%nz_values, 'material_results/vof_new.txt', this%nz, this%ny, this%nx, this%nmats)   
-        call debug(this%materials%sie%data_4d%nz_values, 'material_results/sie.txt', this%nz, this%ny, this%nx, this%nmats)  
-        call debug(this%materials%cell_mass%data_4d%nz_values, 'material_results/cell_mass.txt', this%nz, this%ny, this%nx, this%nmats)  
+        call debug(vof, 'material_results/vof_new.txt', this%nz, this%ny, this%nx, this%nmats)   
+        call debug(sie, 'material_results/sie.txt', this%nz, this%ny, this%nx, this%nmats)  
+        call debug(cell_mass, 'material_results/cell_mass.txt', this%nz, this%ny, this%nx, this%nmats)  
     end subroutine print_materials
 
 

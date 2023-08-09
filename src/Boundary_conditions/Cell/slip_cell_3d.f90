@@ -41,7 +41,7 @@ contains
         index_mapper => get_instance()
         mapper => index_mapper%mapper
 
-        if (associated(c_quantity%data_4d)) then
+        if (allocated(c_quantity%data_4d)) then
             call c_quantity%Point_to_data(values_4d)
             nmats = c_quantity%data_4d%nmats
             select case(edge_num)

@@ -1,14 +1,10 @@
 module csr_module
     use indexer_module
-    use data_struct_module
+    use data_struct_base
 
     type, extends(data_struct_t) :: csr_t
 
         real(8), dimension(:,:,:,:), pointer, public         :: values
-        integer, public                                       :: nx   
-        integer, public                                       :: ny   
-        integer, public                                       :: nz
-        integer, public                                       :: nmats
 
         !! CSR Arguments 
         real(8), dimension(:), pointer :: nz_values
@@ -20,23 +16,24 @@ module csr_module
 
     contains
 
-        procedure, public :: Point_to_data => Ptr_data
+        ! generic, public :: Point_to_data => &
+        !                     Ptr_coordinates_1d, &
+        !                     Ptr_coordinates_4d
+
+        procedure, public :: Ptr_coordinates_1d => Ptr_coordinates_1d_csr
+        ! procedure, public :: Ptr_coordinates_4d => Ptr_coordinates_4d_csr
+
+
+
 
         procedure, public :: Clean_data => Clean_data_imp
 
-        procedure, public :: Set_communication => Set_communication_imp
-
         procedure, public :: Debug_check_nan
-
-        procedure, public :: Exchange_virtual_space_blocking => Exchange_virtual_space_blocking_imp
 
         procedure, private ::Set_send_buf => Set_send_buf_imp
 
         procedure, private ::Get_recv_buf => Get_recv_buf_imp
 
-        procedure, public :: Exchange_virtual_space_nonblocking => Exchange_virtual_space_nonblocking_imp
-
-        procedure, public :: Exchange_end => Exchange_end_imp
 
         procedure, public :: debug_print
 
@@ -92,7 +89,7 @@ module csr_module
         ! print*, 'aaaaaaaaaa', d4, d3, d2, d1
 
         Constructor_init_val%idx_map => idx_map
-        space_size = (d1+1) * (d2+1) * (d3+1) * d4 * 4
+        space_size = (d1+1) * (d2+1) * (d3+1) * d4 !* 4
 
         ! print*, 'nz_size', space_size
 
@@ -393,16 +390,20 @@ module csr_module
 
 
 
-
-
-
-
-    subroutine Ptr_data (this, ptr)
-        class (csr_t)                    , intent(in)  :: this
+    subroutine Ptr_coordinates_1d_csr (this, ptr)
+        class (csr_t)                    , intent(in out)  :: this
         real(8), dimension(:), pointer, intent(out) :: ptr
 
         ptr => this%nz_values
-    end subroutine Ptr_data
+    end subroutine Ptr_coordinates_1d_csr
+
+
+    ! subroutine Ptr_coordinates_4d_csr(this, ptr)
+    !     class (csr_t), intent(in out) :: this
+    !     real(8), dimension(:,:,:,:), pointer, intent(out) :: ptr
+    ! end subroutine Ptr_coordinates_4d_csr
+
+
 
     function Get_copy (this)
         class (csr_t)       , intent(in)  :: this
@@ -418,86 +419,6 @@ module csr_module
     end subroutine Clean_data_imp
 
 
-    subroutine Set_communication_imp (this, comm, comm_params)
-        class (csr_t), intent(in out) :: this
-        type(communication_t), pointer            :: comm
-        type(communication_parameters_t), pointer :: comm_params
-        ! integer, dimension(4) :: vals_shape
-        integer :: d1,d2,d3
-
-        this%communication => comm
-        this%communication_parameters => comm_params
-
-        this%parallel_params => this%communication%parallel_params
-        if (this%communication%is_parallel .eqv. .true.) then
-        ! vals_shape = shape(this%values)
-        ! d1 = vals_shape(2) - 2
-        ! d2 = vals_shape(3) - 2
-        ! d3 = vals_shape(4) - 2
-
-        d1 = this%nx - 2
-        d2 = this%ny - 2
-        d3 = this%nz - 2
-
-        allocate(this%send_buf(0:this%nmats * (2*(d2+2)*(d3+2)+2*(d1+2)*(d3+2)+2*(d1+2)*(d2+2)+4*(d3+2)+4*(d2+2)+4*(d1+2)+8)-1))
-        allocate(this%recv_buf(0:this%nmats * (2*(d2+2)*(d3+2)+2*(d1+2)*(d3+2)+2*(d1+2)*(d2+2)+4*(d3+2)+4*(d2+2)+4*(d1+2)+8)-1))
-        end if
-    end subroutine Set_communication_imp
-
-
-    subroutine Exchange_virtual_space_blocking_imp (this, ghost_width)
-        class (csr_t), intent(in out) :: this
-        real(8), dimension(:,:,:), allocatable :: send_buf, recv_buf
-        integer, dimension(4) :: vals_shape
-        integer, optional :: ghost_width
-        integer :: ghost_width_local
-        integer :: ghost_width_local_x
-        integer :: i,j,k
-        if (.not. present(ghost_width)) then
-        ghost_width_local = 1   
-        else
-        ghost_width_local = 1   
-        end if
-        if (this%communication%is_parallel .eqv. .true.) then
-        call this%Set_send_buf()
-        call this%communication%Send_recv_neighbors_diag (this%communication_parameters, this%send_buf, this%recv_buf)
-        call this%Get_recv_buf()
-        end if
-
-    end subroutine Exchange_virtual_space_blocking_imp
-
-
-
-
-    subroutine Exchange_virtual_space_nonblocking_imp (this, ghost_width)
-        class (csr_t), intent(in out) :: this
-        integer, optional :: ghost_width
-        integer :: ghost_width_local
-
-        if (.not. present(ghost_width)) then
-        ghost_width_local = 1   
-        else
-        ghost_width_local = 1   
-        end if
-        if (this%communication%is_parallel .eqv. .true.) then
-        call this%Set_send_buf()
-        call this%communication%Send_neighbors_diag (this%communication_parameters,&
-                                                        this%send_buf, this%recv_buf, this%request)
-
-        end if
-
-    end subroutine Exchange_virtual_space_nonblocking_imp
-
-    subroutine Exchange_end_imp (this)
-        class (csr_t), intent(in out) :: this
-
-        if (this%communication%is_parallel .eqv. .true.) then
-        call this%communication%Wait_recv_neighbors_diag (this%communication_parameters,&
-                                                            this%send_buf, this%recv_buf, this%request)
-        call this%Get_recv_buf()
-        end if
-
-    end subroutine Exchange_end_imp
 
 
     subroutine Get_recv_buf_imp(this)
