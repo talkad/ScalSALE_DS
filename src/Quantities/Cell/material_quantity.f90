@@ -104,7 +104,7 @@ contains
       call this%boundary_params%Point_to_edges (ed_num)
       do i = 1, size(ed_num)
          edge = ed_num(i)
-         print*, 'material applt boundary'
+         ! print*, 'material applt boundary'
          call this%boundary_conditions(edge)%bc%Calculate (this, edge)
       end do
 

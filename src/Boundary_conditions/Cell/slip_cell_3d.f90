@@ -46,7 +46,7 @@ contains
                         do j = 0, nyp
                             do m = 1, nmats
                                 values_4d(m, i-1, j, k) = values_4d(m, i, j, k)
-                                print*, m, i-1, j, k, 'val', values_4d(m, i, j, k)
+                                ! print*, m, i-1, j, k, 'val', values_4d(m, i, j, k)
 
                             end do
                         end do

@@ -445,6 +445,11 @@ contains
 
     subroutine print_materials(this)
         class (hydro_step_t) , intent(inout)   :: this
+        integer :: k,j,i,m, total, total_zero
+        total = 0
+        total_zero = 0
+
+        
         call debug(this%materials%sound_vel%data_4d%values, 'material_results/sound_vel.txt', this%nz, this%ny, this%nx, this%nmats)  
         call debug(this%materials%temperature%data_4d%values, 'material_results/temperature.txt', this%nz, this%ny, this%nx, this%nmats)  
         call debug(this%materials%density%data_4d%values, 'material_results/density.txt', this%nz, this%ny, this%nx, this%nmats)  
@@ -455,7 +460,24 @@ contains
    
         call debug(this%materials%vof%data_4d%values, 'material_results/vof_new.txt', this%nz, this%ny, this%nx, this%nmats)   
         call debug(this%materials%sie%data_4d%values, 'material_results/sie.txt', this%nz, this%ny, this%nx, this%nmats)  
-        call debug(this%materials%cell_mass%data_4d%values, 'material_results/cell_mass.txt', this%nz, this%ny, this%nx, this%nmats)  
+        call debug(this%materials%cell_mass%data_4d%values, 'material_results/cell_mass.txt', this%nz, this%ny, this%nx, this%nmats)
+                
+        
+        do k = 0, size(this%materials%cell_mass%data_4d%values, dim=4)
+            do j = 0, size(this%materials%cell_mass%data_4d%values, dim=3)
+                do i = 0, size(this%materials%cell_mass%data_4d%values, dim=2)
+                    do m = 1, size(this%materials%cell_mass%data_4d%values, dim=1)
+                        total = total + 1
+
+                        if (this%materials%cell_mass%data_4d%values(m,i,j,k) == 0)   total_zero = total_zero + 1
+                    end do
+                end do
+            end do
+        end do
+
+        print*, 'a', total_zero, total, real(total_zero) / real(total)
+        
+        close (414)
     end subroutine print_materials
 
     subroutine Calculate_thermodynamics(this)

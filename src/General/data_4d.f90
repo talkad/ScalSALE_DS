@@ -106,7 +106,7 @@ contains
       Constructor_init_val%nz = d3
       Constructor_init_val%nmats = d4
 
-      print*, 'aaaaaaaaaa', d4, d3, d2, d1
+      ! print*, 'aaaaaaaaaa', d4, d3, d2, d1
    end function
 
 
