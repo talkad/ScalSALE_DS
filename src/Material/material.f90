@@ -197,6 +197,8 @@ contains
                 end do
             end do
         end do
+
+        index_mapper%last_idx = csr_idx
         
         ! print*, 'bbbbbbbb', csr_idx, nzp, nyp, nxp, nmats
 

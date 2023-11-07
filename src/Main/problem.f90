@@ -723,9 +723,9 @@ contains
                         !call this%Write_to_files()
         ncyc = 1
         if (this%rezone_type == 0) then
-            max_ncyc = 10
+            max_ncyc = 50
         else
-            max_ncyc = 10
+            max_ncyc = 50
         end if
 
         if (this%mesh%dimension == 2) then
@@ -770,7 +770,7 @@ contains
         write(414,*) this%total_sie%data(1)%values(1:this%nx:10, 1:this%ny:10, 1:this%nz:10) 
         close (414)
         
-        
+
         call this%Close_files()
         if (this%parallel_params%my_rank == 0) then
 

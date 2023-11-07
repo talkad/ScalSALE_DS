@@ -2362,10 +2362,11 @@ contains
         type(indexer_t), pointer ::  index_mapper
         integer, dimension(:,:,:,:), pointer   ::   mapper
 
-        integer :: csr_idx
+        integer :: csr_idx, last_idx
 
         index_mapper => get_instance()
         mapper => index_mapper%mapper
+        last_idx = index_mapper%last_idx
 
         virt_nxp = this%parallel_params%virt_nxp
         virt_nyp = this%parallel_params%virt_nyp
@@ -2404,7 +2405,7 @@ contains
         call this%materials%Point_to_initial_layers(init_mat_layers)
 
         allocate(vof_correction(this%nx, this%ny, this%nz))
-
+        
         i_start = 0
         j_start = 0
         k_start = 0
@@ -2470,598 +2471,627 @@ contains
             end do
         end do
 
-        ! do k = 1, this%nz
-        !     do j = 1, this%ny
-        !         do i = 1, this%nx
-
-        !             if ((vof(i  , j, k  ) < this%emf) .and. (vof(i  , j-1, k) < this%emf) .and.  &
-        !                 (vof(i  , j, k-1) < this%emf) .and. (vof(i  , j+1, k) < this%emf) .and.  &
-        !                 (vof(i  , j, k+1) < this%emf) .and. (vof(i-1, j  , k) < this%emf) .and.  &
-        !                 (vof(i+1, j, k  ) < this%emf)) then
-
-        !                 cycle
-        !             end if
-        !             associated_mat_vof = .false.
-
-        !             do face = 1, 6
-
-        !                 if (this%shorter_advect) then
-        !                     if ((i > 1 .and. face == 1) .or. (j > 1 .and. face == 2) .or. (k > 1 .and. face == 3)) then
-        !                         cycle
-        !                     end if
-        !                 end if
-        !                 i_face = i + face_i(face)
-        !                 j_face = j + face_j(face)
-        !                 k_face = k + face_k(face)
-
-        !                 i1 = i + face_vert_i(1, face)
-        !                 j1 = j + face_vert_j(1, face)
-        !                 k1 = k + face_vert_k(1, face)
-
-        !                 i2 = i + face_vert_i(2, face)
-        !                 j2 = j + face_vert_j(2, face)
-        !                 k2 = k + face_vert_k(2, face)
-
-        !                 i3 = i + face_vert_i(3, face)
-        !                 j3 = j + face_vert_j(3, face)
-        !                 k3 = k + face_vert_k(3, face)
-
-        !                 i4 = i + face_vert_i(4, face)
-        !                 j4 = j + face_vert_j(4, face)
-        !                 k4 = k + face_vert_k(4, face)
-
-        !                 x_lag1 = material_x(i1, j1, k1)
-        !                 y_lag1 = material_y(i1, j1, k1)
-        !                 z_lag1 = material_z(i1, j1, k1)
-
-        !                 x_lag2 = material_x(i2, j2, k2)
-        !                 y_lag2 = material_y(i2, j2, k2)
-        !                 z_lag2 = material_z(i2, j2, k2)
-
-        !                 x_lag3 = material_x(i3, j3, k3)
-        !                 y_lag3 = material_y(i3, j3, k3)
-        !                 z_lag3 = material_z(i3, j3, k3)
-
-        !                 x_lag4 = material_x(i4, j4, k4)
-        !                 y_lag4 = material_y(i4, j4, k4)
-        !                 z_lag4 = material_z(i4, j4, k4)
-
-        !                 x1 = x(i1, j1, k1)
-        !                 y1 = y(i1, j1, k1)
-        !                 z1 = z(i1, j1, k1)
-
-        !                 x2 = x(i2, j2, k2)
-        !                 y2 = y(i2, j2, k2)
-        !                 z2 = z(i2, j2, k2)
-
-        !                 x3 = x(i3, j3, k3)
-        !                 y3 = y(i3, j3, k3)
-        !                 z3 = z(i3, j3, k3)
-
-        !                 x4 = x(i4, j4, k4)
-        !                 y4 = y(i4, j4, k4)
-        !                 z4 = z(i4, j4, k4)
-
-
-        !                 is_iregular = 0
-        !                 tet_vol(1) = Tetrahederon_volume(x1, y1, z1, x2, y2, z2, x3, y3, z3, x_lag2, y_lag2, z_lag2)
-        !                 tet_vol(2) = Tetrahederon_volume(x2, y2, z2, x3, y3, z3, x1, y1, z1, x_lag3, y_lag3, z_lag3)
-        !                 tet_vol(3) = Tetrahederon_volume(x3, y3, z3, x1, y1, z1, x2, y2, z2, x_lag1, y_lag1, z_lag1)
-
-        !                 tet_counter = 1
-        !                 sign_tet_vol1 = 0d0
-
-        !                 do while(tet_counter < 4 .and. is_iregular == 0)
-        !                     if (abs(sign_tet_vol1) < 1d-10 .and. abs(tet_vol(tet_counter)) > 1d-10) then
-        !                         sign_tet_vol1  = sign(1d0, tet_vol(tet_counter))
-        !                     else if (abs(sign_tet_vol1) > 1d-10 .and. abs(tet_vol(tet_counter)) > 1d-10) then
-        !                         sign_tet_vol2 = sign(1d0, tet_vol(tet_counter))
-        !                         if (sign_tet_vol2 / sign_tet_vol1 < 0d0) is_iregular = 1
-        !                     end if
-        !                     tet_counter = tet_counter + 1
-        !                 end do
-
-        !                 if (is_iregular == 0) then
-        !                     tet_vol(1) = Tetrahederon_volume(x1, y1, z1, x4, y4, z4, x3, y3, z3, x_lag4, y_lag4, z_lag4)
-        !                     tet_vol(2) = Tetrahederon_volume(x4, y4, z4, x3, y3, z3, x1, y1, z1, x_lag3, y_lag3, z_lag3)
-        !                     tet_vol(3) = Tetrahederon_volume(x3, y3, z3, x1, y1, z1, x4, y4, z4, x_lag1, y_lag1, z_lag1)
-        !                     sign_tet_vol1 = 0d0
-        !                     tet_counter = 1
-        !                     do while(tet_counter < 4 .and. is_iregular == 0)
-        !                         if      (abs(sign_tet_vol1) < 1d-10 .and. abs(tet_vol(tet_counter)) > 1d-10) then
-        !                             sign_tet_vol1  = sign(1d0, tet_vol(tet_counter))
-        !                         else if (abs(sign_tet_vol1) > 1d-10 .and. abs(tet_vol(tet_counter)) > 1d-10) then
-        !                             sign_tet_vol2 = sign(1d0, tet_vol(tet_counter))
-        !                             if (sign_tet_vol2 / sign_tet_vol1 < 0d0) is_iregular = 1
-        !                         end if
-        !                         tet_counter = tet_counter + 1
-        !                     end do
-        !                 end if
-        !                 if(is_iregular == 0) then
-        !                     tet_vol(1) = Tetrahederon_volume(x1, y1, z1, x2, y2, z2, x4, y4, z4, x_lag2, y_lag2, z_lag2)
-        !                     tet_vol(2) = Tetrahederon_volume(x2, y2, z2, x4, y4, z4, x1, y1, z1, x_lag4, y_lag4, z_lag4)
-        !                     tet_vol(3) = Tetrahederon_volume(x4, y4, z4, x1, y1, z1, x2, y2, z2, x_lag1, y_lag1, z_lag1)
-        !                     sign_tet_vol1 = 0d0
-        !                     tet_counter = 1
-        !                     do while(tet_counter < 4 .and. is_iregular == 0)
-        !                         if      (abs(sign_tet_vol1) < 1d-10 .and. abs(tet_vol(tet_counter)) > 1d-10) then
-        !                             sign_tet_vol1  = sign(1d0, tet_vol(tet_counter))
-        !                         else if (abs(sign_tet_vol1) > 1d-10 .and. abs(tet_vol(tet_counter)) > 1d-10) then
-        !                             sign_tet_vol2 = sign(1d0, tet_vol(tet_counter))
-        !                             if(sign_tet_vol2 / sign_tet_vol1 < 0d0) is_iregular = 1
-        !                         end if
-        !                         tet_counter = tet_counter + 1
-        !                     end do
-        !                 end if
-        !                 if(is_iregular == 0) then
-        !                     tet_vol(1) = Tetrahederon_volume(x4, y4, z4, x2, y2, z2, x3, y3, z3, x_lag2, y_lag2, z_lag2)
-        !                     tet_vol(2) = Tetrahederon_volume(x2, y2, z2, x3, y3, z3, x4, y4, z4, x_lag3, y_lag3, z_lag3)
-        !                     tet_vol(3) = Tetrahederon_volume(x3, y3, z3, x4, y4, z4, x2, y2, z2, x_lag4, y_lag4, z_lag4)
-        !                     sign_tet_vol1 = 0d0
-        !                     tet_counter = 1
-        !                     do while(tet_counter < 4 .and. is_iregular == 0)
-        !                         if      (abs(sign_tet_vol1) < 1d-10 .and. abs(tet_vol(tet_counter)) > 1d-10) then
-        !                             sign_tet_vol1  = sign(1d0, tet_vol(tet_counter))
-        !                         else if (abs(sign_tet_vol1) > 1d-10 .and. abs(tet_vol(tet_counter)) > 1d-10) then
-        !                             sign_tet_vol2 = sign(1d0, tet_vol(tet_counter))
-        !                             if(sign_tet_vol2 / sign_tet_vol1 < 0d0) is_iregular = 1
-        !                         end if
-        !                         tet_counter = tet_counter + 1
-        !                     end do
-        !                 end if
-
-
-        !                 if(is_iregular == 1) then
-        !                     dx_avg = ((x_lag1 - x1) + (x_lag2 - x2) + (x_lag3 - x3) + (x_lag4 - x4)) / 4d0
-        !                     dy_avg = ((y_lag1 - y1) + (y_lag2 - y2) + (y_lag3 - y3) + (y_lag4 - y4)) / 4d0
-        !                     dz_avg = ((z_lag1 - z1) + (z_lag2 - z2) + (z_lag3 - z3) + (z_lag4 - z4)) / 4d0
-
-        !                     x1 = x_lag1 - dx_avg
-        !                     y1 = y_lag1 - dy_avg
-        !                     z1 = z_lag1 - dz_avg
-
-        !                     x2 = x_lag2 - dx_avg
-        !                     y2 = y_lag2 - dy_avg
-        !                     z2 = z_lag2 - dz_avg
-
-        !                     x3 = x_lag3 - dx_avg
-        !                     y3 = y_lag3 - dy_avg
-        !                     z3 = z_lag3 - dz_avg
-
-        !                     x4 = x_lag4 - dx_avg
-        !                     y4 = y_lag4 - dy_avg
-        !                     z4 = z_lag4 - dz_avg
-        !                 end if
-
-
-
-        !                 x_mid1  = (x1 + x3) / 2d0
-        !                 y_mid1  = (y1 + y3) / 2d0
-        !                 z_mid1  = (z1 + z3) / 2d0
-        !                 x_mid2  = (x2 + x4) / 2d0
-        !                 y_mid2  = (y2 + y4) / 2d0
-        !                 z_mid2  = (z2 + z4) / 2d0
-
-        !                 x_mid_lag1 = (x_lag1 + x_lag3) / 2d0
-        !                 y_mid_lag1 = (y_lag1 + y_lag3) / 2d0
-        !                 z_mid_lag1 = (z_lag1 + z_lag3) / 2d0
-        !                 x_mid_lag2 = (x_lag2 + x_lag4) / 2d0
-        !                 y_mid_lag2 = (y_lag2 + y_lag4) / 2d0
-        !                 z_mid_lag2 = (z_lag2 + z_lag4) / 2d0
-
-        !                 hexa_vol1 = Hexahedron_volume(x_lag1    , y_lag1    , z_lag1    , x_lag2    , y_lag2    , z_lag2    , &
-        !                     x_lag3    , y_lag3    , z_lag3    , x_mid_lag1, y_mid_lag1, z_mid_lag1, &
-        !                     x1        , y1        , z1        , x2        , y2        , z2        , &
-        !                     x3        , y3        , z3        , x_mid1    , y_mid1    , z_mid1      )
-
-        !                 hexa_vol2 = Hexahedron_volume(x_lag1    , y_lag1    , z_lag1    , x_mid_lag1, y_mid_lag1, z_mid_lag1, &
-        !                     x_lag3    , y_lag3    , z_lag3    , x_lag4    , y_lag4    , z_lag4    , &
-        !                     x1        , y1        , z1        , x_mid1    , y_mid1    , z_mid1    , &
-        !                     x3        , y3        , z3        , x4        , y4        , z4          )
-
-        !                 hexa_vol3 = Hexahedron_volume(x_lag1    , y_lag1    , z_lag1    , x_lag2    , y_lag2    , z_lag2    , &
-        !                     x_mid_lag2, y_mid_lag2, z_mid_lag2, x_lag4    , y_lag4    , z_lag4    , &
-        !                     x1        , y1        , z1        , x2        , y2        , z2        , &
-        !                     x_mid2    , y_mid2    , z_mid2    , x4        , y4        , z4          )
-
-        !                 hexa_vol4 = Hexahedron_volume(x_mid_lag2, y_mid_lag2, z_mid_lag2, x_lag2    , y_lag2    , z_lag2    , &
-        !                     x_lag3    , y_lag3    , z_lag3    , x_lag4    , y_lag4    , z_lag4    , &
-        !                     x_mid2    , y_mid2    , z_mid2    , x2        , y2        , z2        , &
-        !                     x3        , y3        , z3        , x4        , y4        , z4          )
-
-        !                 hexa_vol_quart = 0.25d0 * (hexa_vol1 + hexa_vol2 + hexa_vol3 + hexa_vol4)
-        !                 weight = this%a0 * sign(1d0, hexa_vol_quart) + this%b0 * 2d0 * hexa_vol_quart / vol(i, j, k)
-
-        !                 if (abs(hexa_vol_quart) > 1d-15) then
-        !                     if (hexa_vol_quart < 0d0) then
-        !                         id = i
-        !                         jd = j
-        !                         kd = k
-        !                         ia = i_face
-        !                         ja = j_face
-        !                         ka = k_face
-        !                     else
-        !                         id = i_face
-        !                         jd = j_face
-        !                         kd = k_face
-        !                         ia = i
-        !                         ja = j
-        !                         ka = k
-        !                     end if
-        !                     adv_vol = hexa_vol_quart * 2d0
-
-
-
-        !                     call this%Volume_material_3d(i, j, k, id, jd, kd, ia, ja, ka               , &
-        !                         hexa_vol_quart, weight                        , &
-        !                         x_lag1, y_lag1, z_lag1, x_lag2, y_lag2, z_lag2, &
-        !                         x_lag3, y_lag3, z_lag3, x_lag4, y_lag4, z_lag4, &
-        !                         x1    , y1    , z1    , x2    , y2    , z2    , &
-        !                         x3    , y3    , z3    , x4    , y4    , z4    , &
-        !                         hexa_vol1, hexa_vol2, hexa_vol3, hexa_vol4, 1)
-
-        !                     vof_adv(i, j, k) = vof_adv(i, j, k) + adv_vol
-        !                     if (this%shorter_advect) vof_adv(i_face, j_face, k_face) = vof_adv(i_face, j_face, k_face) - adv_vol
-
-
-        !                     do tmp_mat = 1, this%n_materials
-        !                         dvof = this%adv_mats%fxtm(tmp_mat) * 2d0
-        !                         mat_vof_adv(tmp_mat, i, j, k) = mat_vof_adv(tmp_mat, i, j, k) + dvof
-
-        !                         if (this%shorter_advect) then
-        !                             mat_vof_adv(tmp_mat, i_face, j_face, k_face) = mat_vof_adv(tmp_mat, i_face, j_face, k_face) - dvof
-        !                         end if
-        !                     end do
-
-        !                     do tmp_mat = 1, this%n_materials
-        !                         dvof = this%adv_mats%fxtm(tmp_mat) * 2d0
-
-
-
-        !                         donnor_mass = density_vof(tmp_mat, id, jd, kd) * dvof
-        !                         donnor_sie  = sie_vof    (tmp_mat, id, jd, kd) * donnor_mass
-
-
-        !                         if (abs(dvof) > vol(i,j,k)*this%emf /100d0 .and. tmp_mat /= mat_id(i,j,k)) then
-        !                             associated_mat_vof = .true.
-        !                             sie_vof_adv(tmp_mat, i, j, k) = sie_vof_adv(tmp_mat, i, j, k) + donnor_sie
-        !                             mat_cell_mass_adv(tmp_mat, i, j, k) = mat_cell_mass_adv(tmp_mat, i, j, k) + donnor_mass
-        !                         else
-        !                             if (mat_id(i,j,k) == tmp_mat) then
-        !                                 sie_vof_adv(tmp_mat, i, j, k) = sie_vof_adv(tmp_mat, i, j, k) + donnor_sie
-        !                                 mat_cell_mass_adv(tmp_mat, i, j, k) = mat_cell_mass_adv(tmp_mat, i, j, k) + donnor_mass
-        !                             else
-        !                                 if (n_materials_in_cell(i,j,k) > 1 .or. associated_mat_vof) then
-        !                                     sie_vof_adv(tmp_mat, i, j, k) = sie_vof_adv(tmp_mat, i, j, k) + donnor_sie
-
-        !                                     mat_cell_mass_adv(tmp_mat, i, j, k) = mat_cell_mass_adv(tmp_mat, i, j, k) + donnor_mass
-        !                                 end if
-        !                             end if
-        !                         end if
-
-
-        !                         if (mat_id(i, j, k) == tmp_mat) then
-        !                             cell_mass_adv(i, j, k) = cell_mass_adv(i, j, k) + donnor_mass
-        !                         end if
-
-        !                         if (this%shorter_advect) then
-        !                             mat_cell_mass_adv(tmp_mat, i_face, j_face, k_face) = mat_cell_mass_adv(tmp_mat, i_face, j_face, k_face) - donnor_mass
-        !                         end if
-
-
-
-
-
-        !                         if (this%shorter_advect) then
-        !                             sie_vof_adv(tmp_mat, i_face, j_face, k_face) = sie_vof_adv(tmp_mat, i_face, j_face, k_face) - donnor_sie
-
-        !                         end if
-
-        !                         donnor_init_mat_layer = donnor_mass * init_mat_layers(tmp_mat, id, jd, kd)
-
-        !                         init_mat_layers_adv(tmp_mat, i, j, k) = init_mat_layers_adv(tmp_mat, i, j, k) + donnor_init_mat_layer
-
-        !                         if (this%shorter_advect) then
-        !                             init_mat_layers_adv(tmp_mat, i_face,j_face,k_face) =        init_mat_layers_adv(tmp_mat, i_face,j_face,k_face) - &
-        !                                 donnor_init_mat_layer
-        !                         end if
-
-        !                     end do
-        !                 end if
-        !             end do
-        !         end do
-        !     end do
-        ! end do
-
-
-
-        ! vof_correction = 0d0
-        ! do k = 1, this%nz
-        !     do j = 1, this%ny
-        !         do i = 1, this%nx
-        !             do tmp_mat=1,this%n_materials
-
-        !                 mat_vof(tmp_mat,i, j, k) = (mat_vof(tmp_mat,i, j, k) * (vol(i, j, k) - vof_adv(i, j, k)) + mat_vof_adv(tmp_mat,i, j, k)) / vol(i, j, k)
-        !                 if (mat_vof(tmp_mat,i, j, k) > this%emf .and. mat_cell_mass_adv(tmp_mat, i, j, k) > this%emfm) then
-
-        !                     sie_vof(tmp_mat,i, j, k) = max(0d0, sie_vof_adv(tmp_mat,i, j, k) / mat_cell_mass_adv(tmp_mat,i, j, k))
-        !                     init_mat_layers(tmp_mat,i, j, k) = init_mat_layers_adv(tmp_mat,i, j, k) / mat_cell_mass_adv(tmp_mat,i, j, k)
-        !                 else
-        !                     vof_correction(i,j,k) = vof_correction(i,j,k) + mat_vof(tmp_mat,i, j, k)
-        !                     mat_vof(tmp_mat,i, j, k) = 0d0
-        !                     sie_vof(tmp_mat,i, j, k) = 0d0
-        !                     init_mat_layers(tmp_mat,i, j, k) = 0d0
-        !                 end if
-        !             end do
-        !         end do
-        !     end do
-        ! end do
-
-        ! do k = 1, this%nz
-        !     do j = 1, this%ny
-        !         do i = 1, this%nx
-        !             do tmp_mat = 1, this%n_materials
-
-        !                 if (vof_correction(i,j,k) > 0d0) then
-        !                     vof_factor = 1d0 / (1d0 - vof_correction(i,j,k))
-        !                     mat_vof(tmp_mat,i, j, k) = mat_vof(tmp_mat,i, j, k) * vof_factor
-        !                 end if
-        !             end do
-        !         end do
-        !     end do
-        ! end do
-
-        ! vof = 0d0
-        ! mat_id = 0
-        ! cell_mass = 0d0
-        ! sie = 0d0
-        ! n_materials_in_cell = 0d0
-        ! do k = 1, this%nz
-        !     do j = 1, this%ny
-        !         do i = 1, this%nx
-        !             do tmp_mat=1,this%n_materials
-
-        !                 if (mat_vof(tmp_mat,i, j, k) < this%emf .or. mat_cell_mass_adv(tmp_mat,i, j, k) < this%emfm) then
-        !                     mat_cell_mass_adv(tmp_mat,i, j, k) = 0d0
-        !                     sie_vof(tmp_mat,i, j, k) = 0d0
-        !                     mat_vof(tmp_mat,i, j, k) = 0d0
-        !                 else
-        !                     cell_mass_vof(tmp_mat,i, j, k) = mat_cell_mass_adv(tmp_mat,i, j, k)
-        !                     cell_mass    (i, j, k) = cell_mass(i, j, k) + mat_cell_mass_adv(tmp_mat,i, j, k)
-        !                     vof          (i, j, k) = vof(i, j, k) + mat_vof(tmp_mat,i, j, k)
-        !                     sie(i, j, k)           = sie(i, j, k) + sie_vof(tmp_mat,i, j, k) * cell_mass_vof(tmp_mat,i, j, k)
-        !                     mat_id(i, j, k)        = mat_id(i, j, k) + tmp_mat * 10 ** n_materials_in_cell(i, j, k)
-        !                     n_materials_in_cell(i, j, k) = n_materials_in_cell(i, j, k) + 1
-        !                 end if
-        !             end do
-        !         end do
-        !     end do
-        ! end do
-
-        ! do k = 1, this%nz
-        !     do j = 1, this%ny
-        !         do i = 1, this%nx
-        !             if(cell_mass(i, j, k) > this%emfm) sie(i, j, k) = sie(i, j, k) / cell_mass(i, j, k)
-        !         end do
-        !     end do
-        ! end do
-
-
-
-        ! call this%vertex_mass%Calculate_vertex_mass_3d(this%mesh%coordinates, this%total_density, &
-        !     this%total_cell_mass)
-        ! call this%vertex_mass%Exchange_virtual_space_blocking()
-
-        ! call this%materials%vof%Exchange_virtual_space_blocking()
-
-        ! do k = 1, this%nzp
-        !     do j = 1, this%nyp
-        !         do i = 1, this%nxp
-        !             symmetry_factor = 1d0
-
-
-        !             this%vel_adv_weight%values(i, j, k) = (density(i  , j  , k  ) + density(i-1, j  , k  ) + &
-        !                 density(i-1, j-1, k  ) + density(i  , j-1, k  ) + &
-        !                 density(i  , j  , k-1) + density(i-1, j  , k-1) + &
-        !                 density(i-1, j-1, k-1) + density(i  , j-1, k-1))
-
-        !         end do
-        !     end do
-        ! end do
-
-        ! velocity_x_adv = velocity_x
-        ! velocity_y_adv = velocity_y
-        ! velocity_z_adv = velocity_z
-
-
-        ! call this%vel_adv_weight%Exchange_virtual_space_blocking()
-        ! do k = 1, this%nzp
-        !     do j = 1, this%nyp
-        !         do i = 1, this%nxp
-        !             if (material_x(i, j, k) == x(i, j, k) .and. &
-        !                 material_y(i, j, k) == y(i, j, k) .and. &
-        !                 material_z(i, j, k) == z(i, j, k)) cycle
-        !             tet_counter=0
-        !             tet_vol = -1d0
-        !             tet_counter_min = 1
-        !             tet_vol_diff_min = 1d13
-
-        !             do while ((tet_vol(1) < 0d0) .or. (tet_vol(2) < 0d0) .or. (tet_vol(3) < 0d0))
-        !                 tet_counter = tet_counter + 1
-        !                 if(tet_counter == 9) then
-        !                     tet_counter = tet_counter_min
-        !                     tet_vol_diff_min = -1d0
-        !                 end if
-        !                 i1 = i + i_1_add(tet_counter)
-        !                 j1 = j + j_1_add(tet_counter)
-        !                 k1 = k + k_1_add(tet_counter)
-
-        !                 i2 = i + i_2_add(tet_counter)
-        !                 j2 = j + j_2_add(tet_counter)
-        !                 k2 = k + k_2_add(tet_counter)
-
-        !                 i3 = i + i_3_add(tet_counter)
-        !                 j3 = j + j_3_add(tet_counter)
-        !                 k3 = k + k_3_add(tet_counter)
-
-        !                 material_tet_vol = Tetrahederon_volume(material_x(i ,  j, k ), material_y(i , j , k ), material_z(i , j , k ), &
-        !                     material_x(i1, j1, k1), material_y(i1, j1, k1), material_z(i1, j1, k1), &
-        !                     material_x(i2, j2, k2), material_y(i2, j2, k2), material_z(i2, j2, k2), &
-        !                     material_x(i3, j3, k3), material_y(i3, j3, k3), material_z(i3, j3, k3))
-
-        !                 material_tet_vol_sign = sign(1d0, material_tet_vol)
-
-        !                 tet_vol(1)       = Tetrahederon_volume(material_x(i , j , k ), material_y(i , j , k ), material_z(i , j , k ), &
-        !                     x(i , j , k ),          y(i , j , k ),          z(i , j , k ), &
-        !                     material_x(i2, j2, k2), material_y(i2, j2, k2), material_z(i2, j2, k2), &
-        !                     material_x(i3, j3, k3), material_y(i3, j3, k3), material_z(i3, j3, k3)) &
-        !                     * material_tet_vol_sign
-
-        !                 tet_vol(2)       = Tetrahederon_volume(material_x(i , j , k ), material_y(i , j , k ), material_z(i , j , k ), &
-        !                     material_x(i1, j1, k1), material_y(i1, j1, k1), material_z(i1, j1, k1), &
-        !                     x(i , j , k ),          y(i , j , k ),          z(i , j , k ), &
-        !                     material_x(i3, j3, k3), material_y(i3, j3, k3), material_z(i3, j3, k3)) &
-        !                     * material_tet_vol_sign
-
-        !                 tet_vol(3)       = Tetrahederon_volume(material_x(i , j , k ), material_y(i , j , k ), material_z(i , j , k ), &
-        !                     material_x(i1, j1, k1), material_y(i1, j1, k1), material_z(i1, j1, k1), &
-        !                     material_x(i2, j2, k2), material_y(i2, j2, k2), material_z(i2, j2, k2), &
-        !                     x(i , j , k ),          y(i , j , k ),          z(i , j , k )) &
-        !                     * material_tet_vol_sign
-
-        !                 tet_vol(4)       = Tetrahederon_volume(         x(i , j , k ),          y(i , j , k ),          z(i , j , k ), &
-        !                     material_x(i1, j1, k1), material_y(i1, j1, k1), material_z(i1, j1, k1), &
-        !                     material_x(i2, j2, k2), material_y(i2, j2, k2), material_z(i2, j2, k2), &
-        !                     material_x(i3, j3, k3), material_y(i3, j3, k3), material_z(i3, j3, k3)) &
-        !                     * material_tet_vol_sign
-
-        !                 tet_vol_diff = abs(tet_vol(1) + tet_vol(2) + tet_vol(3) + tet_vol(4) - abs(material_tet_vol))
-        !                 if (tet_vol_diff < tet_vol_diff_min) then
-        !                     tet_counter_min = tet_counter
-        !                     tet_vol_diff_min = tet_vol_diff
-        !                 end if
-        !                 if (tet_vol_diff_min < -0.5d0) then
-        !                     tet_vol = 1d0
-        !                 end if
-        !             end do
-
-
-        !             i_tet1 = i + i_1_add(tet_counter)
-        !             j_tet1 = j + j_1_add(tet_counter)
-        !             k_tet1 = k + k_1_add(tet_counter)
-
-        !             i_tet2 = i + i_2_add(tet_counter)
-        !             j_tet2 = j + j_2_add(tet_counter)
-        !             k_tet2 = k + k_2_add(tet_counter)
-
-        !             i_tet3 = i + i_3_add(tet_counter)
-        !             j_tet3 = j + j_3_add(tet_counter)
-        !             k_tet3 = k + k_3_add(tet_counter)
-
-        !             if (wall_x_top .eqv. .true.) then
-        !                 if (i_tet1 > this%nxp) i_tet1 = this%nx
-        !                 if (i_tet2 > this%nxp) i_tet2 = this%nx
-        !                 if (i_tet3 > this%nxp) i_tet3 = this%nx
-        !             end if
-        !             if (wall_x_bot .eqv. .true.) then
-        !                 if (i_tet1 < 1) i_tet1 = 2
-        !                 if (i_tet2 < 1) i_tet2 = 2
-        !                 if (i_tet3 < 1) i_tet3 = 2
-        !             end if
-        !             if (wall_y_top .eqv. .true.) then
-        !                 if (j_tet1 > this%nyp) j_tet1 = this%ny
-        !                 if (j_tet2 > this%nyp) j_tet2 = this%ny
-        !                 if (j_tet3 > this%nyp) j_tet3 = this%ny
-        !             end if
-        !             if (wall_y_bot .eqv. .true.) then
-        !                 if (j_tet1 < 1) j_tet1 = 2
-        !                 if (j_tet2 < 1) j_tet2 = 2
-        !                 if (j_tet3 < 1) j_tet3 = 2
-        !             end if
-        !             if (wall_z_top .eqv. .true.) then
-        !                 if (k_tet1 > this%nzp) k_tet1 = this%nz
-        !                 if (k_tet2 > this%nzp) k_tet2 = this%nz
-        !                 if (k_tet3 > this%nzp) k_tet3 = this%nz
-        !             end if
-        !             if (wall_z_bot .eqv. .true.) then
-        !                 if (k_tet1 < 1) k_tet1 = 2
-        !                 if (k_tet2 < 1) k_tet2 = 2
-        !                 if (k_tet3 < 1) k_tet3 = 2
-        !             end if
-        !             weight0 = this%vel_adv_weight%values(i     , j     , k     )
-        !             weight1 = this%vel_adv_weight%values(i_tet1, j_tet1, k_tet1)
-        !             weight2 = this%vel_adv_weight%values(i_tet2, j_tet2, k_tet2)
-        !             weight3 = this%vel_adv_weight%values(i_tet3, j_tet3, k_tet3)
-
-        !             if(weight0 < this%emf) then
-        !                 velocity_x_adv(i, j, k) = 0d0
-        !                 velocity_y_adv(i, j, k) = 0d0
-        !                 velocity_z_adv(i, j, k) = 0d0
-        !             else
-        !                 call Vertex_interp_3d(x(i, j, k), y(i, j, k), z(i, j, k), i, j, k                            , &
-        !                     i_tet1, j_tet1, k_tet1, i_tet2, j_tet2, k_tet2, i_tet3, j_tet3, k_tet3 , &
-        !                     velocity_x_adv(i, j, k), velocity_x, material_x, material_y, material_z, &
-        !                     weight0, weight1, weight2, weight3)
-        !                 call Vertex_interp_3d(x(i, j, k), y(i, j, k), z(i, j, k), i, j, k                            , &
-        !                     i_tet1, j_tet1, k_tet1, i_tet2, j_tet2, k_tet2, i_tet3, j_tet3, k_tet3 , &
-        !                     velocity_y_adv(i, j, k), velocity_y, material_x, material_y, material_z, &
-        !                     weight0, weight1, weight2, weight3)
-        !                 call Vertex_interp_3d(x(i, j, k), y(i, j, k), z(i, j, k), i, j, k                            , &
-        !                     i_tet1, j_tet1, k_tet1, i_tet2, j_tet2, k_tet2, i_tet3, j_tet3, k_tet3 , &
-        !                     velocity_z_adv(i, j, k), velocity_z, material_x, material_y, material_z, &
-        !                     weight0, weight1, weight2, weight3)
-
-
-
-        !                 vel_x_min = min(velocity_x(i_tet1, j_tet1, k_tet1), velocity_x(i_tet2, j_tet2, k_tet2), &
-        !                     velocity_x(i_tet3, j_tet3, k_tet3), velocity_x(i     , j     , k     ))
-        !                 vel_x_max = max(velocity_x(i_tet1, j_tet1, k_tet1), velocity_x(i_tet2, j_tet2, k_tet2), &
-        !                     velocity_x(i_tet3, j_tet3, k_tet3), velocity_x(i     , j     , k     ))
-        !                 vel_y_min = min(velocity_y(i_tet1, j_tet1, k_tet1), velocity_y(i_tet2, j_tet2, k_tet2), &
-        !                     velocity_y(i_tet3, j_tet3, k_tet3), velocity_y(i     , j     , k     ))
-        !                 vel_y_max = max(velocity_y(i_tet1, j_tet1, k_tet1), velocity_y(i_tet2, j_tet2, k_tet2), &
-        !                     velocity_y(i_tet3, j_tet3, k_tet3), velocity_y(i     , j     , k     ))
-        !                 vel_z_min = min(velocity_z(i_tet1, j_tet1, k_tet1), velocity_z(i_tet2, j_tet2, k_tet2), &
-        !                     velocity_z(i_tet3, j_tet3, k_tet3), velocity_z(i     , j     , k     ))
-        !                 vel_z_max = max(velocity_z(i_tet1, j_tet1, k_tet1), velocity_z(i_tet2, j_tet2, k_tet2), &
-        !                     velocity_z(i_tet3, j_tet3, k_tet3), velocity_z(i     , j     , k     ))
-        !                 velocity_x_adv(i, j, k) = max(velocity_x_adv(i, j, k), vel_x_min)
-        !                 velocity_x_adv(i, j, k) = min(velocity_x_adv(i, j, k), vel_x_max)
-        !                 velocity_y_adv(i, j, k) = max(velocity_y_adv(i, j, k), vel_y_min)
-        !                 velocity_y_adv(i, j, k) = min(velocity_y_adv(i, j, k), vel_y_max)
-        !                 velocity_z_adv(i, j, k) = max(velocity_z_adv(i, j, k), vel_z_min)
-        !                 velocity_z_adv(i, j, k) = min(velocity_z_adv(i, j, k), vel_z_max)
-
-        !             end if
-        !         end do
-        !     end do
-        ! end do
-
-        ! velocity_x = velocity_x_adv
-        ! velocity_y = velocity_y_adv
-        ! velocity_z = velocity_z_adv
-
-        ! do k = 1, this%nzp
-        !     do j = 1, this%nyp
-        !         do i = 1, this%nxp
-        !             velocity_sq = velocity_z(i, j, k) * velocity_z(i, j, k) + &
-        !                 velocity_y(i, j, k) * velocity_y(i, j, k) + &
-        !                 velocity_x(i, j, k) * velocity_x(i, j, k)
-        !             if ((vertex_mass(i, j, k) < this%rezone%mass_threshold) .and. (velocity_sq > this%rezone%velocity_limit)) then
-        !                 vel_factor = sqrt(this%rezone%velocity_limit / velocity_sq)
-        !                 velocity_x(i, j, k) = velocity_x(i, j, k) * vel_factor
-        !                 velocity_y(i, j, k) = velocity_y(i, j, k) * vel_factor
-        !                 velocity_z(i, j, k) = velocity_z(i, j, k) * vel_factor
-        !             end if
-        !         end do
-        !     end do
-        ! end do
-
-        ! call this%velocity%Apply_boundary(this%mesh%coordinates%data)
-
-        ! deallocate(vof_correction)
+        do k = 1, this%nz
+            do j = 1, this%ny
+                do i = 1, this%nx
+
+                    if ((vof(i  , j, k  ) < this%emf) .and. (vof(i  , j-1, k) < this%emf) .and.  &
+                        (vof(i  , j, k-1) < this%emf) .and. (vof(i  , j+1, k) < this%emf) .and.  &
+                        (vof(i  , j, k+1) < this%emf) .and. (vof(i-1, j  , k) < this%emf) .and.  &
+                        (vof(i+1, j, k  ) < this%emf)) then
+
+                        cycle
+                    end if
+                    associated_mat_vof = .false.
+
+                    do face = 1, 6
+
+                        if (this%shorter_advect) then
+                            if ((i > 1 .and. face == 1) .or. (j > 1 .and. face == 2) .or. (k > 1 .and. face == 3)) then
+                                cycle
+                            end if
+                        end if
+                        i_face = i + face_i(face)
+                        j_face = j + face_j(face)
+                        k_face = k + face_k(face)
+
+                        i1 = i + face_vert_i(1, face)
+                        j1 = j + face_vert_j(1, face)
+                        k1 = k + face_vert_k(1, face)
+
+                        i2 = i + face_vert_i(2, face)
+                        j2 = j + face_vert_j(2, face)
+                        k2 = k + face_vert_k(2, face)
+
+                        i3 = i + face_vert_i(3, face)
+                        j3 = j + face_vert_j(3, face)
+                        k3 = k + face_vert_k(3, face)
+
+                        i4 = i + face_vert_i(4, face)
+                        j4 = j + face_vert_j(4, face)
+                        k4 = k + face_vert_k(4, face)
+
+                        x_lag1 = material_x(i1, j1, k1)
+                        y_lag1 = material_y(i1, j1, k1)
+                        z_lag1 = material_z(i1, j1, k1)
+
+                        x_lag2 = material_x(i2, j2, k2)
+                        y_lag2 = material_y(i2, j2, k2)
+                        z_lag2 = material_z(i2, j2, k2)
+
+                        x_lag3 = material_x(i3, j3, k3)
+                        y_lag3 = material_y(i3, j3, k3)
+                        z_lag3 = material_z(i3, j3, k3)
+
+                        x_lag4 = material_x(i4, j4, k4)
+                        y_lag4 = material_y(i4, j4, k4)
+                        z_lag4 = material_z(i4, j4, k4)
+
+                        x1 = x(i1, j1, k1)
+                        y1 = y(i1, j1, k1)
+                        z1 = z(i1, j1, k1)
+
+                        x2 = x(i2, j2, k2)
+                        y2 = y(i2, j2, k2)
+                        z2 = z(i2, j2, k2)
+
+                        x3 = x(i3, j3, k3)
+                        y3 = y(i3, j3, k3)
+                        z3 = z(i3, j3, k3)
+
+                        x4 = x(i4, j4, k4)
+                        y4 = y(i4, j4, k4)
+                        z4 = z(i4, j4, k4)
+
+
+                        is_iregular = 0
+                        tet_vol(1) = Tetrahederon_volume(x1, y1, z1, x2, y2, z2, x3, y3, z3, x_lag2, y_lag2, z_lag2)
+                        tet_vol(2) = Tetrahederon_volume(x2, y2, z2, x3, y3, z3, x1, y1, z1, x_lag3, y_lag3, z_lag3)
+                        tet_vol(3) = Tetrahederon_volume(x3, y3, z3, x1, y1, z1, x2, y2, z2, x_lag1, y_lag1, z_lag1)
+
+                        tet_counter = 1
+                        sign_tet_vol1 = 0d0
+
+                        do while(tet_counter < 4 .and. is_iregular == 0)
+                            if (abs(sign_tet_vol1) < 1d-10 .and. abs(tet_vol(tet_counter)) > 1d-10) then
+                                sign_tet_vol1  = sign(1d0, tet_vol(tet_counter))
+                            else if (abs(sign_tet_vol1) > 1d-10 .and. abs(tet_vol(tet_counter)) > 1d-10) then
+                                sign_tet_vol2 = sign(1d0, tet_vol(tet_counter))
+                                if (sign_tet_vol2 / sign_tet_vol1 < 0d0) is_iregular = 1
+                            end if
+                            tet_counter = tet_counter + 1
+                        end do
+
+                        if (is_iregular == 0) then
+                            tet_vol(1) = Tetrahederon_volume(x1, y1, z1, x4, y4, z4, x3, y3, z3, x_lag4, y_lag4, z_lag4)
+                            tet_vol(2) = Tetrahederon_volume(x4, y4, z4, x3, y3, z3, x1, y1, z1, x_lag3, y_lag3, z_lag3)
+                            tet_vol(3) = Tetrahederon_volume(x3, y3, z3, x1, y1, z1, x4, y4, z4, x_lag1, y_lag1, z_lag1)
+                            sign_tet_vol1 = 0d0
+                            tet_counter = 1
+                            do while(tet_counter < 4 .and. is_iregular == 0)
+                                if      (abs(sign_tet_vol1) < 1d-10 .and. abs(tet_vol(tet_counter)) > 1d-10) then
+                                    sign_tet_vol1  = sign(1d0, tet_vol(tet_counter))
+                                else if (abs(sign_tet_vol1) > 1d-10 .and. abs(tet_vol(tet_counter)) > 1d-10) then
+                                    sign_tet_vol2 = sign(1d0, tet_vol(tet_counter))
+                                    if (sign_tet_vol2 / sign_tet_vol1 < 0d0) is_iregular = 1
+                                end if
+                                tet_counter = tet_counter + 1
+                            end do
+                        end if
+                        if(is_iregular == 0) then
+                            tet_vol(1) = Tetrahederon_volume(x1, y1, z1, x2, y2, z2, x4, y4, z4, x_lag2, y_lag2, z_lag2)
+                            tet_vol(2) = Tetrahederon_volume(x2, y2, z2, x4, y4, z4, x1, y1, z1, x_lag4, y_lag4, z_lag4)
+                            tet_vol(3) = Tetrahederon_volume(x4, y4, z4, x1, y1, z1, x2, y2, z2, x_lag1, y_lag1, z_lag1)
+                            sign_tet_vol1 = 0d0
+                            tet_counter = 1
+                            do while(tet_counter < 4 .and. is_iregular == 0)
+                                if      (abs(sign_tet_vol1) < 1d-10 .and. abs(tet_vol(tet_counter)) > 1d-10) then
+                                    sign_tet_vol1  = sign(1d0, tet_vol(tet_counter))
+                                else if (abs(sign_tet_vol1) > 1d-10 .and. abs(tet_vol(tet_counter)) > 1d-10) then
+                                    sign_tet_vol2 = sign(1d0, tet_vol(tet_counter))
+                                    if(sign_tet_vol2 / sign_tet_vol1 < 0d0) is_iregular = 1
+                                end if
+                                tet_counter = tet_counter + 1
+                            end do
+                        end if
+                        if(is_iregular == 0) then
+                            tet_vol(1) = Tetrahederon_volume(x4, y4, z4, x2, y2, z2, x3, y3, z3, x_lag2, y_lag2, z_lag2)
+                            tet_vol(2) = Tetrahederon_volume(x2, y2, z2, x3, y3, z3, x4, y4, z4, x_lag3, y_lag3, z_lag3)
+                            tet_vol(3) = Tetrahederon_volume(x3, y3, z3, x4, y4, z4, x2, y2, z2, x_lag4, y_lag4, z_lag4)
+                            sign_tet_vol1 = 0d0
+                            tet_counter = 1
+                            do while(tet_counter < 4 .and. is_iregular == 0)
+                                if      (abs(sign_tet_vol1) < 1d-10 .and. abs(tet_vol(tet_counter)) > 1d-10) then
+                                    sign_tet_vol1  = sign(1d0, tet_vol(tet_counter))
+                                else if (abs(sign_tet_vol1) > 1d-10 .and. abs(tet_vol(tet_counter)) > 1d-10) then
+                                    sign_tet_vol2 = sign(1d0, tet_vol(tet_counter))
+                                    if(sign_tet_vol2 / sign_tet_vol1 < 0d0) is_iregular = 1
+                                end if
+                                tet_counter = tet_counter + 1
+                            end do
+                        end if
+
+
+                        if(is_iregular == 1) then
+                            dx_avg = ((x_lag1 - x1) + (x_lag2 - x2) + (x_lag3 - x3) + (x_lag4 - x4)) / 4d0
+                            dy_avg = ((y_lag1 - y1) + (y_lag2 - y2) + (y_lag3 - y3) + (y_lag4 - y4)) / 4d0
+                            dz_avg = ((z_lag1 - z1) + (z_lag2 - z2) + (z_lag3 - z3) + (z_lag4 - z4)) / 4d0
+
+                            x1 = x_lag1 - dx_avg
+                            y1 = y_lag1 - dy_avg
+                            z1 = z_lag1 - dz_avg
+
+                            x2 = x_lag2 - dx_avg
+                            y2 = y_lag2 - dy_avg
+                            z2 = z_lag2 - dz_avg
+
+                            x3 = x_lag3 - dx_avg
+                            y3 = y_lag3 - dy_avg
+                            z3 = z_lag3 - dz_avg
+
+                            x4 = x_lag4 - dx_avg
+                            y4 = y_lag4 - dy_avg
+                            z4 = z_lag4 - dz_avg
+                        end if
+
+
+
+                        x_mid1  = (x1 + x3) / 2d0
+                        y_mid1  = (y1 + y3) / 2d0
+                        z_mid1  = (z1 + z3) / 2d0
+                        x_mid2  = (x2 + x4) / 2d0
+                        y_mid2  = (y2 + y4) / 2d0
+                        z_mid2  = (z2 + z4) / 2d0
+
+                        x_mid_lag1 = (x_lag1 + x_lag3) / 2d0
+                        y_mid_lag1 = (y_lag1 + y_lag3) / 2d0
+                        z_mid_lag1 = (z_lag1 + z_lag3) / 2d0
+                        x_mid_lag2 = (x_lag2 + x_lag4) / 2d0
+                        y_mid_lag2 = (y_lag2 + y_lag4) / 2d0
+                        z_mid_lag2 = (z_lag2 + z_lag4) / 2d0
+
+                        hexa_vol1 = Hexahedron_volume(x_lag1    , y_lag1    , z_lag1    , x_lag2    , y_lag2    , z_lag2    , &
+                            x_lag3    , y_lag3    , z_lag3    , x_mid_lag1, y_mid_lag1, z_mid_lag1, &
+                            x1        , y1        , z1        , x2        , y2        , z2        , &
+                            x3        , y3        , z3        , x_mid1    , y_mid1    , z_mid1      )
+
+                        hexa_vol2 = Hexahedron_volume(x_lag1    , y_lag1    , z_lag1    , x_mid_lag1, y_mid_lag1, z_mid_lag1, &
+                            x_lag3    , y_lag3    , z_lag3    , x_lag4    , y_lag4    , z_lag4    , &
+                            x1        , y1        , z1        , x_mid1    , y_mid1    , z_mid1    , &
+                            x3        , y3        , z3        , x4        , y4        , z4          )
+
+                        hexa_vol3 = Hexahedron_volume(x_lag1    , y_lag1    , z_lag1    , x_lag2    , y_lag2    , z_lag2    , &
+                            x_mid_lag2, y_mid_lag2, z_mid_lag2, x_lag4    , y_lag4    , z_lag4    , &
+                            x1        , y1        , z1        , x2        , y2        , z2        , &
+                            x_mid2    , y_mid2    , z_mid2    , x4        , y4        , z4          )
+
+                        hexa_vol4 = Hexahedron_volume(x_mid_lag2, y_mid_lag2, z_mid_lag2, x_lag2    , y_lag2    , z_lag2    , &
+                            x_lag3    , y_lag3    , z_lag3    , x_lag4    , y_lag4    , z_lag4    , &
+                            x_mid2    , y_mid2    , z_mid2    , x2        , y2        , z2        , &
+                            x3        , y3        , z3        , x4        , y4        , z4          )
+
+                        hexa_vol_quart = 0.25d0 * (hexa_vol1 + hexa_vol2 + hexa_vol3 + hexa_vol4)
+                        weight = this%a0 * sign(1d0, hexa_vol_quart) + this%b0 * 2d0 * hexa_vol_quart / vol(i, j, k)
+
+                        if (abs(hexa_vol_quart) > 1d-15) then
+                            if (hexa_vol_quart < 0d0) then
+                                id = i
+                                jd = j
+                                kd = k
+                                ia = i_face
+                                ja = j_face
+                                ka = k_face
+                            else
+                                id = i_face
+                                jd = j_face
+                                kd = k_face
+                                ia = i
+                                ja = j
+                                ka = k
+                            end if
+                            adv_vol = hexa_vol_quart * 2d0
+
+
+
+                            call this%Volume_material_3d(i, j, k, id, jd, kd, ia, ja, ka               , &
+                                hexa_vol_quart, weight                        , &
+                                x_lag1, y_lag1, z_lag1, x_lag2, y_lag2, z_lag2, &
+                                x_lag3, y_lag3, z_lag3, x_lag4, y_lag4, z_lag4, &
+                                x1    , y1    , z1    , x2    , y2    , z2    , &
+                                x3    , y3    , z3    , x4    , y4    , z4    , &
+                                hexa_vol1, hexa_vol2, hexa_vol3, hexa_vol4, 1)
+
+                            vof_adv(i, j, k) = vof_adv(i, j, k) + adv_vol
+                            if (this%shorter_advect) vof_adv(i_face, j_face, k_face) = vof_adv(i_face, j_face, k_face) - adv_vol
+
+
+                            do tmp_mat = 1, this%n_materials
+                                dvof = this%adv_mats%fxtm(tmp_mat) * 2d0
+                                mat_vof_adv(tmp_mat, i, j, k) = mat_vof_adv(tmp_mat, i, j, k) + dvof
+
+                                if (this%shorter_advect) then
+                                    mat_vof_adv(tmp_mat, i_face, j_face, k_face) = mat_vof_adv(tmp_mat, i_face, j_face, k_face) - dvof
+                                end if
+                            end do
+
+                            do tmp_mat = 1, this%n_materials
+                                dvof = this%adv_mats%fxtm(tmp_mat) * 2d0
+
+                                csr_idx = mapper(tmp_mat, id, jd, kd)
+                                if (csr_idx == -1) then
+                                    donnor_mass = 0d0
+                                    donnor_sie  = 0d0
+                                else
+                                    donnor_mass = density_vof(csr_idx) * dvof
+                                    donnor_sie  = sie_vof    (csr_idx) * donnor_mass
+                                end if
+
+
+                                if (abs(dvof) > vol(i,j,k)*this%emf /100d0 .and. tmp_mat /= mat_id(i,j,k)) then
+                                    associated_mat_vof = .true.
+                                    sie_vof_adv(tmp_mat, i, j, k) = sie_vof_adv(tmp_mat, i, j, k) + donnor_sie
+                                    mat_cell_mass_adv(tmp_mat, i, j, k) = mat_cell_mass_adv(tmp_mat, i, j, k) + donnor_mass
+                                else
+                                    if (mat_id(i,j,k) == tmp_mat) then
+                                        sie_vof_adv(tmp_mat, i, j, k) = sie_vof_adv(tmp_mat, i, j, k) + donnor_sie
+                                        mat_cell_mass_adv(tmp_mat, i, j, k) = mat_cell_mass_adv(tmp_mat, i, j, k) + donnor_mass
+                                    else
+                                        if (n_materials_in_cell(i,j,k) > 1 .or. associated_mat_vof) then
+                                            sie_vof_adv(tmp_mat, i, j, k) = sie_vof_adv(tmp_mat, i, j, k) + donnor_sie
+
+                                            mat_cell_mass_adv(tmp_mat, i, j, k) = mat_cell_mass_adv(tmp_mat, i, j, k) + donnor_mass
+                                        end if
+                                    end if
+                                end if
+
+
+                                if (mat_id(i, j, k) == tmp_mat) then
+                                    cell_mass_adv(i, j, k) = cell_mass_adv(i, j, k) + donnor_mass
+                                end if
+
+                                if (this%shorter_advect) then
+                                    mat_cell_mass_adv(tmp_mat, i_face, j_face, k_face) = mat_cell_mass_adv(tmp_mat, i_face, j_face, k_face) - donnor_mass
+                                end if
+
+
+
+
+
+                                if (this%shorter_advect) then
+                                    sie_vof_adv(tmp_mat, i_face, j_face, k_face) = sie_vof_adv(tmp_mat, i_face, j_face, k_face) - donnor_sie
+                                end if
+
+                                donnor_init_mat_layer = 0d0
+                                if (csr_idx >= 0) donnor_init_mat_layer = donnor_mass * init_mat_layers(csr_idx)
+                                
+
+                                init_mat_layers_adv(tmp_mat, i, j, k) = init_mat_layers_adv(tmp_mat, i, j, k) + donnor_init_mat_layer
+
+                                if (this%shorter_advect) then
+                                    init_mat_layers_adv(tmp_mat, i_face,j_face,k_face) =        init_mat_layers_adv(tmp_mat, i_face,j_face,k_face) - &
+                                        donnor_init_mat_layer
+                                end if
+
+                            end do
+                        end if
+                    end do
+                end do
+            end do
+        end do
+
+
+
+        vof_correction = 0d0
+        do k = 1, this%nz
+            do j = 1, this%ny
+                do i = 1, this%nx
+                    do tmp_mat=1,this%n_materials
+
+                        csr_idx = mapper(tmp_mat,i, j, k)
+                        if (csr_idx == -1) then
+                            mat_vof(last_idx) = mat_vof_adv(tmp_mat,i, j, k) / vol(i, j, k)
+
+                            if (mat_vof(last_idx) /= 0) then 
+                                mapper(tmp_mat,i, j, k) = last_idx
+                                last_idx = last_idx + 1
+                                print*, 'hello'
+                            end if
+
+                        else 
+                            mat_vof(csr_idx) = (mat_vof(csr_idx) * (vol(i, j, k) - vof_adv(i, j, k)) + mat_vof_adv(tmp_mat,i, j, k)) / vol(i, j, k)
+                        end if 
+                         
+                        csr_idx = mapper(tmp_mat,i, j, k)
+                        if (mapper(tmp_mat,i, j, k) == -1) cycle 
+
+                        if (mat_vof(csr_idx) > this%emf .and. mat_cell_mass_adv(tmp_mat, i, j, k) > this%emfm) then
+
+                            sie_vof(csr_idx) = max(0d0, sie_vof_adv(tmp_mat,i, j, k) / mat_cell_mass_adv(tmp_mat,i, j, k))
+                            init_mat_layers(csr_idx) = init_mat_layers_adv(tmp_mat,i, j, k) / mat_cell_mass_adv(tmp_mat,i, j, k)
+                        else
+                            vof_correction(i,j,k) = vof_correction(i,j,k) + mat_vof(csr_idx)
+                            mat_vof(csr_idx) = 0d0
+                            sie_vof(csr_idx) = 0d0
+                            init_mat_layers(csr_idx) = 0d0
+                        end if
+                    end do
+                end do
+            end do
+        end do
+
+        index_mapper%last_idx = last_idx
+
+        do k = 1, this%nz
+            do j = 1, this%ny
+                do i = 1, this%nx
+                    do tmp_mat = 1, this%n_materials
+                        csr_idx = mapper(tmp_mat,i, j, k)
+
+                        if (csr_idx == -1) cycle
+
+                        if (vof_correction(i,j,k) > 0d0) then
+                            vof_factor = 1d0 / (1d0 - vof_correction(i,j,k))
+                            mat_vof(csr_idx) = mat_vof(csr_idx) * vof_factor
+                        end if
+                    end do
+                end do
+            end do
+        end do
+
+        vof = 0d0
+        mat_id = 0
+        cell_mass = 0d0
+        sie = 0d0
+        n_materials_in_cell = 0d0
+        do k = 1, this%nz
+            do j = 1, this%ny
+                do i = 1, this%nx
+                    do tmp_mat=1,this%n_materials
+                        csr_idx = mapper(tmp_mat,i, j, k)
+                        if (csr_idx == -1) cycle
+
+                        if (mat_vof(csr_idx) < this%emf .or. mat_cell_mass_adv(tmp_mat,i, j, k) < this%emfm) then
+                            mat_cell_mass_adv(tmp_mat,i, j, k) = 0d0
+                            sie_vof(csr_idx) = 0d0
+                            mat_vof(csr_idx) = 0d0
+                        else
+                            cell_mass_vof(csr_idx) = mat_cell_mass_adv(tmp_mat,i, j, k)
+                            cell_mass    (i, j, k) = cell_mass(i, j, k) + mat_cell_mass_adv(tmp_mat,i, j, k)
+                            vof          (i, j, k) = vof(i, j, k) + mat_vof(csr_idx)
+                            sie(i, j, k)           = sie(i, j, k) + sie_vof(csr_idx) * cell_mass_vof(csr_idx)
+                            mat_id(i, j, k)        = mat_id(i, j, k) + tmp_mat * 10 ** n_materials_in_cell(i, j, k)
+                            n_materials_in_cell(i, j, k) = n_materials_in_cell(i, j, k) + 1
+                        end if
+                    end do
+                end do
+            end do
+        end do
+
+
+        do k = 1, this%nz
+            do j = 1, this%ny
+                do i = 1, this%nx
+                    if(cell_mass(i, j, k) > this%emfm) sie(i, j, k) = sie(i, j, k) / cell_mass(i, j, k)
+                end do
+            end do
+        end do
+
+
+        call this%vertex_mass%Calculate_vertex_mass_3d(this%mesh%coordinates, this%total_density, &
+            this%total_cell_mass)
+        call this%vertex_mass%Exchange_virtual_space_blocking()
+
+        call this%materials%vof%Exchange_virtual_space_blocking()
+
+        do k = 1, this%nzp
+            do j = 1, this%nyp
+                do i = 1, this%nxp
+                    symmetry_factor = 1d0
+
+
+                    this%vel_adv_weight%values(i, j, k) = (density(i  , j  , k  ) + density(i-1, j  , k  ) + &
+                        density(i-1, j-1, k  ) + density(i  , j-1, k  ) + &
+                        density(i  , j  , k-1) + density(i-1, j  , k-1) + &
+                        density(i-1, j-1, k-1) + density(i  , j-1, k-1))
+
+                end do
+            end do
+        end do
+
+        velocity_x_adv = velocity_x
+        velocity_y_adv = velocity_y
+        velocity_z_adv = velocity_z
+
+
+        call this%vel_adv_weight%Exchange_virtual_space_blocking()
+        do k = 1, this%nzp
+            do j = 1, this%nyp
+                do i = 1, this%nxp
+                    if (material_x(i, j, k) == x(i, j, k) .and. &
+                        material_y(i, j, k) == y(i, j, k) .and. &
+                        material_z(i, j, k) == z(i, j, k)) cycle
+                    tet_counter=0
+                    tet_vol = -1d0
+                    tet_counter_min = 1
+                    tet_vol_diff_min = 1d13
+
+                    do while ((tet_vol(1) < 0d0) .or. (tet_vol(2) < 0d0) .or. (tet_vol(3) < 0d0))
+                        tet_counter = tet_counter + 1
+                        if(tet_counter == 9) then
+                            tet_counter = tet_counter_min
+                            tet_vol_diff_min = -1d0
+                        end if
+                        i1 = i + i_1_add(tet_counter)
+                        j1 = j + j_1_add(tet_counter)
+                        k1 = k + k_1_add(tet_counter)
+
+                        i2 = i + i_2_add(tet_counter)
+                        j2 = j + j_2_add(tet_counter)
+                        k2 = k + k_2_add(tet_counter)
+
+                        i3 = i + i_3_add(tet_counter)
+                        j3 = j + j_3_add(tet_counter)
+                        k3 = k + k_3_add(tet_counter)
+
+                        material_tet_vol = Tetrahederon_volume(material_x(i ,  j, k ), material_y(i , j , k ), material_z(i , j , k ), &
+                            material_x(i1, j1, k1), material_y(i1, j1, k1), material_z(i1, j1, k1), &
+                            material_x(i2, j2, k2), material_y(i2, j2, k2), material_z(i2, j2, k2), &
+                            material_x(i3, j3, k3), material_y(i3, j3, k3), material_z(i3, j3, k3))
+
+                        material_tet_vol_sign = sign(1d0, material_tet_vol)
+
+                        tet_vol(1)       = Tetrahederon_volume(material_x(i , j , k ), material_y(i , j , k ), material_z(i , j , k ), &
+                            x(i , j , k ),          y(i , j , k ),          z(i , j , k ), &
+                            material_x(i2, j2, k2), material_y(i2, j2, k2), material_z(i2, j2, k2), &
+                            material_x(i3, j3, k3), material_y(i3, j3, k3), material_z(i3, j3, k3)) &
+                            * material_tet_vol_sign
+
+                        tet_vol(2)       = Tetrahederon_volume(material_x(i , j , k ), material_y(i , j , k ), material_z(i , j , k ), &
+                            material_x(i1, j1, k1), material_y(i1, j1, k1), material_z(i1, j1, k1), &
+                            x(i , j , k ),          y(i , j , k ),          z(i , j , k ), &
+                            material_x(i3, j3, k3), material_y(i3, j3, k3), material_z(i3, j3, k3)) &
+                            * material_tet_vol_sign
+
+                        tet_vol(3)       = Tetrahederon_volume(material_x(i , j , k ), material_y(i , j , k ), material_z(i , j , k ), &
+                            material_x(i1, j1, k1), material_y(i1, j1, k1), material_z(i1, j1, k1), &
+                            material_x(i2, j2, k2), material_y(i2, j2, k2), material_z(i2, j2, k2), &
+                            x(i , j , k ),          y(i , j , k ),          z(i , j , k )) &
+                            * material_tet_vol_sign
+
+                        tet_vol(4)       = Tetrahederon_volume(         x(i , j , k ),          y(i , j , k ),          z(i , j , k ), &
+                            material_x(i1, j1, k1), material_y(i1, j1, k1), material_z(i1, j1, k1), &
+                            material_x(i2, j2, k2), material_y(i2, j2, k2), material_z(i2, j2, k2), &
+                            material_x(i3, j3, k3), material_y(i3, j3, k3), material_z(i3, j3, k3)) &
+                            * material_tet_vol_sign
+
+                        tet_vol_diff = abs(tet_vol(1) + tet_vol(2) + tet_vol(3) + tet_vol(4) - abs(material_tet_vol))
+                        if (tet_vol_diff < tet_vol_diff_min) then
+                            tet_counter_min = tet_counter
+                            tet_vol_diff_min = tet_vol_diff
+                        end if
+                        if (tet_vol_diff_min < -0.5d0) then
+                            tet_vol = 1d0
+                        end if
+                    end do
+
+
+                    i_tet1 = i + i_1_add(tet_counter)
+                    j_tet1 = j + j_1_add(tet_counter)
+                    k_tet1 = k + k_1_add(tet_counter)
+
+                    i_tet2 = i + i_2_add(tet_counter)
+                    j_tet2 = j + j_2_add(tet_counter)
+                    k_tet2 = k + k_2_add(tet_counter)
+
+                    i_tet3 = i + i_3_add(tet_counter)
+                    j_tet3 = j + j_3_add(tet_counter)
+                    k_tet3 = k + k_3_add(tet_counter)
+
+                    if (wall_x_top .eqv. .true.) then
+                        if (i_tet1 > this%nxp) i_tet1 = this%nx
+                        if (i_tet2 > this%nxp) i_tet2 = this%nx
+                        if (i_tet3 > this%nxp) i_tet3 = this%nx
+                    end if
+                    if (wall_x_bot .eqv. .true.) then
+                        if (i_tet1 < 1) i_tet1 = 2
+                        if (i_tet2 < 1) i_tet2 = 2
+                        if (i_tet3 < 1) i_tet3 = 2
+                    end if
+                    if (wall_y_top .eqv. .true.) then
+                        if (j_tet1 > this%nyp) j_tet1 = this%ny
+                        if (j_tet2 > this%nyp) j_tet2 = this%ny
+                        if (j_tet3 > this%nyp) j_tet3 = this%ny
+                    end if
+                    if (wall_y_bot .eqv. .true.) then
+                        if (j_tet1 < 1) j_tet1 = 2
+                        if (j_tet2 < 1) j_tet2 = 2
+                        if (j_tet3 < 1) j_tet3 = 2
+                    end if
+                    if (wall_z_top .eqv. .true.) then
+                        if (k_tet1 > this%nzp) k_tet1 = this%nz
+                        if (k_tet2 > this%nzp) k_tet2 = this%nz
+                        if (k_tet3 > this%nzp) k_tet3 = this%nz
+                    end if
+                    if (wall_z_bot .eqv. .true.) then
+                        if (k_tet1 < 1) k_tet1 = 2
+                        if (k_tet2 < 1) k_tet2 = 2
+                        if (k_tet3 < 1) k_tet3 = 2
+                    end if
+                    weight0 = this%vel_adv_weight%values(i     , j     , k     )
+                    weight1 = this%vel_adv_weight%values(i_tet1, j_tet1, k_tet1)
+                    weight2 = this%vel_adv_weight%values(i_tet2, j_tet2, k_tet2)
+                    weight3 = this%vel_adv_weight%values(i_tet3, j_tet3, k_tet3)
+
+                    if(weight0 < this%emf) then
+                        velocity_x_adv(i, j, k) = 0d0
+                        velocity_y_adv(i, j, k) = 0d0
+                        velocity_z_adv(i, j, k) = 0d0
+                    else
+                        call Vertex_interp_3d(x(i, j, k), y(i, j, k), z(i, j, k), i, j, k                            , &
+                            i_tet1, j_tet1, k_tet1, i_tet2, j_tet2, k_tet2, i_tet3, j_tet3, k_tet3 , &
+                            velocity_x_adv(i, j, k), velocity_x, material_x, material_y, material_z, &
+                            weight0, weight1, weight2, weight3)
+                        call Vertex_interp_3d(x(i, j, k), y(i, j, k), z(i, j, k), i, j, k                            , &
+                            i_tet1, j_tet1, k_tet1, i_tet2, j_tet2, k_tet2, i_tet3, j_tet3, k_tet3 , &
+                            velocity_y_adv(i, j, k), velocity_y, material_x, material_y, material_z, &
+                            weight0, weight1, weight2, weight3)
+                        call Vertex_interp_3d(x(i, j, k), y(i, j, k), z(i, j, k), i, j, k                            , &
+                            i_tet1, j_tet1, k_tet1, i_tet2, j_tet2, k_tet2, i_tet3, j_tet3, k_tet3 , &
+                            velocity_z_adv(i, j, k), velocity_z, material_x, material_y, material_z, &
+                            weight0, weight1, weight2, weight3)
+
+
+
+                        vel_x_min = min(velocity_x(i_tet1, j_tet1, k_tet1), velocity_x(i_tet2, j_tet2, k_tet2), &
+                            velocity_x(i_tet3, j_tet3, k_tet3), velocity_x(i     , j     , k     ))
+                        vel_x_max = max(velocity_x(i_tet1, j_tet1, k_tet1), velocity_x(i_tet2, j_tet2, k_tet2), &
+                            velocity_x(i_tet3, j_tet3, k_tet3), velocity_x(i     , j     , k     ))
+                        vel_y_min = min(velocity_y(i_tet1, j_tet1, k_tet1), velocity_y(i_tet2, j_tet2, k_tet2), &
+                            velocity_y(i_tet3, j_tet3, k_tet3), velocity_y(i     , j     , k     ))
+                        vel_y_max = max(velocity_y(i_tet1, j_tet1, k_tet1), velocity_y(i_tet2, j_tet2, k_tet2), &
+                            velocity_y(i_tet3, j_tet3, k_tet3), velocity_y(i     , j     , k     ))
+                        vel_z_min = min(velocity_z(i_tet1, j_tet1, k_tet1), velocity_z(i_tet2, j_tet2, k_tet2), &
+                            velocity_z(i_tet3, j_tet3, k_tet3), velocity_z(i     , j     , k     ))
+                        vel_z_max = max(velocity_z(i_tet1, j_tet1, k_tet1), velocity_z(i_tet2, j_tet2, k_tet2), &
+                            velocity_z(i_tet3, j_tet3, k_tet3), velocity_z(i     , j     , k     ))
+                        velocity_x_adv(i, j, k) = max(velocity_x_adv(i, j, k), vel_x_min)
+                        velocity_x_adv(i, j, k) = min(velocity_x_adv(i, j, k), vel_x_max)
+                        velocity_y_adv(i, j, k) = max(velocity_y_adv(i, j, k), vel_y_min)
+                        velocity_y_adv(i, j, k) = min(velocity_y_adv(i, j, k), vel_y_max)
+                        velocity_z_adv(i, j, k) = max(velocity_z_adv(i, j, k), vel_z_min)
+                        velocity_z_adv(i, j, k) = min(velocity_z_adv(i, j, k), vel_z_max)
+
+                    end if
+                end do
+            end do
+        end do
+
+        velocity_x = velocity_x_adv
+        velocity_y = velocity_y_adv
+        velocity_z = velocity_z_adv
+
+        do k = 1, this%nzp
+            do j = 1, this%nyp
+                do i = 1, this%nxp
+                    velocity_sq = velocity_z(i, j, k) * velocity_z(i, j, k) + &
+                        velocity_y(i, j, k) * velocity_y(i, j, k) + &
+                        velocity_x(i, j, k) * velocity_x(i, j, k)
+                    if ((vertex_mass(i, j, k) < this%rezone%mass_threshold) .and. (velocity_sq > this%rezone%velocity_limit)) then
+                        vel_factor = sqrt(this%rezone%velocity_limit / velocity_sq)
+                        velocity_x(i, j, k) = velocity_x(i, j, k) * vel_factor
+                        velocity_y(i, j, k) = velocity_y(i, j, k) * vel_factor
+                        velocity_z(i, j, k) = velocity_z(i, j, k) * vel_factor
+                    end if
+                end do
+            end do
+        end do
+
+        call this%velocity%Apply_boundary(this%mesh%coordinates%data)
+
+        deallocate(vof_correction)
         return
     end subroutine Calculate_advect_3d
+
 
     subroutine Line_calc_3d(this, nm, i_start, i_end, j_start, j_end, k_start, k_end)
         use geometry_module , only : Hexahedron_volume, Vector_grad,Vector_grad_planes, Vector_grad_vec, Volume_fraction_3d
