@@ -11,8 +11,8 @@ files = ['split_debug2', 'split_debug1', 'sound_vel', 'temperature', 'density', 
 
 
 for file in files:
-    file_path1 = f'/home/talkad_k/Desktop/ScalSALE_DS/src/Scripts/material_results/{file}.txt'
-    file_path2 = f'/home/talkad_k/Desktop/ScalSALE_original/ScalSALE_DS/src/Scripts/material_results/{file}.txt'
+    file_path1 = f'/home/talkad/Desktop/ScalSALE_DS_master/src/Scripts/material_results/{file}.txt'
+    file_path2 = f'/home/talkad/Desktop/ScalSALE_DS_original/src/Scripts/material_results/{file}.txt'
 
     data1, data2 = convert_data(file_path1), convert_data(file_path2)
 

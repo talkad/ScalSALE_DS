@@ -1,1 +1,1 @@
-add_library(Time_step hydro_step.f90 time.f90)
+add_library(Time_step time.f90 hydro_step.f90)

@@ -31,7 +31,12 @@ module material_base_module
 
       procedure, public :: Clean_material_base
 
-      procedure, public :: Point_to_initial_layers
+      procedure, public :: Point_to_initial_layers_csr
+      procedure, public :: Point_to_initial_layers_4d
+
+      generic,   public    :: Point_to_initial_layers  =>         &
+                              Point_to_initial_layers_csr, &
+                              Point_to_initial_layers_4d
 
       procedure, public :: Write_material_abstract
       procedure, public :: Write_material_base
@@ -46,7 +51,7 @@ module material_base_module
 
 contains
 
-   subroutine Init_material_base(this, nxp, nyp, nzp,nmats, mat_ids, bc_cell, bc_params)
+   subroutine Init_material_base(this, nxp, nyp, nzp,nmats, mat_ids, bc_cell, bc_params, is_csr)
       use boundary_parameters_module, only : boundary_parameters_t
       implicit none
       class(material_base_t)                , intent(in out)       :: this
@@ -60,6 +65,8 @@ contains
       type(cell_bc_wrapper_t), dimension(:), pointer,  intent(in) :: bc_cell   
       type(boundary_parameters_t), pointer, intent(in) :: bc_params
 integer :: i
+logical, optional, intent(in)      :: is_csr
+
       allocate(this%cell_mass)
       allocate(this%initial_layers_of_mats)
       allocate(this%sie)
@@ -67,18 +74,18 @@ integer :: i
       allocate(this%material_ids(nmats))
       this%nmats = nmats
 
-do i = 1, nmats
-      this%material_ids(i) = mat_ids(i)
-end do
+      do i = 1, nmats
+            this%material_ids(i) = mat_ids(i)
+      end do
 
       print*, 'vof'
-      this%vof = material_quantity_t(0d0, nxp, nyp, nzp,nmats, bc_cell, bc_params)
+      this%vof = material_quantity_t(0d0, nxp, nyp, nzp,nmats, bc_cell, bc_params, is_csr)
       print*, 'sie'
-      this%sie = material_quantity_t (0d0, nxp, nyp, nzp, nmats,bc_cell, bc_params)
+      this%sie = material_quantity_t (0d0, nxp, nyp, nzp, nmats,bc_cell, bc_params, is_csr)
       print*, 'cell_mass'
-      this%cell_mass = material_quantity_t (0d0, nxp, nyp, nzp,nmats, bc_cell, bc_params)
+      this%cell_mass = material_quantity_t (0d0, nxp, nyp, nzp,nmats, bc_cell, bc_params, is_csr)
       print*, 'initial_layers_of_mats'
-      this%initial_layers_of_mats = material_quantity_t (0d0, nxp, nyp, nzp, nmats)
+      this%initial_layers_of_mats = material_quantity_t (0d0, nxp, nyp, nzp, nmats, is_csr)
 
 !      if (sie_0(1) == 0) then
 !         this%nrg_calc = 1
@@ -92,15 +99,24 @@ end do
 
 
 
-   subroutine Point_to_initial_layers(this, ptr)
+   subroutine Point_to_initial_layers_csr(this, ptr)
       implicit none
       class (material_base_t)                  , intent(in out) :: this  
       real(8)       , dimension(:), pointer, intent(out)    :: ptr
 
       call this%initial_layers_of_mats%Point_to_data (ptr)
 
-   end subroutine Point_to_initial_layers
+   end subroutine Point_to_initial_layers_csr
 
+
+   subroutine Point_to_initial_layers_4d(this, ptr)
+      implicit none
+      class (material_base_t)                  , intent(in out) :: this  
+      real(8)       , dimension(:,:,:,:), pointer, intent(out)    :: ptr
+
+      call this%initial_layers_of_mats%Point_to_data (ptr)
+
+   end subroutine Point_to_initial_layers_4d
 
 
    subroutine Set_communication_material_base(this, comm, comm_params)

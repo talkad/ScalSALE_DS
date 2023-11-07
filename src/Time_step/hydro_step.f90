@@ -362,14 +362,6 @@ contains
             total_volume, velocity, emf, emfm , wilkins_scheme, parallel_params)
         Constructor%ncyc = 0
 
-
-          
-        ! call debug(materials%temperature%data_4d%nz_values, 'material_results/temperature.txt', Constructor%nz, Constructor%ny, Constructor%nx, Constructor%nmats)   
-        ! call debug(materials%pressure%data_4d%nz_values, 'material_results/pressure.txt', Constructor%nz, Constructor%ny, Constructor%nx, Constructor%nmats)   
-        ! call debug(materials%sie%data_4d%nz_values, 'material_results/sie.txt', Constructor%nz, Constructor%ny, Constructor%nx, Constructor%nmats)   
-        ! call debug(materials%vof%data_4d%nz_values, 'material_results/vof6.txt', Constructor%nz, Constructor%ny, Constructor%nx, Constructor%nmats)   
-
-
     end function
 
 
@@ -440,7 +432,7 @@ contains
 
         call this%Calculate_mesh_3d(time)
 
-        ! if (this%rezone%rezone_type /= 0) call this%advect%Calculate_advect_3d()
+        if (this%rezone%rezone_type /= 0) call this%advect%Calculate_advect_3d()
 
         call this%print_materials()
 
@@ -2788,7 +2780,7 @@ call this%materials%sie%exchange_end()
         class (hydro_step_t), intent(in out) :: this  
         type(advect_t), pointer, intent(out) :: advect_ptr
 
-        ! advect_ptr => this%advect
+        advect_ptr => this%advect
 
     end subroutine Point_to_advect
 

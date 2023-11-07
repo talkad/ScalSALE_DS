@@ -21,7 +21,7 @@ module quantity_module
         private
 
         type (data_t) , dimension(:), pointer, public :: data
-        ! type (data_4d_t), pointer, public :: data_4d
+        ! type (data_4d_t), pointer, public :: data_4d  
         class(data_struct_t), allocatable, public :: data_4d
 
         type(boundary_parameters_t), pointer, public :: boundary_params
@@ -53,13 +53,16 @@ module quantity_module
 
         procedure, private  :: Ptr_coordinates_4d
 
+        procedure, public  :: Ptr_coordinates_numeric_4d
+
 
         generic,   public    :: Point_to_data  =>         &
             Ptr_coordinates_1d,       &
             Ptr_coordinates_1d_first, &
             Ptr_coordinates_2d,       &
             Ptr_coordinates_3d,       &
-            Ptr_coordinates_4d
+            Ptr_coordinates_4d,       &
+            Ptr_coordinates_numeric_4d
 
         procedure, public :: Clean_quantity
 
@@ -103,7 +106,7 @@ contains
 
         integer                  , intent(in)     :: axises_num
         integer                                   :: i
-        if(allocated(this%data_4d))        deallocate(this%data_4d)
+        if(allocated(this%data_4d))        deallocate(this%data_4d)     ! invalid deacllocation
         nullify(this%data)
         allocate (data_t :: this%data (axises_num))
         do i=1, axises_num
@@ -306,6 +309,14 @@ contains
     end subroutine Ptr_coordinates_4d
 
 
+    subroutine Ptr_coordinates_numeric_4d (this, ptr_x)
+        class (quantity_t)         , intent(in out) :: this
+        real(8), dimension(:,:,:,:), pointer, intent(out)    :: ptr_x
+
+        call this%data_4d%Point_to_data (ptr_x)
+    end subroutine Ptr_coordinates_numeric_4d
+
+
     subroutine Set_communication (this, comm, comm_params)
         implicit none
         class (quantity_t), intent(in out) :: this  
@@ -344,7 +355,6 @@ contains
 
             call this%data_4d%Exchange_virtual_space_blocking (tmp_ghost_width)
         end if
-
 
     end subroutine Exchange_virtual_space_blocking
 

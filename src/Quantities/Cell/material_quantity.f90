@@ -33,7 +33,7 @@ module material_quantity_module
 
 contains
 
-   type(material_quantity_t) function Constructor(initial_val, d1, d2, d3,d4, bc, bc_params)
+   type(material_quantity_t) function Constructor(initial_val, d1, d2, d3,d4, bc, bc_params, is_csr)
       implicit none
 
       real(8)                                , intent(in)     :: initial_val
@@ -45,14 +45,15 @@ contains
       type(cell_bc_wrapper_t), dimension(:), pointer, intent(in) :: bc
       type(boundary_parameters_t), pointer, intent(in) :: bc_params
       integer                                                 :: i
+      logical, optional, intent(in)      :: is_csr
 
-      call Constructor%Init_quantity_init_val_4d (initial_val, d1, d2, d3,d4, 1, bc_params)
+      call Constructor%Init_quantity_init_val_4d (initial_val, d1, d2, d3,d4, 1, bc_params, is_csr)
       Constructor%boundary_conditions => bc
       Constructor%nmats = d4
    end function
 
 
-   type(material_quantity_t) function Constructor1( initial_val, d1, d2, d3,d4)
+   type(material_quantity_t) function Constructor1( initial_val, d1, d2, d3,d4, is_csr)
       implicit none
 
       real(8)                                , intent(in)     :: initial_val
@@ -64,8 +65,9 @@ contains
 !      type(cell_bc_wrapper_t), dimension(:), pointer, intent(in) :: bc
 !      type(boundary_parameters_t), pointer, intent(in) :: bc_params
       integer                                                 :: i
+      logical, optional, intent(in)      :: is_csr
 
-      call Constructor1%Init_quantity_no_bc (initial_val, d1, d2, d3,d4, 1)
+      call Constructor1%Init_quantity_no_bc (initial_val, d1, d2, d3,d4, 1, is_csr)
 !      Constructor1%boundary_conditions => bc
       Constructor1%nmats = d4
    end function

@@ -72,7 +72,7 @@ contains
         type(cell_bc_wrapper_t), dimension(:), pointer,  intent(in) :: bc_cell
         type(boundary_parameters_t), pointer, intent(in) :: bc_params
 
-        call Constructor%Init_material_base(nxp, nyp, nzp, nmats, mat_ids, bc_cell, bc_params)
+        call Constructor%Init_material_base(nxp, nyp, nzp, nmats, mat_ids, bc_cell, bc_params, .FALSE.)
 
         allocate(Constructor%area_left_in(nmats))
         allocate(Constructor%area_left_out(nmats))
@@ -94,17 +94,17 @@ contains
         allocate(Constructor%area_top_out)
         allocate(Constructor%area_top_in)
         print*, 'area_top_in'
-        Constructor%area_top_in = material_quantity_t (0d0, nxp, 1, 1, nmats)
+        Constructor%area_top_in = material_quantity_t (0d0, nxp, 1, 1, nmats, .FALSE.)
         print*, 'area_top_out'
-        Constructor%area_top_out = material_quantity_t (0d0, nxp, 1, 1, nmats)
+        Constructor%area_top_out = material_quantity_t (0d0, nxp, 1, 1, nmats, .FALSE.)
         print*, 'a'
-        Constructor%a = material_quantity_t(0d0, nxp, nyp, nzp, nmats)
+        Constructor%a = material_quantity_t(0d0, nxp, nyp, nzp, nmats, .FALSE.)
         print*, 'b'
-        Constructor%b = material_quantity_t(0d0, nxp, nyp, nzp, nmats)
+        Constructor%b = material_quantity_t(0d0, nxp, nyp, nzp, nmats, .FALSE.)
         print*, 'c'
-        Constructor%c = material_quantity_t(0d0, nxp, nyp, nzp, nmats)
+        Constructor%c = material_quantity_t(0d0, nxp, nyp, nzp, nmats, .FALSE.)
         print*, 'side'
-        Constructor%side = material_quantity_t(0d0, nxp, nyp, nzp, nmats)
+        Constructor%side = material_quantity_t(0d0, nxp, nyp, nzp, nmats, .FALSE.)
         Constructor%area_left_in = 0
         Constructor%area_left_out = 0
         Constructor%area_right_in = 0

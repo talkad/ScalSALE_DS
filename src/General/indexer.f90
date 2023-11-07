@@ -20,21 +20,20 @@ module indexer_module
     function mapper_constructor(m, nx, ny, nz)
         implicit none
         integer, intent(in)            :: m, nx, ny, nz
-        class(indexer_t), allocatable :: mapper_constructor
+        type(indexer_t), target, allocatable :: mapper_constructor
         
         allocate(mapper_constructor)
         allocate(mapper_constructor%mapper(1:m,0:nx,0:ny,0:nz))
 
         mapper_constructor%mapper(1:m,0:nx,0:ny,0:nz) = -1
         mapper_constructor%last_idx = 0
-        ! print*, '??????????', m ,nx,ny,nz
 
     end function mapper_constructor
 
     
     function get_instance(m, nx, ny, nz)
         implicit none
-        class(indexer_t), pointer :: get_instance
+        type(indexer_t), pointer :: get_instance
         integer, optional, intent(in) :: m, nx, ny, nz
 
         ! print*, 'get_instance'
