@@ -13,7 +13,7 @@
         "Z_2": 1.0, 
         "gamma_gas": 1.667, 
         "rho_0": 1.0, 
-	"sie_0": 5.0277E3,
+	"sie_0": 5.0277E5,
         "Z": 1.0, 
         "eos_type": "ideal"
     }, 
@@ -176,7 +176,7 @@
         "dt_cour_fac": 3
     },
     "rezone_advect":{
-        "rezone_type": "lagrange"
+        "rezone_type": "euler"
     },
 "parallel":{
 "np":1,

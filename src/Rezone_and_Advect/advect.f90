@@ -2366,7 +2366,6 @@ contains
 
         index_mapper => get_instance()
         mapper => index_mapper%mapper
-        last_idx = index_mapper%last_idx
 
         virt_nxp = this%parallel_params%virt_nxp
         virt_nyp = this%parallel_params%virt_nyp
@@ -2436,14 +2435,16 @@ contains
         call this%line_calc_3d(1, i_start, i_end, j_start, j_end, k_start, k_end)
 
 
+        ! ---------------- ignoring mpi communication ------------------------
         !        do tmp_mat=1, this%n_materials
-        call this%adv_mats%a%Exchange_virtual_space_blocking()
-        call this%adv_mats%b%Exchange_virtual_space_blocking()
-        call this%adv_mats%c%Exchange_virtual_space_blocking()
-        call this%adv_mats%side%Exchange_virtual_space_blocking()
+        ! call this%adv_mats%a%Exchange_virtual_space_blocking()
+        ! call this%adv_mats%b%Exchange_virtual_space_blocking()
+        ! call this%adv_mats%c%Exchange_virtual_space_blocking()
+        ! call this%adv_mats%side%Exchange_virtual_space_blocking()
         !        end do
 
-        call this%num_mat_cells%Exchange_virtual_space_blocking()
+        ! call this%num_mat_cells%Exchange_virtual_space_blocking()
+        ! ---------------- ignoring mpi communication ------------------------
 
 
 
@@ -2470,6 +2471,8 @@ contains
                 end do
             end do
         end do
+
+
 
         do k = 1, this%nz
             do j = 1, this%ny
@@ -2780,6 +2783,7 @@ contains
         end do
 
 
+        last_idx = index_mapper%last_idx
 
         vof_correction = 0d0
         do k = 1, this%nz
@@ -2794,7 +2798,6 @@ contains
                             if (mat_vof(last_idx) /= 0) then 
                                 mapper(tmp_mat,i, j, k) = last_idx
                                 last_idx = last_idx + 1
-                                print*, 'hello'
                             end if
 
                         else 
@@ -2805,7 +2808,6 @@ contains
                         if (mapper(tmp_mat,i, j, k) == -1) cycle 
 
                         if (mat_vof(csr_idx) > this%emf .and. mat_cell_mass_adv(tmp_mat, i, j, k) > this%emfm) then
-
                             sie_vof(csr_idx) = max(0d0, sie_vof_adv(tmp_mat,i, j, k) / mat_cell_mass_adv(tmp_mat,i, j, k))
                             init_mat_layers(csr_idx) = init_mat_layers_adv(tmp_mat,i, j, k) / mat_cell_mass_adv(tmp_mat,i, j, k)
                         else
@@ -2861,6 +2863,9 @@ contains
                             sie(i, j, k)           = sie(i, j, k) + sie_vof(csr_idx) * cell_mass_vof(csr_idx)
                             mat_id(i, j, k)        = mat_id(i, j, k) + tmp_mat * 10 ** n_materials_in_cell(i, j, k)
                             n_materials_in_cell(i, j, k) = n_materials_in_cell(i, j, k) + 1
+
+                            ! print*, 'hello'
+
                         end if
                     end do
                 end do
@@ -2879,9 +2884,12 @@ contains
 
         call this%vertex_mass%Calculate_vertex_mass_3d(this%mesh%coordinates, this%total_density, &
             this%total_cell_mass)
-        call this%vertex_mass%Exchange_virtual_space_blocking()
 
-        call this%materials%vof%Exchange_virtual_space_blocking()
+        ! ---------------- ignoring mpi communication ------------------------    
+        ! call this%vertex_mass%Exchange_virtual_space_blocking()
+
+        ! call this%materials%vof%Exchange_virtual_space_blocking()
+        ! ---------------- ignoring mpi communication ------------------------
 
         do k = 1, this%nzp
             do j = 1, this%nyp
@@ -2902,8 +2910,10 @@ contains
         velocity_y_adv = velocity_y
         velocity_z_adv = velocity_z
 
+        ! ---------------- ignoring mpi communication ------------------------
+        ! call this%vel_adv_weight%Exchange_virtual_space_blocking()
+        ! ---------------- ignoring mpi communication ------------------------
 
-        call this%vel_adv_weight%Exchange_virtual_space_blocking()
         do k = 1, this%nzp
             do j = 1, this%nyp
                 do i = 1, this%nxp
