@@ -1,30 +1,24 @@
-module csr_module
-    use indexer_module
+module block_csr_module
     use data_struct_base
 
-    type, extends(data_struct_t) :: csr_t
+
+    type :: block_t
+        real(8), dimension(:,:,:), allocatable :: matrix
+    end type block_t
+
+
+    type, extends(data_struct_t) :: block_csr_t
 
         real(8), dimension(:,:,:,:), pointer, public         :: values
 
-        !! CSR Arguments 
-        real(8), dimension(:), pointer :: nz_values
-        integer, dimension(:,:,:,:), pointer :: idx_map        
-        integer :: padding_size
-        integer :: padding_idx
+        type(block_t), dimension(:,:,:,:), allocatable :: grid
 
-        real(8) :: ratio = 0.01
+        integer :: block_size = 16
 
     contains
 
-        ! generic, public :: Point_to_data => &
-        !                     Ptr_coordinates_1d, &
-        !                     Ptr_coordinates_4d
 
-        procedure, public :: Ptr_coordinates_1d => Ptr_coordinates_1d_csr
         ! procedure, public :: Ptr_coordinates_4d => Ptr_coordinates_4d_csr
-
-
-
 
         procedure, public :: Clean_data => Clean_data_imp
 
@@ -50,9 +44,7 @@ module csr_module
         
         procedure :: get_item => get_item
         procedure :: add_item => add_item
-        procedure :: update_struct => update_struct
-        procedure, private, nopass :: append_real
-        procedure, private :: count_new_cells
+
         procedure, private :: add_boundary
 
     end type
@@ -60,7 +52,7 @@ module csr_module
     public :: Get_copy
 
 
-    interface csr_t
+    interface block_csr_t
         module procedure Constructor_init_val
     end interface
 
@@ -68,37 +60,25 @@ module csr_module
     contains
     
 
-    type(csr_t) function Constructor_init_val(initial_val, d1, d2, d3, d4, idx_map)
+    type(block_csr_t) function Constructor_init_val(initial_val, d1, d2, d3, d4)
         implicit none
-        integer, dimension(:,:,:,:), allocatable, target, intent(inout) :: idx_map
 
         real(8)           , intent(in) :: initial_val  
         integer           , intent(in) :: d1, d2, d3, d4  
-        integer :: space_size
-        integer :: i, j, k, m
-        print*, 'init_csr'
+        integer                        :: block_size
+
+        print*, 'init_block_csr'
         allocate(Constructor_init_val%values(0:1,0:1,0:1,0:1))
         Constructor_init_val%values = 0
-
 
         Constructor_init_val%nx = d1
         Constructor_init_val%ny = d2
         Constructor_init_val%nz = d3
         Constructor_init_val%nmats = d4
 
-        ! print*, 'aaaaaaaaaa', d4, d3, d2, d1
+        block_size = Constructor_init_val%block_size
 
-        Constructor_init_val%idx_map => idx_map
-        space_size = (d1+1) * (d2+1) * (d3+1) * d4 !* 4
-
-        ! print*, 'nz_size', space_size
-
-        Constructor_init_val%padding_size = space_size*Constructor_init_val%ratio
-        Constructor_init_val%padding_idx = 0
-
-        allocate(Constructor_init_val%nz_values(0:space_size+int(space_size*Constructor_init_val%ratio)))
-        Constructor_init_val%nz_values = 0d0
-        ! print*, 'aaaaaaaaaaaaaaaaaaaa',d4,d1,d2,d3
+        allocate(Constructor_init_val%grid(1:d4, 0:d1/block_size, 0:d2/block_size, 0:d3/block_size))  ! m,i,j,k
 
         call Constructor_init_val%add_boundary()
 
@@ -107,322 +87,161 @@ module csr_module
 
     subroutine add_boundary(this)
         implicit none
-        class(csr_t), intent(inout) :: this
-        type(indexer_t), pointer ::  index_mapper
+        class(block_csr_t), intent(inout) :: this
         integer :: i,j,k,m
-        integer :: csr_idx
         
-        index_mapper => get_instance()
-        ! print*, 'aaaaaaaaaa', shape(this%idx_map)
-        ! print*, 'bbbbbbbbbb', this%nmats, this%nx, this%ny, this%nz 
-        ! print*, 'aaaaaaaaaaaaaa', this%nx, this%ny, this%nz, this%nmats
-        csr_idx = 0
+        ! i = 0
+        ! do k = 0, this%nz
+        !     do j = 0, this%ny
+        !         do m = 1, this%nmats
+        !             this%idx_map(m,i,j,k) = csr_idx
+        !             this%nz_values(csr_idx) = 0
 
-        i = 0
-        do k = 0, this%nz
-            do j = 0, this%ny
-                do m = 1, this%nmats
-                    this%idx_map(m,i,j,k) = csr_idx
-                    this%nz_values(csr_idx) = 0
-
-                    csr_idx = csr_idx + 1
-                end do
-            end do
-        end do
+        !             csr_idx = csr_idx + 1
+        !         end do
+        !     end do
+        ! end do
 
 
-        i = this%nx
-        do k = 0, this%nz
-            do j = 0, this%ny
-                do m = 1, this%nmats
-                    this%idx_map(m,i,j,k) = csr_idx
-                    this%nz_values(csr_idx) = 0
+        ! i = this%nx
+        ! do k = 0, this%nz
+        !     do j = 0, this%ny
+        !         do m = 1, this%nmats
+        !             this%idx_map(m,i,j,k) = csr_idx
+        !             this%nz_values(csr_idx) = 0
 
-                    csr_idx = csr_idx + 1
-                end do
-            end do
-        end do
-
-
-        j = 0
-        do k = 0, this%nz
-            do i = 0, this%nx
-                do m = 1, this%nmats
-                    this%idx_map(m,i,j,k) = csr_idx
-                    this%nz_values(csr_idx) = 0
-
-                    csr_idx = csr_idx + 1
-                end do
-            end do
-        end do
+        !             csr_idx = csr_idx + 1
+        !         end do
+        !     end do
+        ! end do
 
 
-        j = this%ny
-        do k = 0, this%nz
-            do i = 0, this%nx
-                do m = 1, this%nmats
-                    this%idx_map(m,i,j,k) = csr_idx
-                    this%nz_values(csr_idx) = 0
+        ! j = 0
+        ! do k = 0, this%nz
+        !     do i = 0, this%nx
+        !         do m = 1, this%nmats
+        !             this%idx_map(m,i,j,k) = csr_idx
+        !             this%nz_values(csr_idx) = 0
 
-                    csr_idx = csr_idx + 1
-                end do
-            end do
-        end do
+        !             csr_idx = csr_idx + 1
+        !         end do
+        !     end do
+        ! end do
 
 
-        k = 0
-        do j = 0, this%ny
-            do i = 0, this%nx
-                do m = 1, this%nmats
-                    this%idx_map(m,i,j,k) = csr_idx
-                    this%nz_values(csr_idx) = 0
+        ! j = this%ny
+        ! do k = 0, this%nz
+        !     do i = 0, this%nx
+        !         do m = 1, this%nmats
+        !             this%idx_map(m,i,j,k) = csr_idx
+        !             this%nz_values(csr_idx) = 0
 
-                    csr_idx = csr_idx + 1
-                end do
-            end do
-        end do
+        !             csr_idx = csr_idx + 1
+        !         end do
+        !     end do
+        ! end do
 
-        k = this%nz
-        do j = 0, this%ny
-            do i = 0, this%nx
-                do m = 1, this%nmats
-                    this%idx_map(m,i,j,k) = csr_idx
-                    this%nz_values(csr_idx) = 0
 
-                    csr_idx = csr_idx + 1
-                end do
-            end do
-        end do
+        ! k = 0
+        ! do j = 0, this%ny
+        !     do i = 0, this%nx
+        !         do m = 1, this%nmats
+        !             this%idx_map(m,i,j,k) = csr_idx
+        !             this%nz_values(csr_idx) = 0
 
-        index_mapper%last_idx = csr_idx
+        !             csr_idx = csr_idx + 1
+        !         end do
+        !     end do
+        ! end do
+
+        ! k = this%nz
+        ! do j = 0, this%ny
+        !     do i = 0, this%nx
+        !         do m = 1, this%nmats
+        !             this%idx_map(m,i,j,k) = csr_idx
+        !             this%nz_values(csr_idx) = 0
+
+        !             csr_idx = csr_idx + 1
+        !         end do
+        !     end do
+        ! end do
     
     end subroutine add_boundary
 
-    ! subroutine print_mapper(file_name)
-
-    !     type(indexer_t), pointer ::  index_mapper
-    !     integer, dimension(:,:,:,:), pointer   ::   mapper
-    !     integer :: index, m,i,j,k
-    !     character(len=*), intent(in)                      ::   file_name
-
-    !     index_mapper => get_instance()
-    !     mapper => index_mapper%mapper
-
-    !     open (unit=414, file=file_name, status = 'replace')  
-        
-    !     print*, shape(mapper)
-
-    !     do k = 0, size(mapper, dim=4)-1
-    !         do j = 0, size(mapper, dim=3)-1
-    !             do i = 0, size(mapper, dim=2)-1
-    !                 do m = 1, size(mapper, dim=1)
-    !                     index = mapper(m,i,j,k) 
-    !                     write(414,*) m, i , j , k , index
-    !                 end do
-    !             end do
-    !         end do
-    !     end do
-        
-    !     close (414)
-
-    ! end subroutine print_mapper
 
     pure subroutine add_item(this, material_type, i, j, k, val)
         implicit none
-        class(csr_t), intent(inout) :: this
+        class(block_csr_t), intent(inout) :: this
         integer, intent(in) :: i, j, k, material_type
         real(8), intent(in) :: val
-        integer :: idx
+        integer :: i_new, j_new, k_new
+        type(block_t) :: block
 
-        idx = this%idx_map(material_type, i, j, k)
-        if (idx > -1) this%nz_values(idx) = val
+        i_new = i/this%block_size
+        j_new = j/this%block_size
+        k_new = k/this%block_size
+
+        block = this%grid(material_type, i_new, j_new ,k_new)
+
+        if (.not. allocated(block%matrix)) then 
+            allocate(block%matrix(0:this%block_size, 0:this%block_size, 0:this%block_size))
+            this%grid(material_type, i_new, j_new ,k_new) = block
+        end if
+
+        block%matrix(mod(i, this%block_size), mod(j, this%block_size) ,mod(k, this%block_size)) = val
     end subroutine add_item
 
-
-    ! Assume the order of the new values is j i m
-    subroutine update_struct(this, ms, is, js, ks, vals)
+    function get_item(this, material_type, i, j, k)
         implicit none
-        class(csr_t), intent(inout) :: this
-        integer, dimension(:), allocatable, intent(in) :: is, js, ks, ms
-        real(8), dimension(:), allocatable, intent(in) :: vals
-        integer :: m, i, j, k, materials, nx, ny, nz, insertion_idx, idx, num_vals
-        integer :: num_padding, new_cells, num_pads, prev_size, new_size
-        real(8), dimension(:), allocatable :: temp
-        integer :: current_idx
-        logical :: logic_debug
-        idx = 0
-
-        ! logic_debug = .False.
-        ! num_padding = size(this%nz_values) - this%padding_idx
-        ! new_cells = this%count_new_cells(ms,is,js,ks)
-
-        ! if (new_cells > num_padding) then
-        !     ! rescalse the size of the values array 
-        !     num_pads = (new_cells - num_padding) / this%padding_size + 1 
-
-        !     prev_size = size(this%nz_values, dim=1)
-
-        !     new_size = prev_size + num_pads * this%padding_size - 1
-        !     ! write(*,*) 'reallocation', prev_size, '->', new_size
-
-        !     allocate(temp(0:new_size))                          ! enlarge array size by factor of 2
-        !     temp(0:new_size) = 0d0
-        !     temp(0:prev_size-1) = this%nz_values(0:prev_size-1)    ! copy previous values
-        !     call move_alloc(temp, this%nz_values)                  ! temp gets deallocated
-        ! end if
-
-        ! materials = size(this%idx_map, dim=1)
-        ! nx = size(this%idx_map, dim=2)-1
-        ! ny = size(this%idx_map, dim=3)-1
-        ! nz = size(this%idx_map, dim=4)-1
-        ! num_vals = size(is)-1
-        
-        ! do i=num_vals, 0, -1
-        !     if (is(i)/=-1) then
-        !         idx = i
-        !         exit
-        !     end if
-        ! end do
-        
-        ! insertion_idx = size(this%nz_values)-1
-        
-        ! do k=nz, 0, -1
-        !     do j=ny, 0, -1
-        !         do i=nx, 0, -1
-        !             do m=materials, 1, -1
-
-        !                 current_idx = this%idx_map(m,i,j,k)
-
-        !                 if (ms(idx)==m .and. is(idx)==i .and. js(idx)==j .and. ks(idx)==k) then
-        !                     this%nz_values(insertion_idx) = vals(idx)
-        !                     this%idx_map(m,i,j,k) = insertion_idx
-        !                     insertion_idx = insertion_idx - 1
-        !                     idx = idx - 1
-        !                 else if (current_idx > -1) then
-        !                     this%nz_values(insertion_idx) = this%nz_values(current_idx)
-        !                     this%nz_values(current_idx) = 0
-        !                     this%idx_map(m,i,j,k) = insertion_idx
-        !                     insertion_idx = insertion_idx - 1
-        !                 end if 
-
-        !             end do
-        !         end do
-        !     end do
-        ! end do 
-
-        ! idx = 0
-
-        ! do k=0, nz
-        !     do j=0, ny
-        !         do i=0, nx
-        !             do m=1, materials
-
-        !                 current_idx = this%idx_map(m,i,j,k) 
-
-        !                 if (current_idx > -1) then
-        !                     this%nz_values(idx) = this%nz_values(current_idx) 
-        !                     this%nz_values(current_idx) = 0
-        !                     this%idx_map(m,i,j,k) = idx
-        !                     idx = idx + 1
-        !                 end if
-
-        !             end do
-        !         end do
-        !     end do
-        ! end do
-
-        ! this%padding_idx = idx
-
-    end subroutine update_struct
-
-
-    function count_new_cells(this, ms, is, js, ks) result(num)
-        implicit none
-        class(csr_t), intent(inout) :: this
-        integer, dimension(:), allocatable, intent(in) :: is, js, ms, ks
-        integer :: num, idx
-
-        num = 0
-
-        do idx=0, size(is)-1
-            if (this%idx_map(ms(idx), is(idx), js(idx), ks(idx)) == -1) num=num+1
-        end do
-    end function count_new_cells
-
-
-    pure function get_item(this, material_type, i, j, k)
-        implicit none
-        class(csr_t), intent(in) :: this
+        class(block_csr_t), intent(in) :: this
         integer, intent(in) :: i, j, k, material_type
+        integer :: i_new, j_new, k_new
         real(8) :: get_item
-        integer :: idx
+        type(block_t) :: block
         get_item = 0d0
-        idx = this%idx_map(material_type, i, j, k)
-        
-        if (idx > -1) get_item = this%nz_values(idx)
+
+        i_new = i/this%block_size
+        j_new = j/this%block_size
+        k_new = k/this%block_size
+
+        block = this%grid(material_type, i_new, j_new ,k_new)
+
+        if (allocated(block%matrix)) then 
+            get_item = block%matrix(mod(i, this%block_size), mod(j, this%block_size) ,mod(k, this%block_size))
+        end if
+
     end function get_item
 
 
-    ! helper function - append val to array if it is not full, otherwise enlarge the array and append
-    subroutine append_real(array, val, idx)
-        implicit none
-        real(8), dimension(:), allocatable, intent(inout) :: array
-        real(8), intent(in) :: val
-        integer, intent(in) :: idx
+    subroutine Ptr_coordinates_4d_csr(this, ptr)
+        ! class(block_csr_t), intent(in out) :: this
+        ! type(block_t), dimension(:,:,:,:), pointer, intent(out) :: ptr
 
-        integer :: prev_size, new_size
-        real(8), dimension(:), allocatable :: temp
+        ! ptr => this%grid
 
-        prev_size = size(array, dim=1)
-
-        if (prev_size <= idx) then
-            new_size = prev_size*2 - 1
-
-            allocate(temp(0:new_size))                   ! enlarge array size by factor of 2
-            temp(0:new_size) = 0d0
-            temp(0:prev_size-1) = array(0:prev_size-1)   ! copy previous values
-            call move_alloc(temp, array)                 ! temp gets deallocated
-        end if
-
-        array(idx) = val
-    end subroutine append_real
-
-
-
-
-    subroutine Ptr_coordinates_1d_csr (this, ptr)
-        class (csr_t)                    , intent(in out)  :: this
-        real(8), dimension(:), pointer, intent(out) :: ptr
-
-        ptr => this%nz_values
-    end subroutine Ptr_coordinates_1d_csr
-
-
-    ! subroutine Ptr_coordinates_4d_csr(this, ptr)
-    !     class (csr_t), intent(in out) :: this
-    !     real(8), dimension(:,:,:,:), pointer, intent(out) :: ptr
-    ! end subroutine Ptr_coordinates_4d_csr
+        ! TODO: implement
+    end subroutine Ptr_coordinates_4d_csr
 
 
 
     function Get_copy (this)
-        class (csr_t)       , intent(in)  :: this
+        class(block_csr_t)       , intent(in)  :: this
         real(8), dimension(:,:,:,:), pointer :: Get_copy
 
         ! Get_copy = this%values
     end function Get_copy
 
     subroutine Clean_data_imp (this)
-        class (csr_t), intent(in out) :: this
+        class(block_csr_t), intent(in out) :: this
 
-        deallocate (this%nz_values)
+        ! TODO: implement
     end subroutine Clean_data_imp
 
 
 
 
     subroutine Get_recv_buf_imp(this)
-        class (csr_t), intent(in out) :: this
+        class(block_csr_t), intent(in out) :: this
         integer, dimension(4) :: vals_shape
         integer :: d1, d2, d3, x, y, z, m
         m=this%nmats
@@ -594,7 +413,7 @@ module csr_module
 
 
     subroutine Set_send_buf_imp(this)
-        class (csr_t), intent(in out) :: this
+        class(block_csr_t), intent(in out) :: this
         integer, dimension(4) :: vals_shape
         integer :: d1, d2, d3, x, y, z, offset
         integer :: m
@@ -792,7 +611,7 @@ module csr_module
 
     subroutine Debug_check_nan(this, caller)
         implicit none
-        class (csr_t), intent(in out) :: this
+        class(block_csr_t), intent(in out) :: this
         CHARACTER(*) caller
 
         integer :: i,j,k
@@ -811,7 +630,7 @@ module csr_module
 
     subroutine debug_print(this, caller, flag)
         implicit none
-        class (csr_t), intent(in out) :: this
+        class(block_csr_t), intent(in out) :: this
         integer, optional :: flag
         CHARACTER(*) caller
         integer :: width
@@ -834,7 +653,7 @@ module csr_module
 
 
     subroutine Write_data(this, unit, iostat, iomsg)
-        class (csr_t), intent(in) :: this
+        class(block_csr_t), intent(in) :: this
         integer,      intent(in)     :: unit
         integer,      intent(out)    :: iostat
         character(*), intent(in out)  :: iomsg
@@ -852,7 +671,7 @@ module csr_module
     end subroutine Write_data
 
     subroutine Read_data(this, unit, iostat, iomsg)
-        class (csr_t), intent(in out) :: this
+        class(block_csr_t), intent(in out) :: this
         integer,      intent(in)     :: unit
         integer,      intent(out)    :: iostat
         character(*), intent(in out)  :: iomsg
