@@ -22,7 +22,9 @@ module advect_module
     use communication_module            , only : communication_t
     use material_quantity_module        , only : material_quantity_t
 
-    use indexer_module
+    use data_struct_base, only : data_struct_t
+
+    
 
     implicit none
     private
@@ -246,10 +248,10 @@ contains
             Constructor%nz  = 1
         else
             Constructor%nz  = nzp - 1
-            Constructor%a = material_quantity_t(0d0, nxp, nyp, nzp, 1, .False.)
-            Constructor%b = material_quantity_t(0d0, nxp, nyp, nzp, 1, .False.)
-            Constructor%c = material_quantity_t(0d0, nxp, nyp, nzp, 1, .False.)
-            Constructor%side = material_quantity_t(0d0, nxp, nyp, nzp,1, .False. )
+            Constructor%a = material_quantity_t(0d0, nxp, nyp, nzp, 1)
+            Constructor%b = material_quantity_t(0d0, nxp, nyp, nzp, 1)
+            Constructor%c = material_quantity_t(0d0, nxp, nyp, nzp, 1)
+            Constructor%side = material_quantity_t(0d0, nxp, nyp, nzp,1)
         end if
 
         Constructor%nxp = nxp
@@ -2247,19 +2249,18 @@ contains
         real(8), dimension(:, :, :), pointer :: n_materials_in_cell
         real(8), dimension(:, :, :), pointer :: mat_id
 
-        real(8), dimension(:), pointer :: mat_vof
-        real(8), dimension(:), pointer :: sie_vof
-        real(8), dimension(:), pointer :: density_vof
-        real(8), dimension(:), pointer :: cell_mass_vof
+        class(data_struct_t), pointer :: mat_vof
+        class(data_struct_t), pointer :: sie_vof
+        class(data_struct_t), pointer :: density_vof
+        class(data_struct_t), pointer :: cell_mass_vof
+        class(data_struct_t), pointer :: init_mat_layers
+
 
         real(8), dimension(:, :, :), pointer :: vof_adv
         real(8), dimension(:, :, :, :), pointer :: mat_vof_adv
         real(8), dimension(:, :, :, :), pointer :: sie_vof_adv
         real(8), dimension(:, :, :, :), pointer :: mat_cell_mass_adv
         real(8), dimension(:, :, :), pointer :: cell_mass_adv
-
-        real(8), dimension(:), pointer :: init_mat_layers
-
         real(8), dimension(:, :, :, :), pointer :: init_mat_layers_adv
 
         real(8), dimension(:, :, :), pointer :: vel_adv_w
@@ -2359,13 +2360,6 @@ contains
         integer :: virt_i_1, virt_i_nxp,virt_j_1, virt_j_nyp,virt_k_1, virt_k_nzp
         integer :: virt_nxp, virt_nyp, virt_nzp
 
-        type(indexer_t), pointer ::  index_mapper
-        integer, dimension(:,:,:,:), pointer   ::   mapper
-
-        integer :: csr_idx, last_idx
-
-        index_mapper => get_instance()
-        mapper => index_mapper%mapper
 
         virt_nxp = this%parallel_params%virt_nxp
         virt_nyp = this%parallel_params%virt_nyp
@@ -2397,10 +2391,10 @@ contains
         call this%adv_mats%cell_mass%Point_to_data(mat_cell_mass_adv)
         call this%adv_mats%sie%Point_to_data(sie_vof_adv)
 
-        call this%materials%vof%Point_to_data(mat_vof)
-        call this%materials%density%Point_to_data(density_vof)
-        call this%materials%sie%Point_to_data(sie_vof)
-        call this%materials%cell_mass%Point_to_data(cell_mass_vof)
+        call this%materials%vof%get_quantity_grid(mat_vof)
+        call this%materials%density%get_quantity_grid(density_vof)
+        call this%materials%sie%get_quantity_grid(sie_vof)
+        call this%materials%cell_mass%get_quantity_grid(cell_mass_vof)
         call this%materials%Point_to_initial_layers(init_mat_layers)
 
         allocate(vof_correction(this%nx, this%ny, this%nz))
@@ -2456,17 +2450,11 @@ contains
             do j = 0, this%nyp
                 do i = 0, this%nxp
                     do tmp_mat = 1, this%n_materials
+ 
+                        init_mat_layers_adv(tmp_mat, i, j, k) = init_mat_layers%get_item(tmp_mat, i, j, k) * cell_mass_vof%get_item(tmp_mat, i, j, k)
+                        mat_cell_mass_adv  (tmp_mat, i, j, k) = cell_mass_vof%get_item(tmp_mat, i, j, k)
+                        sie_vof_adv        (tmp_mat, i, j, k) = sie_vof%get_item(tmp_mat, i, j, k) * cell_mass_vof%get_item(tmp_mat, i, j, k)
 
-                        csr_idx = mapper(tmp_mat, i, j, k)
-                        if (csr_idx == -1) then
-                            init_mat_layers_adv(tmp_mat, i, j, k) = 0d0
-                            mat_cell_mass_adv  (tmp_mat, i, j, k) = 0d0
-                            sie_vof_adv        (tmp_mat, i, j, k) = 0d0
-                        else
-                            init_mat_layers_adv(tmp_mat, i, j, k) = init_mat_layers(csr_idx) * cell_mass_vof(csr_idx)
-                            mat_cell_mass_adv  (tmp_mat, i, j, k) = cell_mass_vof(csr_idx)
-                            sie_vof_adv        (tmp_mat, i, j, k) = sie_vof(csr_idx) * cell_mass_vof(csr_idx)
-                        end if
                     end do
                 end do
             end do
@@ -2720,14 +2708,8 @@ contains
                             do tmp_mat = 1, this%n_materials
                                 dvof = this%adv_mats%fxtm(tmp_mat) * 2d0
 
-                                csr_idx = mapper(tmp_mat, id, jd, kd)
-                                if (csr_idx == -1) then
-                                    donnor_mass = 0d0
-                                    donnor_sie  = 0d0
-                                else
-                                    donnor_mass = density_vof(csr_idx) * dvof
-                                    donnor_sie  = sie_vof    (csr_idx) * donnor_mass
-                                end if
+                                donnor_mass = density_vof%get_item(tmp_mat, id, jd, kd) * dvof
+                                donnor_sie  = sie_vof%get_item(tmp_mat, id, jd, kd)  * donnor_mass
 
 
                                 if (abs(dvof) > vol(i,j,k)*this%emf /100d0 .and. tmp_mat /= mat_id(i,j,k)) then
@@ -2765,7 +2747,7 @@ contains
                                 end if
 
                                 donnor_init_mat_layer = 0d0
-                                if (csr_idx >= 0) donnor_init_mat_layer = donnor_mass * init_mat_layers(csr_idx)
+                                donnor_init_mat_layer = donnor_mass * init_mat_layers%get_item(tmp_mat, id, jd, kd)
                                 
 
                                 init_mat_layers_adv(tmp_mat, i, j, k) = init_mat_layers_adv(tmp_mat, i, j, k) + donnor_init_mat_layer
@@ -2782,58 +2764,37 @@ contains
             end do
         end do
 
-
-        last_idx = index_mapper%last_idx
-
         vof_correction = 0d0
         do k = 1, this%nz
             do j = 1, this%ny
                 do i = 1, this%nx
                     do tmp_mat=1,this%n_materials
 
-                        csr_idx = mapper(tmp_mat,i, j, k)
-                        if (csr_idx == -1) then
-                            mat_vof(last_idx) = mat_vof_adv(tmp_mat,i, j, k) / vol(i, j, k)
+                        call mat_vof%add_item(tmp_mat, i, j, k, (mat_vof%get_item(tmp_mat,i, j, k) * (vol(i, j, k) - vof_adv(i, j, k)) + mat_vof_adv(tmp_mat,i, j, k)) / vol(i, j, k))
 
-                            if (mat_vof(last_idx) /= 0) then 
-                                mapper(tmp_mat,i, j, k) = last_idx
-                                last_idx = last_idx + 1
-                            end if
-
-                        else 
-                            mat_vof(csr_idx) = (mat_vof(csr_idx) * (vol(i, j, k) - vof_adv(i, j, k)) + mat_vof_adv(tmp_mat,i, j, k)) / vol(i, j, k)
-                        end if 
-                         
-                        csr_idx = mapper(tmp_mat,i, j, k)
-                        if (mapper(tmp_mat,i, j, k) == -1) cycle 
-
-                        if (mat_vof(csr_idx) > this%emf .and. mat_cell_mass_adv(tmp_mat, i, j, k) > this%emfm) then
-                            sie_vof(csr_idx) = max(0d0, sie_vof_adv(tmp_mat,i, j, k) / mat_cell_mass_adv(tmp_mat,i, j, k))
-                            init_mat_layers(csr_idx) = init_mat_layers_adv(tmp_mat,i, j, k) / mat_cell_mass_adv(tmp_mat,i, j, k)
+                        if (mat_vof%get_item(tmp_mat,i, j, k) > this%emf .and. mat_cell_mass_adv(tmp_mat, i, j, k) > this%emfm) then
+                            call  sie_vof%add_item(tmp_mat, i, j, k, max(0d0, sie_vof_adv(tmp_mat,i, j, k) / mat_cell_mass_adv(tmp_mat,i, j, k)))
+                            call init_mat_layers%add_item(tmp_mat, i, j, k, init_mat_layers_adv(tmp_mat,i, j, k) / mat_cell_mass_adv(tmp_mat,i, j, k))
                         else
-                            vof_correction(i,j,k) = vof_correction(i,j,k) + mat_vof(csr_idx)
-                            mat_vof(csr_idx) = 0d0
-                            sie_vof(csr_idx) = 0d0
-                            init_mat_layers(csr_idx) = 0d0
+                            vof_correction(i,j,k) = vof_correction(i,j,k) + mat_vof%get_item(tmp_mat,i, j, k)
+
+                            call mat_vof%add_item(tmp_mat, i, j, k, 0d0)
+                            call sie_vof%add_item(tmp_mat, i, j, k, 0d0)
+                            call init_mat_layers%add_item(tmp_mat, i, j, k, 0d0)
                         end if
                     end do
                 end do
             end do
         end do
 
-        index_mapper%last_idx = last_idx
-
         do k = 1, this%nz
             do j = 1, this%ny
                 do i = 1, this%nx
                     do tmp_mat = 1, this%n_materials
-                        csr_idx = mapper(tmp_mat,i, j, k)
-
-                        if (csr_idx == -1) cycle
 
                         if (vof_correction(i,j,k) > 0d0) then
                             vof_factor = 1d0 / (1d0 - vof_correction(i,j,k))
-                            mat_vof(csr_idx) = mat_vof(csr_idx) * vof_factor
+                            call mat_vof%add_item(tmp_mat,i, j, k, mat_vof%get_item(tmp_mat,i, j, k) * vof_factor)
                         end if
                     end do
                 end do
@@ -2845,26 +2806,23 @@ contains
         cell_mass = 0d0
         sie = 0d0
         n_materials_in_cell = 0d0
+
         do k = 1, this%nz
             do j = 1, this%ny
                 do i = 1, this%nx
                     do tmp_mat=1,this%n_materials
-                        csr_idx = mapper(tmp_mat,i, j, k)
-                        if (csr_idx == -1) cycle
 
-                        if (mat_vof(csr_idx) < this%emf .or. mat_cell_mass_adv(tmp_mat,i, j, k) < this%emfm) then
+                        if (mat_vof%get_item(tmp_mat,i, j, k) < this%emf .or. mat_cell_mass_adv(tmp_mat,i, j, k) < this%emfm) then
                             mat_cell_mass_adv(tmp_mat,i, j, k) = 0d0
-                            sie_vof(csr_idx) = 0d0
-                            mat_vof(csr_idx) = 0d0
+                            call sie_vof%add_item(tmp_mat,i, j, k, 0d0)
+                            call mat_vof%add_item(tmp_mat,i, j, k, 0d0)
                         else
-                            cell_mass_vof(csr_idx) = mat_cell_mass_adv(tmp_mat,i, j, k)
+                            call cell_mass_vof%add_item(tmp_mat,i, j, k, mat_cell_mass_adv(tmp_mat,i, j, k))
                             cell_mass    (i, j, k) = cell_mass(i, j, k) + mat_cell_mass_adv(tmp_mat,i, j, k)
-                            vof          (i, j, k) = vof(i, j, k) + mat_vof(csr_idx)
-                            sie(i, j, k)           = sie(i, j, k) + sie_vof(csr_idx) * cell_mass_vof(csr_idx)
+                            vof          (i, j, k) = vof(i, j, k) + mat_vof%get_item(tmp_mat,i, j, k)
+                            sie(i, j, k)           = sie(i, j, k) + sie_vof%get_item(tmp_mat,i, j, k) * cell_mass_vof%get_item(tmp_mat,i, j, k)
                             mat_id(i, j, k)        = mat_id(i, j, k) + tmp_mat * 10 ** n_materials_in_cell(i, j, k)
                             n_materials_in_cell(i, j, k) = n_materials_in_cell(i, j, k) + 1
-
-                            ! print*, 'hello'
 
                         end if
                     end do
@@ -3121,9 +3079,9 @@ contains
         real(8), dimension(:, :, :, :), pointer :: c2
         real(8), dimension(:, :, :, :), pointer :: side1
 
-        real(8), dimension(:), pointer :: mat_vof
-        real(8), dimension(:), pointer :: density_vof
-        real(8), dimension(:), pointer :: cell_mass_vof
+        class(data_struct_t), pointer :: mat_vof
+        class(data_struct_t), pointer :: density_vof
+        class(data_struct_t), pointer :: cell_mass_vof
         real(8) :: x1, y1, z1, x2, y2, z2, x3, y3, z3, x4, y4, z4, x5, y5, z5, x6, y6, z6, x7, y7, z7, x8, y8, z8, vijk, vipjk&
             , vipjpk, &
             vijpk, vijkp, vipjkp, vipjpkp, vijpkp, volijk, dfdx, dfdy, dfdz, venc, cmax, cmin, fac, cn, cold, v1, v2, delc,&
@@ -3173,16 +3131,6 @@ contains
             matvof_imjkp, matvof_imjmkp, matvof_imjpk, matvof_ipjpkm, matvof_ipjpkp
 
 
-
-        integer :: csr_idx
-        type(indexer_t), pointer ::  index_mapper
-        integer, dimension(:,:,:,:), pointer   ::   mapper
-        
-
-        index_mapper => get_instance()
-        mapper => index_mapper%mapper
-
-
         virt_nx = this%parallel_params%virt_nx
         virt_ny = this%parallel_params%virt_ny
         virt_nz = this%parallel_params%virt_nz
@@ -3206,7 +3154,7 @@ contains
 
         !        do tmp_mat = 1, fake_num_mats
         if (nm /= 0) then
-            call this%materials%vof%Point_to_data(mat_vof)
+            call this%materials%vof%get_quantity_grid(mat_vof)
             call this%adv_mats%a%Point_to_data (a1)
             call this%adv_mats%b%Point_to_data (b1)
             call this%adv_mats%c%Point_to_data (c2)
@@ -3234,9 +3182,7 @@ contains
 
                     do tmp_mat = 1, fake_num_mats
                         if (nm /= 0) then
-                            csr_idx = mapper(tmp_mat,i,j,k)
-                            if (csr_idx == -1) cycle
-                            if (mat_vof(csr_idx) < this%emf) cycle
+                            if (mat_vof%get_item(tmp_mat,i,j,k) < this%emf) cycle
                         end if
 
                         c_flag = .true.
@@ -3326,86 +3272,33 @@ contains
                                 vend = vof(i, j, k) * volijk
 
                         else
-                            csr_idx = mapper(tmp_mat, i, j, k)
-                            if (csr_idx >= 0) matvof_ijk =  mat_vof(csr_idx)
-
-                            csr_idx = mapper(tmp_mat, im, j, k)
-                            if (csr_idx >= 0) matvof_imjk =  mat_vof(csr_idx)
-
-                            csr_idx = mapper(tmp_mat, i, j, km)
-                            if (csr_idx >= 0) matvof_ijkm =  mat_vof(csr_idx)
-
-                            csr_idx = mapper(tmp_mat, i, jm, k)
-                            if (csr_idx >= 0) matvof_ijmk =  mat_vof(csr_idx)
-
-                            csr_idx = mapper(tmp_mat, im, j, km)
-                            if (csr_idx >= 0) matvof_imjkm =  mat_vof(csr_idx)
-
-                            csr_idx = mapper(tmp_mat, im, jm, k)
-                            if (csr_idx >= 0) matvof_imjmk =  mat_vof(csr_idx)
-
-                            csr_idx = mapper(tmp_mat, i, jm, km)
-                            if (csr_idx >= 0) matvof_ijmkm =  mat_vof(csr_idx)
-
-                            csr_idx = mapper(tmp_mat, im, jm, km)
-                            if (csr_idx >= 0) matvof_imjmkm =  mat_vof(csr_idx)
-
-                            csr_idx = mapper(tmp_mat, ip, j, k)
-                            if (csr_idx >= 0) matvof_ipjk =  mat_vof(csr_idx)
-
-                            csr_idx = mapper(tmp_mat, ip, j, km)
-                            if (csr_idx >= 0) matvof_ipjkm =  mat_vof(csr_idx)
-
-                            csr_idx = mapper(tmp_mat, ip, jm, km)
-                            if (csr_idx >= 0) matvof_ipjmkm =  mat_vof(csr_idx)
-
-                            csr_idx = mapper(tmp_mat, ip, jp, k)
-                            if (csr_idx >= 0) matvof_ipjpk =  mat_vof(csr_idx)
-
-                            csr_idx = mapper(tmp_mat, i, jp, k)
-                            if (csr_idx >= 0) matvof_ijpk =  mat_vof(csr_idx)
-
-                            csr_idx = mapper(tmp_mat, ip, jp, km)
-                            if (csr_idx >= 0) matvof_ipjpkm =  mat_vof(csr_idx)
-
-                            csr_idx = mapper(tmp_mat, i, jp, km)
-                            if (csr_idx >= 0) matvof_ijpkm =  mat_vof(csr_idx)
-
-                            csr_idx = mapper(tmp_mat, im, jp, k)
-                            if (csr_idx >= 0) matvof_imjpk =  mat_vof(csr_idx)
-
-                            csr_idx = mapper(tmp_mat, i, j, kp)
-                            if (csr_idx >= 0) matvof_ijkp =  mat_vof(csr_idx)
-
-                            csr_idx = mapper(tmp_mat, im, j, kp)
-                            if (csr_idx >= 0) matvof_imjkp =  mat_vof(csr_idx)
-
-                            csr_idx = mapper(tmp_mat, i, jm, kp)
-                            if (csr_idx >= 0) matvof_ijmkp =  mat_vof(csr_idx)
-
-                            csr_idx = mapper(tmp_mat, im, jm, kp)
-                            if (csr_idx >= 0) matvof_imjmkp =  mat_vof(csr_idx)
-
-                            csr_idx = mapper(tmp_mat, ip, j, kp)
-                            if (csr_idx >= 0) matvof_ipjkp =  mat_vof(csr_idx)
-
-                            csr_idx = mapper(tmp_mat, ip, jm, kp)
-                            if (csr_idx >= 0) matvof_ipjmkp =  mat_vof(csr_idx)
-
-                            csr_idx = mapper(tmp_mat, ip, jm, k)
-                            if (csr_idx >= 0) matvof_ipjmk =  mat_vof(csr_idx)
-
-                            csr_idx = mapper(tmp_mat, ip, jp, kp)
-                            if (csr_idx >= 0) matvof_ipjpkp =  mat_vof(csr_idx)
-
-                            csr_idx = mapper(tmp_mat, i, jp, kp)
-                            if (csr_idx >= 0) matvof_ijpkp =  mat_vof(csr_idx)
-
-                            csr_idx = mapper(tmp_mat, im, jp, kp)
-                            if (csr_idx >= 0) matvof_imjpkp =  mat_vof(csr_idx)
-
-                            csr_idx = mapper(tmp_mat, im, jp, km)
-                            if (csr_idx >= 0) matvof_imjpkm =  mat_vof(csr_idx)
+                            matvof_ijk =  mat_vof%get_item(tmp_mat, i, j, k)
+                            matvof_imjk =  mat_vof%get_item(tmp_mat, im, j, k)
+                            matvof_ijkm =  mat_vof%get_item(tmp_mat, i, j, km)
+                            matvof_ijmk =  mat_vof%get_item(tmp_mat, i, jm, k)
+                            matvof_imjkm =  mat_vof%get_item(tmp_mat, im, j, km)
+                            matvof_imjmk =  mat_vof%get_item(tmp_mat, im, jm, k)
+                            matvof_ijmkm =  mat_vof%get_item(tmp_mat, i, jm, km)
+                            matvof_imjmkm =  mat_vof%get_item(tmp_mat, im, jm, km)
+                            matvof_ipjk =  mat_vof%get_item(tmp_mat, ip, j, k)
+                            matvof_ipjkm =  mat_vof%get_item(tmp_mat, ip, j, km)
+                            matvof_ipjmkm =  mat_vof%get_item(tmp_mat, ip, jm, km)
+                            matvof_ipjpk =  mat_vof%get_item(tmp_mat, ip, jp, k)
+                            matvof_ijpk =  mat_vof%get_item(tmp_mat, i, jp, k)
+                            matvof_ipjpkm =  mat_vof%get_item(tmp_mat, ip, jp, km)
+                            matvof_ijpkm =  mat_vof%get_item(tmp_mat, i, jp, km)
+                            matvof_imjpk =  mat_vof%get_item(tmp_mat, im, jp, k)
+                            matvof_ijkp =  mat_vof%get_item(tmp_mat, i, j, kp)
+                            matvof_imjkp =  mat_vof%get_item(tmp_mat, im, j, kp)
+                            matvof_ijmkp =  mat_vof%get_item(tmp_mat, i, jm, kp)
+                            matvof_imjmkp =  mat_vof%get_item(tmp_mat, im, jm, kp)
+                            matvof_ipjkp =  mat_vof%get_item(tmp_mat, ip, j, kp)
+                            matvof_ipjmkp =  mat_vof%get_item(tmp_mat, ip, jm, kp)
+                            matvof_ipjmk =  mat_vof%get_item(tmp_mat, ip, jm, k)
+                            matvof_ipjpkp =  mat_vof%get_item(tmp_mat, ip, jp, kp)
+                            matvof_ijpkp =  mat_vof%get_item(tmp_mat, i, jp, kp)
+                            matvof_imjpkp =  mat_vof%get_item(tmp_mat, im, jp, kp)
+                            matvof_imjpkm =  mat_vof%get_item(tmp_mat, im, jp, km)
 
 
                             vijk    =  (matvof_ijk   + matvof_imjk   + matvof_ijkm + &

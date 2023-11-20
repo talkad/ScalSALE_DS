@@ -14,6 +14,7 @@ module block_csr_module
         type(block_t), dimension(:,:,:,:), allocatable :: grid
 
         integer :: block_size = 16
+        integer :: d1_block, d2_block, d3_block
 
     contains
 
@@ -44,6 +45,9 @@ module block_csr_module
         
         procedure :: get_item => get_item
         procedure :: add_item => add_item
+        procedure :: print_data => print_data
+        procedure :: deallocate_data => deallocate_data
+        procedure :: who_am_i => who_am_i
 
         procedure, private :: add_boundary
 
@@ -78,7 +82,11 @@ module block_csr_module
 
         block_size = Constructor_init_val%block_size
 
-        allocate(Constructor_init_val%grid(1:d4, 0:d1/block_size, 0:d2/block_size, 0:d3/block_size))  ! m,i,j,k
+        Constructor_init_val%d1_block = d1/block_size
+        Constructor_init_val%d2_block = d2/block_size
+        Constructor_init_val%d3_block = d3/block_size
+
+        allocate(Constructor_init_val%grid(1:d4, 0:Constructor_init_val%d1_block, 0:Constructor_init_val%d2_block, 0:Constructor_init_val%d3_block))  ! m,i,j,k
 
         call Constructor_init_val%add_boundary()
 
@@ -212,6 +220,75 @@ module block_csr_module
 
     end function get_item
 
+
+    subroutine print_data(this, file_name)
+        class(block_csr_t), intent(inout) :: this
+        character(len=*), intent(in)        ::   file_name
+        integer :: i_new, j_new, k_new
+        type(block_t) :: block
+
+        integer :: i,j,k,m
+        integer :: unit
+
+        open (unit=414, file=file_name, status = 'replace')  
+        
+        do k = 0, this%nz
+            do j = 0, this%ny
+                do i = 0, this%nx
+                    do m = 1, this%nmats
+
+                        i_new = i/this%block_size
+                        j_new = j/this%block_size
+                        k_new = k/this%block_size
+
+                        block = this%grid(material_type, i_new, j_new ,k_new)
+
+                        if (allocated(block%matrix)) then 
+                            write(414,*) block%matrix(mod(i, this%block_size), mod(j, this%block_size) ,mod(k, this%block_size))
+                        else
+                            write(414,*) 0d0
+                        end if
+                        
+                    end do
+                end do
+            end do
+        end do
+        
+        close (414)
+   end subroutine
+
+
+   subroutine deallocate_data(this)
+        class(block_csr_t), intent(inout) :: this
+        integer :: i,j,k,m
+        type(block_t) :: block
+        
+        do k = 0, this%d3_block
+            do j = 0, this%d2_block
+                do i = 0, this%d1_block
+                    do m = 1, this%nmats
+
+                        block = this%grid(m, i, j ,k)
+
+                        if (allocated(block%matrix)) deallocate(block%matrix)
+                        
+                    end do
+                end do
+            end do
+        end do
+    
+
+      if (allocated(this%grid))   deallocate(this%grid)
+   end subroutine deallocate_data
+
+
+
+    subroutine who_am_i(this)
+      class(block_csr_t), intent(inout) :: this
+
+      print*, 'ITS A ME: BLOCK CSR'
+
+    end subroutine who_am_i
 
     subroutine Ptr_coordinates_4d_csr(this, ptr)
         ! class(block_csr_t), intent(in out) :: this

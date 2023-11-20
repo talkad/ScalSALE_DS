@@ -33,27 +33,28 @@ module material_quantity_module
 
 contains
 
-   type(material_quantity_t) function Constructor(initial_val, d1, d2, d3,d4, bc, bc_params, is_csr)
+   type(material_quantity_t) function Constructor(initial_val, d1, d2, d3,d4, bc, bc_params, data_type)
       implicit none
 
       real(8)                                , intent(in)     :: initial_val
       integer                                , intent(in)     :: d1
       integer                                , intent(in)     :: d2
-
       integer                                , intent(in)     :: d3
       integer                                , intent(in)     :: d4
       type(cell_bc_wrapper_t), dimension(:), pointer, intent(in) :: bc
       type(boundary_parameters_t), pointer, intent(in) :: bc_params
       integer                                                 :: i
-      logical, optional, intent(in)      :: is_csr
-
-      call Constructor%Init_quantity_init_val_4d (initial_val, d1, d2, d3,d4, 1, bc_params, is_csr)
+      character(len=*), optional, intent(in)                  :: data_type
+      
+      call Constructor%Init_quantity_init_val_4d (initial_val, d1, d2, d3,d4, 1, bc_params, data_type)
       Constructor%boundary_conditions => bc
       Constructor%nmats = d4
+
+      
    end function
 
 
-   type(material_quantity_t) function Constructor1( initial_val, d1, d2, d3,d4, is_csr)
+   type(material_quantity_t) function Constructor1( initial_val, d1, d2, d3,d4, data_type)
       implicit none
 
       real(8)                                , intent(in)     :: initial_val
@@ -65,9 +66,9 @@ contains
 !      type(cell_bc_wrapper_t), dimension(:), pointer, intent(in) :: bc
 !      type(boundary_parameters_t), pointer, intent(in) :: bc_params
       integer                                                 :: i
-      logical, optional, intent(in)      :: is_csr
+      character(len=*), optional, intent(in)                  :: data_type
 
-      call Constructor1%Init_quantity_no_bc (initial_val, d1, d2, d3,d4, 1, is_csr)
+      call Constructor1%Init_quantity_no_bc (initial_val, d1, d2, d3, d4, 1, data_type)
 !      Constructor1%boundary_conditions => bc
       Constructor1%nmats = d4
    end function

@@ -33,7 +33,7 @@ module hydro_step_module
     use communication_module            , only : communication_t
     use boundary_parameters_module      , only : boundary_parameters_t
 
-    use indexer_module
+    use data_struct_base, only : data_struct_t
 
     implicit none
     private
@@ -441,27 +441,27 @@ contains
 
     subroutine print_materials(this)
         class (hydro_step_t) , intent(inout)   :: this
-        real(8), dimension(:), pointer :: sound_vel
-        real(8), dimension(:), pointer :: temperature
-        real(8), dimension(:), pointer :: density
-        real(8), dimension(:), pointer :: dp_de
-        real(8), dimension(:), pointer :: dp_drho
-        real(8), dimension(:), pointer :: dt_de
-        real(8), dimension(:), pointer :: dt_drho
-        real(8), dimension(:), pointer :: vof
-        real(8), dimension(:), pointer :: sie
-        real(8), dimension(:), pointer :: cell_mass
+        class(data_struct_t), pointer :: sound_vel
+        class(data_struct_t), pointer :: temperature
+        class(data_struct_t), pointer :: density
+        class(data_struct_t), pointer :: dp_de
+        class(data_struct_t), pointer :: dp_drho
+        class(data_struct_t), pointer :: dt_de
+        class(data_struct_t), pointer :: dt_drho
+        class(data_struct_t), pointer :: vof
+        class(data_struct_t), pointer :: sie
+        class(data_struct_t), pointer :: cell_mass
 
-        call this%materials%sound_vel%Point_to_data(sound_vel)
-        call this%materials%temperature%Point_to_data(temperature)
-        call this%materials%density%Point_to_data(density)
-        call this%materials%dp_de%Point_to_data(dp_de)
-        call this%materials%dp_drho%Point_to_data(dp_drho)
-        call this%materials%dt_de%Point_to_data(dt_de)
-        call this%materials%dt_drho%Point_to_data(dt_drho)
-        call this%materials%vof%Point_to_data(vof)
-        call this%materials%sie%Point_to_data(sie)
-        call this%materials%cell_mass%Point_to_data(cell_mass)
+        call this%materials%sound_vel%get_quantity_grid(sound_vel)
+        call this%materials%temperature%get_quantity_grid(temperature)
+        call this%materials%density%get_quantity_grid(density)
+        call this%materials%dp_de%get_quantity_grid(dp_de)
+        call this%materials%dp_drho%get_quantity_grid(dp_drho)
+        call this%materials%dt_de%get_quantity_grid(dt_de)
+        call this%materials%dt_drho%get_quantity_grid(dt_drho)
+        call this%materials%vof%get_quantity_grid(vof)
+        call this%materials%sie%get_quantity_grid(sie)
+        call this%materials%cell_mass%get_quantity_grid(cell_mass)
 
         call debug(sound_vel, 'material_results/sound_vel.txt', this%nz, this%ny, this%nx, this%nmats)  
         call debug(temperature, 'material_results/temperature.txt', this%nz, this%ny, this%nx, this%nmats)  
@@ -502,17 +502,17 @@ contains
         real(8), dimension(:, :, :), pointer :: sie                   
         real(8), dimension(:, :, :), pointer :: vof                   
 
-        real(8), dimension(:), pointer :: temperature_vof_old
-        real(8), dimension(:), pointer :: temperature_vof
-        real(8), dimension(:), pointer :: cell_mass_vof
-        real(8), dimension(:), pointer :: pressure_vof
-        real(8), dimension(:), pointer :: density_vof
-        real(8), dimension(:), pointer :: dp_drho_vof
-        real(8), dimension(:), pointer :: dp_de_vof
-        real(8), dimension(:), pointer :: dt_de_vof
-        real(8), dimension(:), pointer :: sie_vof
-        real(8), dimension(:), pointer :: mat_vof
-        real(8), dimension(:), pointer :: sound_vel_vof
+        class(data_struct_t), pointer :: temperature_vof_old
+        class(data_struct_t), pointer :: temperature_vof
+        class(data_struct_t), pointer :: cell_mass_vof
+        class(data_struct_t), pointer :: pressure_vof
+        class(data_struct_t), pointer :: density_vof
+        class(data_struct_t), pointer :: dp_drho_vof
+        class(data_struct_t), pointer :: dp_de_vof
+        class(data_struct_t), pointer :: dt_de_vof
+        class(data_struct_t), pointer :: sie_vof
+        class(data_struct_t), pointer :: mat_vof
+        class(data_struct_t), pointer :: sound_vel_vof
         real(8), dimension(:, :, :), pointer :: reem,reem1,reem2,reem3
 
         real(8), dimension(:, :, :), allocatable :: dt_de_temp 
@@ -520,12 +520,7 @@ contains
         real(8),save :: timer1 = 0
         real(8) :: tmp
         integer :: tmp_mat  
-        integer :: i, j, k     
-
-        type(indexer_t), pointer ::  index_mapper
-        integer, dimension(:,:,:,:), pointer   ::   mapper
-        integer :: csr_idx
-        
+        integer :: i, j, k             
 
         tmp = omp_get_wtime()
         call this%total_sie%Exchange_virtual_space_nonblocking()
@@ -553,16 +548,16 @@ contains
         call this%total_sie           %Point_to_data(sie)
 
 
-        call this%materials%temperature%Point_to_data(temperature_vof)
-        call this%materials%temperature_old%Point_to_data(temperature_vof_old)
-        call this%materials%pressure   %Point_to_data(pressure_vof)
-        call this%materials%dp_drho    %Point_to_data(dp_drho_vof)
-        call this%materials%dp_de      %Point_to_data(dp_de_vof)
-        call this%materials%cell_mass      %Point_to_data(cell_mass_vof)
-        call this%materials%sound_vel      %Point_to_data(sound_vel_vof)
-        call this%materials%dt_de          %Point_to_data(dt_de_vof)
-        call this%materials%vof            %Point_to_data(mat_vof)
-        call this%materials%sie            %Point_to_data(sie_vof)
+        call this%materials%temperature%get_quantity_grid(temperature_vof)
+        call this%materials%temperature_old%get_quantity_grid(temperature_vof_old)
+        call this%materials%pressure   %get_quantity_grid(pressure_vof)
+        call this%materials%dp_drho    %get_quantity_grid(dp_drho_vof)
+        call this%materials%dp_de      %get_quantity_grid(dp_de_vof)
+        call this%materials%cell_mass      %get_quantity_grid(cell_mass_vof)
+        call this%materials%sound_vel      %get_quantity_grid(sound_vel_vof)
+        call this%materials%dt_de          %get_quantity_grid(dt_de_vof)
+        call this%materials%vof            %get_quantity_grid(mat_vof)
+        call this%materials%sie            %get_quantity_grid(sie_vof)
 
         call debug(sie_vof, 'material_results/sie_vofff1.txt', this%nz, this%ny, this%nx, this%nmats)
 
@@ -575,8 +570,6 @@ contains
         dp_drho     = 0d0
         dp_de       = 0d0
 
-        index_mapper => get_instance()
-        mapper => index_mapper%mapper
 
         do k = 1, this%nz
             do j = 1, this%ny
@@ -584,15 +577,10 @@ contains
                     do tmp_mat = 1, this%nmats
 
                         if (vof(i, j, k) >= this%emf) then
-
-                            csr_idx = mapper(tmp_mat,i,j,k)
-
-                            if (csr_idx == -1) cycle
-
-                            temperature_vof(csr_idx) = 0d0
-                            pressure_vof   (csr_idx) = 0d0
-                            dp_drho_vof    (csr_idx) = 0d0
-                            dp_de_vof      (csr_idx) = 0d0
+                            call temperature_vof%add_item(tmp_mat,i,j,k, 0d0)
+                            call pressure_vof%add_item(tmp_mat,i,j,k, 0d0)
+                            call dp_drho_vof%add_item(tmp_mat,i,j,k, 0d0)
+                            call dp_de_vof%add_item(tmp_mat,i,j,k, 0d0)
                         end if
                     end do
                 end do
@@ -620,18 +608,16 @@ contains
             do j = 1, this%ny
                 do i = 1, this%nx
                     do tmp_mat = 1, this%nmats
-                        csr_idx = mapper(tmp_mat,i,j,k)
-                        if (csr_idx == -1) cycle
 
-                        if (mat_vof(csr_idx) <= this%emf) cycle
+                        if (mat_vof%get_item(tmp_mat,i,j,k) <= this%emf) cycle
 
                         temperature(i, j, k) = temperature(i, j, k) + &
-                            temperature_vof_old(csr_idx) * cell_mass_vof(csr_idx) / (dt_de_vof(csr_idx) + 1d-30)
-                        sound_vel  (i, j, k) = sound_vel  (i, j, k) + sound_vel_vof(csr_idx) * mat_vof(csr_idx)
-                        pressure   (i, j, k) = pressure   (i, j, k) + pressure_vof (csr_idx) * mat_vof(csr_idx)
-                        dp_drho    (i, j, k) = dp_drho    (i, j, k) + dp_drho_vof  (csr_idx) * mat_vof(csr_idx)
-                        dp_de      (i, j, k) = dp_de      (i, j, k) + cell_mass_vof(csr_idx) / (dp_de_vof(csr_idx) + 1d-30)
-                        dt_de_temp (i, j, k) = dt_de_temp (i, j, k) + cell_mass_vof(csr_idx) / (dt_de_vof(csr_idx) + 1d-30)
+                            temperature_vof_old%get_item(tmp_mat,i,j,k) * cell_mass_vof%get_item(tmp_mat,i,j,k) / (dt_de_vof%get_item(tmp_mat,i,j,k) + 1d-30)
+                        sound_vel  (i, j, k) = sound_vel  (i, j, k) + sound_vel_vof%get_item(tmp_mat,i,j,k) * mat_vof%get_item(tmp_mat,i,j,k)
+                        pressure   (i, j, k) = pressure   (i, j, k) + pressure_vof %get_item(tmp_mat,i,j,k) * mat_vof%get_item(tmp_mat,i,j,k)
+                        dp_drho    (i, j, k) = dp_drho    (i, j, k) + dp_drho_vof  %get_item(tmp_mat,i,j,k) * mat_vof%get_item(tmp_mat,i,j,k)
+                        dp_de      (i, j, k) = dp_de      (i, j, k) + cell_mass_vof%get_item(tmp_mat,i,j,k) / (dp_de_vof%get_item(tmp_mat,i,j,k) + 1d-30)
+                        dt_de_temp (i, j, k) = dt_de_temp (i, j, k) + cell_mass_vof%get_item(tmp_mat,i,j,k) / (dt_de_vof%get_item(tmp_mat,i,j,k) + 1d-30)
                     end do
                 end do
             end do
@@ -729,20 +715,14 @@ contains
 
 
     subroutine debug(arr, file_name, nzp, nyp, nxp, nmats)
-        real(8), dimension (:), pointer, intent(in)   ::   arr
+        class(data_struct_t), pointer, intent(in)   ::   arr
         integer, intent(in)                              ::   nzp, nyp, nxp, nmats
         character(len=*), intent(in)                      ::   file_name
-        type(indexer_t), pointer ::  index_mapper
-        integer, dimension(:,:,:,:), pointer   ::   mapper
-        integer :: index
 
         integer :: i,j,k,m
         integer :: unit
         integer :: total_debug
         total_debug = 0
-
-        index_mapper => get_instance()
-        mapper => index_mapper%mapper
 
         open (unit=414, file=file_name, status = 'replace')  
         
@@ -750,14 +730,9 @@ contains
             do j = 0, nyp
                 do i = 0, nxp
                     do m = 1, nmats
-                        index = mapper(m,i,j,k) 
 
-                        if (index == -1) then
-                            write(414,*)  0d0  ! m,i,j,k,
-                        else
-                            total_debug = total_debug + 1
-                            write(414,*)  arr(index) ! m,i,j,k,
-                        end if
+                        write(414,*)  arr%get_item(m,i,j,k)  ! m,i,j,k,
+
                         
                     end do
                 end do
@@ -779,28 +754,22 @@ contains
         real(8), dimension(:, :, :), pointer :: density        
         real(8), dimension(:, :, :), pointer :: vol            
         real(8), dimension(:, :, :), pointer :: vof            
-        real(8), dimension(:), pointer :: cell_mass_vof
-        real(8), dimension(:), pointer :: density_vof
-        real(8), dimension(:), pointer :: mat_vof
+        class(data_struct_t), pointer :: cell_mass_vof
+        class(data_struct_t), pointer :: density_vof
+        class(data_struct_t), pointer :: mat_vof
 
         integer :: i, j, k     
         integer :: tmp_mat  
-
-        type(indexer_t), pointer ::  index_mapper
-        integer, dimension(:,:,:,:), pointer   ::   mapper
-        integer :: csr_idx
 
         call this%total_density  %Point_to_data(density)
         call this%total_cell_mass%Point_to_data(cell_mass)
         call this%total_vof      %Point_to_data(vof)
 
-        call this%materials%cell_mass%Point_to_data(cell_mass_vof)
-        call this%materials%density  %Point_to_data(density_vof)
-        call this%materials%vof      %Point_to_data(mat_vof)
+        call this%materials%cell_mass%get_quantity_grid(cell_mass_vof)
+        call this%materials%density  %get_quantity_grid(density_vof)
+        call this%materials%vof      %get_quantity_grid(mat_vof)
         call volume%Point_to_data(vol)
 
-        index_mapper => get_instance()
-        mapper => index_mapper%mapper
 
         do k = 1, this%nz
             do j = 1, this%ny
@@ -814,13 +783,11 @@ contains
             do j = 1, this%ny
                 do i = 1, this%nx
                     do tmp_mat = 1, this%nmats
-                        csr_idx = mapper(tmp_mat,i,j,k)
 
-                        density_vof(csr_idx) = 0d0
-                        if (mat_vof(csr_idx) > this%emf) then
-                            density_vof(csr_idx) = cell_mass_vof(csr_idx) / (vol(i, j, k) * mat_vof(csr_idx))
-
+                        if (mat_vof%get_item(tmp_mat,i,j,k) > this%emf) then
+                            call density_vof%add_item(tmp_mat,i,j,k, cell_mass_vof%get_item(tmp_mat,i,j,k) / (vol(i, j, k) * mat_vof%get_item(tmp_mat,i,j,k))) 
                         end if
+
                     end do
                 end do
             end do
@@ -1876,14 +1843,14 @@ contains
         real(8), dimension(:, :, :), pointer :: sie          
         real(8), dimension(:, :, :), pointer :: vol          
 
-        real(8), dimension(:), pointer :: temperature_vof
-        real(8), dimension(:), pointer :: cell_mass_vof
-        real(8), dimension(:), pointer :: pressure_vof
-        real(8), dimension(:), pointer :: density_vof
-        real(8), dimension(:), pointer :: dp_drho_vof
-        real(8), dimension(:), pointer :: dp_de_vof
-        real(8), dimension(:), pointer :: sie_vof
-        real(8), dimension(:), pointer :: mat_vof
+        class(data_struct_t), pointer :: temperature_vof
+        class(data_struct_t), pointer :: cell_mass_vof
+        class(data_struct_t), pointer :: pressure_vof
+        class(data_struct_t), pointer :: density_vof
+        class(data_struct_t), pointer :: dp_drho_vof
+        class(data_struct_t), pointer :: dp_de_vof
+        class(data_struct_t), pointer :: sie_vof
+        class(data_struct_t), pointer :: mat_vof
 
         real(8), dimension(:, :, :), pointer :: mat_vol          
         real(8), dimension(:, :, :), pointer :: material_x       
@@ -1903,10 +1870,6 @@ contains
         real(8) :: vol_diff_vof_stress_temp  
         real(8) :: sie_diff                  
         real(8) :: stress_fac                
-
-        type(indexer_t), pointer ::  index_mapper
-        integer, dimension(:,:,:,:), pointer   ::   mapper
-        integer :: csr_idx
 
         integer :: i, j, k, tmp_mat     
         
@@ -1929,30 +1892,27 @@ contains
         call this%rezone%material_volume%Point_to_data(mat_vol)
 
 
-        call this%materials%temperature%Point_to_data(temperature_vof)
-        call this%materials%cell_mass  %Point_to_data(cell_mass_vof)
-        call this%materials%pressure   %Point_to_data(pressure_vof)
-        call this%materials%dp_drho    %Point_to_data(dp_drho_vof)
-        call this%materials%dp_de      %Point_to_data(dp_de_vof)
-        call this%materials%sie        %Point_to_data(sie_vof)
-        call this%materials%vof        %Point_to_data(mat_vof)
+        call this%materials%temperature%get_quantity_grid(temperature_vof)
+        call this%materials%cell_mass  %get_quantity_grid(cell_mass_vof)
+        call this%materials%pressure   %get_quantity_grid(pressure_vof)
+        call this%materials%dp_drho    %get_quantity_grid(dp_drho_vof)
+        call this%materials%dp_de      %get_quantity_grid(dp_de_vof)
+        call this%materials%sie        %get_quantity_grid(sie_vof)
+        call this%materials%vof        %get_quantity_grid(mat_vof)
 
 
-        index_mapper => get_instance()
-        mapper => index_mapper%mapper
         call debug(sie_vof, 'material_results/sie_vof1.txt', this%nz, this%ny, this%nx, this%nmats)
         do k = 1, this%nz
             do j = 1, this%ny
                 do i = 1, this%nx
                     do tmp_mat = 1, this%nmats
 
-                        csr_idx = mapper(tmp_mat,i,j,k)
-                        if (csr_idx == -1) cycle
-
                         if (vof(i, j, k) < this%emf) then
                             sie(i, j, k) = 0d0
                             temperature(i, j, k) = teps
-                            temperature_vof(csr_idx) = 0d0
+
+                            call temperature_vof%add_item(tmp_mat,i,j,k, 0d0)
+
                             cycle
                         end if
 
@@ -1965,26 +1925,27 @@ contains
                             a_visc_temp = 0d0
                         end if
 
-                        if (mat_vof(csr_idx) < this%emf) then
-                            sie_vof(csr_idx) = 0d0
-                            temperature_vof(csr_idx) = 0d0
+                        if (mat_vof%get_item(tmp_mat,i,j,k) < this%emf) then
+                            call sie_vof%add_item(tmp_mat,i,j,k, 0d0)
+                            call temperature_vof%add_item(tmp_mat,i,j,k, 0d0)
                         else
-                            sie_vof_temp = sie_vof(csr_idx)
+                            sie_vof_temp = sie_vof%get_item(tmp_mat,i,j,k)
+
                             if (nmats_in_cell(i, j, k) == 1d0) then
                                 pressure_temp = pressure(i, j, k) 
                                 dp_de_temp    = dp_de   (i, j, k)
                                 dp_drho_temp  = dp_drho (i, j, k)
                             else
-                                pressure_temp = pressure_vof(csr_idx)
-                                dp_de_temp    = dp_de_vof   (csr_idx)
-                                dp_drho_temp  = dp_drho_vof (csr_idx)
+                                pressure_temp = pressure_vof%get_item(tmp_mat,i,j,k)
+                                dp_de_temp    = dp_de_vof   %get_item(tmp_mat,i,j,k)
+                                dp_drho_temp  = dp_drho_vof %get_item(tmp_mat,i,j,k)
                             end if
                             pressure_temp  = pressure_temp * vof(i, j, k)   
-                            mass_vof_temp  = cell_mass_vof(csr_idx)
+                            mass_vof_temp  = cell_mass_vof%get_item(tmp_mat,i,j,k)
 
 
-                            vol_diff_vof_temp = vol_diff * mat_vof(csr_idx)
-                            vol_vof_temp  = vol(i, j, k) * mat_vof(csr_idx)
+                            vol_diff_vof_temp = vol_diff * mat_vof%get_item(tmp_mat,i,j,k)
+                            vol_vof_temp  = vol(i, j, k) * mat_vof%get_item(tmp_mat,i,j,k)
 
                             stress_fac = 0d0
 
@@ -1996,8 +1957,9 @@ contains
                                 (1d0 + 0.5d0 * dp_de_temp * vol_diff_vof_temp / (mass_vof_temp + 1d-30)) / (mass_vof_temp+1d-30)
 
                             if (sie_diff == 0d0) cycle
-                            sie_vof(csr_idx) = sie_vof(csr_idx) + sie_diff
-                            sie(i, j, k) = sie(i, j, k) + sie_vof(csr_idx) * mass_vof_temp
+
+                            call sie_vof%add_item(tmp_mat,i,j,k, sie_vof%get_item(tmp_mat,i,j,k) + sie_diff)
+                            sie(i, j, k) = sie(i, j, k) + sie_vof%get_item(tmp_mat,i,j,k) * mass_vof_temp
                         end if
                     end do
                 end do

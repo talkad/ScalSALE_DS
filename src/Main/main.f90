@@ -13,6 +13,9 @@ program main
 
     character(:), allocatable :: arg
     integer :: arglen, stat
+
+    print*, 'start main.f90'
+
     call get_command_argument(number=1, length=arglen)  ! Assume for simplicity success
     if (arglen == 0) then
         df_obj = datafile_t("../Datafiles/datafile.json")
@@ -25,6 +28,7 @@ program main
     call MPI_init(ierr)
     call mpi_comm_rank(MPI_COMM_WORLD, rank, ierr)
 
+    print*, 'creating problem t main.f90'
     allocate(prob)
 
 

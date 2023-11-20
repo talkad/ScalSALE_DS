@@ -22,7 +22,7 @@ module quantity_module
 
         type (data_t) , dimension(:), pointer, public :: data
         ! type (data_4d_t), pointer, public :: data_4d  
-        class(data_struct_t), allocatable, public :: data_4d
+        class(data_struct_t), pointer, public :: data_4d => NULL()   ! material
 
         type(boundary_parameters_t), pointer, public :: boundary_params
         type(parallel_parameters_t), pointer, public :: parallel_params
@@ -86,6 +86,7 @@ module quantity_module
         procedure, public :: Read_quantity
         generic :: read(unformatted) => Read_quantity
 
+        procedure, public   :: get_quantity_grid
 
     end type
 
@@ -94,6 +95,13 @@ module quantity_module
 
 contains
 
+    subroutine get_quantity_grid(this, quantity)
+        implicit none
+        class(quantity_t)        , intent(in out) :: this 
+        class(data_struct_t), pointer :: quantity
+
+        quantity => this%data_4d
+    end subroutine get_quantity_grid
 
     subroutine Init_quantity_init_arr(this, initial_data, d1, d2, d3, axises_num, bc_params)
         implicit none
@@ -106,7 +114,8 @@ contains
 
         integer                  , intent(in)     :: axises_num
         integer                                   :: i
-        if(allocated(this%data_4d))        deallocate(this%data_4d)     ! invalid deacllocation
+
+        nullify(this%data_4d)
         nullify(this%data)
         allocate (data_t :: this%data (axises_num))
         do i=1, axises_num
@@ -117,7 +126,7 @@ contains
         this%d3 = d3 - 1
         this%number_of_axises = axises_num
         this%boundary_params => bc_params
-        if(allocated(this%data_4d))        deallocate(this%data_4d)
+        nullify(this%data_4d)
 
     end subroutine
 
@@ -132,7 +141,8 @@ contains
 
         integer           , intent(in)     :: axises_num
         integer                            :: i
-        if(allocated(this%data_4d))        deallocate(this%data_4d)
+
+        nullify(this%data_4d)
         nullify(this%data)
         allocate (data_t :: this%data (axises_num))
         do i=1, axises_num
@@ -143,10 +153,10 @@ contains
         this%d3 = d3 - 1
         this%number_of_axises = axises_num
         this%boundary_params => bc_params
-        if(allocated(this%data_4d))        deallocate(this%data_4d)
+        nullify(this%data_4d)
     end subroutine
 
-    subroutine Init_quantity_init_val_4d(this, initial_val, d1, d2, d3, d4, axises_num, bc_params, is_csr)
+    subroutine Init_quantity_init_val_4d(this, initial_val, d1, d2, d3, d4, axises_num, bc_params, data_type)
         implicit none
         class(quantity_t) , intent(in out) :: this
 
@@ -160,22 +170,20 @@ contains
         integer           , intent(in)     :: axises_num
         integer                            :: i
         type(indexer_t), pointer ::  index_mapper
-        integer, dimension(:,:,:,:), pointer   ::   mapper
-        logical, optional, intent(in)      :: is_csr
+        character(len=*), optional, intent(in)      :: data_type
 
-        index_mapper => get_instance()
-        mapper => index_mapper%mapper
-
-        if(allocated(this%data_4d))        deallocate(this%data_4d)
+        nullify(this%data_4d)
         nullify(this%data)
-
-        if (present(is_csr) .and. .not. is_csr) then
+        
+        if (.not. present(data_type) .or. data_type == "full_grid") then            
             allocate (data_4d_t :: this%data_4d)
-            this%data_4d = data_4d_t(initial_val, d1, d2, d3, d4)
-        else
+            this%data_4d => data_4d_t(initial_val, d1, d2, d3, d4)
+        else if (data_type == "csr") then
+            index_mapper => get_instance()
+            
             allocate (csr_t :: this%data_4d)
-            this%data_4d = csr_t(initial_val, d1, d2, d3, d4, index_mapper%mapper)
-        end if
+            this%data_4d => csr_t(initial_val, d1, d2, d3, d4, index_mapper%mapper)
+        end if 
 
         this%d1 = d1 - 1
         this%d2 = d2 - 1
@@ -185,7 +193,7 @@ contains
         nullify(this%data)
     end subroutine
 
-    subroutine Init_quantity_no_bc(this, initial_val, d1, d2, d3, d4, axises_num, is_csr)
+    subroutine Init_quantity_no_bc(this, initial_val, d1, d2, d3, d4, axises_num, data_type)
         implicit none
         class(quantity_t) , intent(in out) :: this
 
@@ -197,22 +205,24 @@ contains
 
         integer           , intent(in)     :: axises_num
         integer                            :: i
-        logical, optional , intent(in)     :: is_csr
+        character(len=*), optional, intent(in)      :: data_type
 
         type(indexer_t), pointer ::  index_mapper
 
-        index_mapper => get_instance()
-
-        if(allocated(this%data_4d))        deallocate(this%data_4d)
+       nullify(this%data_4d)
         nullify(this%data)
 
-        if (present(is_csr) .and. .not. is_csr) then
+        if (.not. present(data_type) .or. data_type == "full_grid") then            
             allocate (data_4d_t :: this%data_4d)
-            this%data_4d = data_4d_t(initial_val, d1, d2, d3, d4)
-        else
+            this%data_4d => data_4d_t(initial_val, d1, d2, d3, d4)
+        else if (data_type == "csr") then
+            index_mapper => get_instance()
+
             allocate (csr_t :: this%data_4d)
-            this%data_4d = csr_t(initial_val, d1, d2, d3, d4, index_mapper%mapper)
-        end if
+            this%data_4d => csr_t(initial_val, d1, d2, d3, d4, index_mapper%mapper)
+        end if 
+
+
         this%d1 = d1 - 1
         this%d2 = d2 - 1
         this%d3 = d3 - 1
@@ -231,9 +241,10 @@ contains
 
         integer           , intent(in)     :: axises_num
         integer                            :: i
-        if(allocated(this%data_4d))        deallocate(this%data_4d)
 
+        nullify(this%data_4d)
         nullify(this%data)
+        
         allocate (data_t :: this%data (axises_num))
         do i=1, axises_num
             this%data(i) = data_t (d1, d2, d3)

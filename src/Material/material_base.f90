@@ -8,6 +8,9 @@ module material_base_module
    use communication_module, only : communication_t
    use communication_parameters_module, only : communication_parameters_t
    use material_quantity_module      , only : material_quantity_t
+
+   use data_struct_base, only : data_struct_t
+
    implicit none
    private
 
@@ -31,11 +34,11 @@ module material_base_module
 
       procedure, public :: Clean_material_base
 
-      procedure, public :: Point_to_initial_layers_csr
+      procedure, public :: Point_to_initial_layers_struct
       procedure, public :: Point_to_initial_layers_4d
 
       generic,   public    :: Point_to_initial_layers  =>         &
-                              Point_to_initial_layers_csr, &
+                              Point_to_initial_layers_struct, &
                               Point_to_initial_layers_4d
 
       procedure, public :: Write_material_abstract
@@ -51,7 +54,7 @@ module material_base_module
 
 contains
 
-   subroutine Init_material_base(this, nxp, nyp, nzp,nmats, mat_ids, bc_cell, bc_params, is_csr)
+   subroutine Init_material_base(this, nxp, nyp, nzp,nmats, mat_ids, bc_cell, bc_params, data_type)
       use boundary_parameters_module, only : boundary_parameters_t
       implicit none
       class(material_base_t)                , intent(in out)       :: this
@@ -64,8 +67,8 @@ contains
 !      real(8)                               , intent(in)           :: sie_0
       type(cell_bc_wrapper_t), dimension(:), pointer,  intent(in) :: bc_cell   
       type(boundary_parameters_t), pointer, intent(in) :: bc_params
-integer :: i
-logical, optional, intent(in)      :: is_csr
+      integer :: i
+      character(len=*), optional, intent(in)                  :: data_type
 
       allocate(this%cell_mass)
       allocate(this%initial_layers_of_mats)
@@ -79,13 +82,13 @@ logical, optional, intent(in)      :: is_csr
       end do
 
       print*, 'vof'
-      this%vof = material_quantity_t(0d0, nxp, nyp, nzp,nmats, bc_cell, bc_params, is_csr)
+      this%vof = material_quantity_t(0d0, nxp, nyp, nzp,nmats, bc_cell, bc_params, data_type)
       print*, 'sie'
-      this%sie = material_quantity_t (0d0, nxp, nyp, nzp, nmats,bc_cell, bc_params, is_csr)
+      this%sie = material_quantity_t (0d0, nxp, nyp, nzp, nmats,bc_cell, bc_params, data_type)
       print*, 'cell_mass'
-      this%cell_mass = material_quantity_t (0d0, nxp, nyp, nzp,nmats, bc_cell, bc_params, is_csr)
+      this%cell_mass = material_quantity_t (0d0, nxp, nyp, nzp,nmats, bc_cell, bc_params, data_type)
       print*, 'initial_layers_of_mats'
-      this%initial_layers_of_mats = material_quantity_t (0d0, nxp, nyp, nzp, nmats, is_csr)
+      this%initial_layers_of_mats = material_quantity_t (0d0, nxp, nyp, nzp, nmats, data_type)
 
 !      if (sie_0(1) == 0) then
 !         this%nrg_calc = 1
@@ -99,14 +102,14 @@ logical, optional, intent(in)      :: is_csr
 
 
 
-   subroutine Point_to_initial_layers_csr(this, ptr)
+   subroutine Point_to_initial_layers_struct(this, ptr)
       implicit none
       class (material_base_t)                  , intent(in out) :: this  
-      real(8)       , dimension(:), pointer, intent(out)    :: ptr
+      class(data_struct_t), pointer, intent(out)    :: ptr
 
-      call this%initial_layers_of_mats%Point_to_data (ptr)
+      call this%initial_layers_of_mats%get_quantity_grid(ptr)
 
-   end subroutine Point_to_initial_layers_csr
+   end subroutine Point_to_initial_layers_struct
 
 
    subroutine Point_to_initial_layers_4d(this, ptr)

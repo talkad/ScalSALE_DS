@@ -46,9 +46,11 @@ module problem_module
     use boundary_parameters_module      , only : boundary_parameters_t
     use data_4d_module, only: data_4d_t
     use material_quantity_module    , only : material_quantity_t
-    use indexer_module
+
     !   use hdf5
-    !   use cr_module                       , only : cr_t
+    use indexer_module
+    use data_struct_base, only : data_struct_t
+
     use mpi
     implicit none
     private
@@ -175,15 +177,14 @@ contains
         integer                                           :: counter, text_diag_counter, hdf5_diag_counter, tmp_mat
         character(len=80)       :: word
         integer, dimension(:, :), allocatable :: start_index
-        real(8), dimension(:), pointer :: cell_mass_vof,density_vof
+        class(data_struct_t), pointer :: cell_mass_vof,density_vof
 
         integer :: myid, numprocs, ierr
         integer :: nxp, nyp, nzp, nx,ny,nz, m
         character(5) :: my_id
         integer :: rank 
-        integer :: csr_idx
-        integer, dimension(:,:,:,:), pointer   ::   mapper
 
+        print*, 'build problem problem.f90'
         call Constructor%Initialize_communication(df)
         call Constructor%Initialize_openmp(df%threads)
 
@@ -323,6 +324,7 @@ contains
         end if
         bc_v_wrap_coordinates_arr(1) = bc_v_wrap_coordinates
 
+
         if (df%dimension == 2) then
             Constructor%mat_cells = materials_in_cells_t(nxp, nyp, bc_c_wrap_arr,Constructor%boundary_params, 1&
                 , df%number_layers_i, df%number_layers_j, df%number_cells_i&
@@ -357,6 +359,9 @@ contains
         Constructor%total_dp_drho_deriv = data_t  (nxp, nyp, nzp)
         Constructor%total_dt_de_deriv   = data_t  (nxp, nyp, nzp)
         Constructor%total_dt_drho_deriv = data_t  (nxp, nyp, nzp)
+
+
+
         Constructor%total_volume        = volume_t              (0d0, nxp, nyp, nzp, bc_c_wrap_arr,Constructor%boundary_params)
         Constructor%total_pressure      = pressure_t            (0d0, nxp, nyp, nzp, bc_c_wrap_arr,Constructor%boundary_params)
         Constructor%total_pressure_sum  = pressure_t            (0d0, nxp, nyp, nzp, bc_c_wrap_arr,Constructor%boundary_params)
@@ -377,7 +382,7 @@ contains
         ! index_mapper => get_instance(2, nx, ny, nz) 
         ! call debug(Constructor%materials%vof%data_4d%nz_values, 'material_results/vof1.txt', Constructor%nz, Constructor%ny, Constructor%nx, 2)   
         
-        index_mapper => get_instance(2, nxp, nyp, nzp) 
+        index_mapper => get_instance(2, nxp, nyp, nzp)    ! TODO: only for CSR
         call Constructor%Create_materials (df, bc_c_wrap_arr, Constructor%mat_cells)  ! xxxxxxxxxxxxxxxxxxxxxxxxxxxx
         
         ! call debug(Constructor%materials%vof%data_4d%nz_values, 'material_results/vof2.txt', Constructor%nz, Constructor%ny, Constructor%nx, 2)   
@@ -545,20 +550,16 @@ contains
 
 
         ! xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-        call Constructor%materials%density%point_to_data(density_vof)
-        call Constructor%materials%cell_mass%point_to_data(cell_mass_vof)
-
-        mapper => index_mapper%mapper
+        call Constructor%materials%density%get_quantity_grid(density_vof)
+        call Constructor%materials%cell_mass%get_quantity_grid(cell_mass_vof)
 
         do k = 1, Constructor%nz
             do j = 1, Constructor%ny
                 do i = 1, Constructor%nx
                     do tmp_mat=1, Constructor%n_materials
 
-                        csr_idx = mapper(tmp_mat,i,j,k)
-                        if (csr_idx == -1) cycle
+                        call cell_mass_vof%add_item(tmp_mat,i,j,k, vol(i,j,k) * density_vof%get_item(tmp_mat,i,j,k))
 
-                        cell_mass_vof(csr_idx) = vol(i,j,k) * density_vof(csr_idx)
                     end do
                 end do
             end do
@@ -723,10 +724,12 @@ contains
                         !call this%Write_to_files()
         ncyc = 1
         if (this%rezone_type == 0) then
-            max_ncyc = 250
+            max_ncyc = 100
         else
-            max_ncyc = 250
+            max_ncyc = 100
         end if
+
+        print*, 'execute ', this%mesh%dimension, ' dimentional problem for ', max_ncyc, ' iterations'
 
         if (this%mesh%dimension == 2) then
             do while (this%time%Should_continue() .and. ncyc < max_ncyc)
@@ -860,35 +863,26 @@ contains
 
 
         integer                              :: i, j, k, tmp_mat
-        real(8), dimension(:), pointer :: sie_vof
-        real(8), dimension(:), pointer :: cell_mass_vof
+        class(data_struct_t), pointer :: sie_vof
+        class(data_struct_t), pointer :: cell_mass_vof
         real(8), dimension(:, :, :), pointer :: cell_mass    
         real(8), dimension(:, :, :), pointer :: sie
         real(8), dimension(:, :, :), pointer :: t
-        type(indexer_t), pointer ::  index_mapper
-        integer, dimension(:,:,:,:), pointer   ::   mapper
-        integer :: csr_idx
 
-        call this%materials%sie      %Point_to_data(sie_vof)
-        call this%materials%cell_mass%Point_to_data(cell_mass_vof)
+        call this%materials%sie      %get_quantity_grid(sie_vof)
+        call this%materials%cell_mass%get_quantity_grid(cell_mass_vof)
 
 
         call this%total_sie%Point_to_data(sie)
         call this%total_cell_mass%Point_to_data(cell_mass)
         call this%materials%Apply_eos(this%nx, this%ny, this%nz,emf,.false.)
 
-        index_mapper => get_instance()
-        mapper => index_mapper%mapper
 
         do k = 1, this%nz
             do j = 1, this%ny
                 do i = 1, this%nx
                     do tmp_mat = 1, this%n_materials
-                        csr_idx = mapper(tmp_mat,i,j,k)
-
-                        if (csr_idx == -1) cycle
-
-                        sie(i, j, k) = sie(i, j, k) + sie_vof(csr_idx) * cell_mass_vof(csr_idx)
+                        sie(i, j, k) = sie(i, j, k) + sie_vof%get_item(tmp_mat,i,j,k) * cell_mass_vof%get_item(tmp_mat,i,j,k)
                     end do
                 end do
             end do
@@ -908,20 +902,13 @@ contains
 
 
     subroutine debug(arr, file_name, nzp, nyp, nxp, nmats)
-        real(8), dimension (:), pointer, intent(in)   ::   arr
+        class(data_struct_t), pointer, intent(in)   ::   arr
         integer, intent(in)                              ::   nzp, nyp, nxp, nmats
         character(len=*), intent(in)                      ::   file_name
-        type(indexer_t), pointer ::  index_mapper
-        integer, dimension(:,:,:,:), pointer   ::   mapper
-        integer :: index
+
 
         integer :: i,j,k,m
         integer :: unit
-        integer :: total_debug
-        total_debug = 0
-
-        index_mapper => get_instance()
-        mapper => index_mapper%mapper
 
         open (unit=414, file=file_name, status = 'replace')  
         
@@ -929,14 +916,8 @@ contains
             do j = 0, nyp
                 do i = 0, nxp
                     do m = 1, nmats
-                        index = mapper(m,i,j,k) 
 
-                        if (index == -1) then
-                            write(414,*)  0d0
-                        else
-                            total_debug = total_debug + 1
-                            write(414,*) arr(index)
-                        end if
+                        write(414,*) arr%get_item(m,i,j,k)
                         
                     end do
                 end do

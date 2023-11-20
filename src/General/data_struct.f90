@@ -4,7 +4,7 @@ module data_struct_base
     use communication_parameters_module, only : communication_parameters_t
     use parallel_parameters_module, only: parallel_parameters_t
 
-    type :: data_struct_t
+    type, abstract :: data_struct_t
 
         integer, public                                       :: nx   
         integer, public                                       :: ny   
@@ -29,6 +29,12 @@ module data_struct_base
             Ptr_coordinates_3d, &
             Ptr_coordinates_4d
 
+        procedure(get), public, deferred :: get_item
+        procedure(add), public, deferred :: add_item
+        procedure(print_struct), public, deferred :: print_data
+        procedure(remove), public, deferred :: deallocate_data
+        procedure(who), public, deferred :: who_am_i
+
         procedure, public :: Clean_data
         procedure, public :: Set_communication
         procedure, public :: Exchange_virtual_space_blocking
@@ -36,7 +42,42 @@ module data_struct_base
         procedure, private :: Get_recv_buf
         procedure, public :: Exchange_virtual_space_nonblocking
         procedure, public :: Exchange_end
+
         end type data_struct_t
+
+
+        abstract interface
+            function get(this, material_type, i, j, k)
+                import data_struct_t
+                class(data_struct_t), intent(in) :: this
+                integer, intent(in) :: i, j, k, material_type
+                real(8) :: get
+            end function
+
+            subroutine add(this, material_type, i, j, k, val)
+                import data_struct_t
+                class(data_struct_t), intent(inout) :: this
+                integer, intent(in) :: i, j, k, material_type
+                real(8), intent(in) :: val
+            end subroutine
+
+            subroutine print_struct(this, file_name)
+                import data_struct_t
+                class(data_struct_t), intent(inout) :: this
+                character(len=*), intent(in)        ::   file_name
+            end subroutine
+
+            subroutine remove(this)
+                import data_struct_t
+                class(data_struct_t), intent(inout) :: this
+            end subroutine
+
+            subroutine who(this)
+                import data_struct_t
+                class(data_struct_t), intent(inout) :: this
+            end subroutine
+        end interface
+
 
         contains
 

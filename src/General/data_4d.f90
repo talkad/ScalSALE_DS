@@ -35,6 +35,13 @@ module data_4d_module
       procedure, public :: Read_data
       generic :: read(unformatted) => Read_data
 
+
+      procedure :: get_item => get_item
+      procedure :: add_item => add_item
+      procedure :: print_data => print_data
+      procedure :: deallocate_data => deallocate_data
+      procedure :: who_am_i => who_am_i
+
    end type data_4d_t
 
    public :: Get_copy
@@ -46,14 +53,17 @@ module data_4d_module
 
 contains
 
-   type(data_4d_t) function Constructor_init_arr(initial_data, d1, d2, d3, d4)
+   function Constructor_init_arr(initial_data, d1, d2, d3, d4)
       implicit none
+      type(data_4d_t), pointer :: Constructor_init_arr
       real(8), dimension(:,:,:,:), intent(in) :: initial_data
       integer                  , intent(in) :: d1           
       integer                  , intent(in) :: d2           
       integer                  , intent(in) :: d3
       integer                  , intent(in) :: d4
       integer, dimension(4) :: vals_shape
+
+      allocate(Constructor_init_arr)
 
       allocate (Constructor_init_arr%values (1:d4, 0:d1, 0:d2, 0:d3))
       Constructor_init_arr%values =  initial_data
@@ -63,22 +73,84 @@ contains
       Constructor_init_arr%nmats = d4
   end function
 
-   type(data_4d_t) function Constructor_init_val(initial_val, d1, d2, d3, d4)
+   function Constructor_init_val(initial_val, d1, d2, d3, d4)
       implicit none
+      type(data_4d_t), pointer  ::  Constructor_init_val
       real(8)           , intent(in) :: initial_val  
       integer           , intent(in) :: d1           
       integer           , intent(in) :: d2           
       integer           , intent(in) :: d3           
       integer                  , intent(in) :: d4
 
-        allocate (Constructor_init_val%values (1:d4, 0:d1, 0:d2, 0:d3))
+      allocate(Constructor_init_val)
+
+      allocate (Constructor_init_val%values (1:d4, 0:d1, 0:d2, 0:d3))
       Constructor_init_val%values = initial_val
       Constructor_init_val%nx = d1
       Constructor_init_val%ny = d2
       Constructor_init_val%nz = d3
-Constructor_init_val%nmats = d4
+   Constructor_init_val%nmats = d4
 
    end function
+
+
+
+    pure subroutine add_item(this, material_type, i, j, k, val)
+        implicit none
+        class(data_4d_t), intent(inout) :: this
+        integer, intent(in) :: i, j, k, material_type
+        real(8), intent(in) :: val
+ 
+         this%values(material_type, i, j, k) = val
+    end subroutine add_item
+
+
+    function get_item(this, material_type, i, j, k)
+        implicit none
+        class(data_4d_t), intent(in) :: this
+        integer, intent(in) :: i, j, k, material_type
+        integer :: i_new, j_new, k_new
+        real(8) :: get_item
+        
+        get_item = this%values(material_type, i, j, k)
+    end function get_item
+
+
+    subroutine print_data(this, file_name)
+         class(data_4d_t), intent(inout) :: this
+         character(len=*), intent(in)        ::   file_name
+         integer :: i,j,k,m
+
+         open (unit=414, file=file_name, status = 'replace')  
+        
+         do k = 0, this%nz
+               do j = 0, this%ny
+                  do i = 0, this%nx
+                     do m = 1, this%nmats
+                        write(414,*)  this%values(m,i,j,k)                        
+                     end do
+                  end do
+               end do
+         end do
+         
+         close (414)
+   end subroutine print_data
+
+
+   subroutine deallocate_data(this)
+      class(data_4d_t), intent(inout) :: this
+
+      if (associated(this%values))   deallocate(this%values)
+   end subroutine deallocate_data
+
+
+   subroutine who_am_i(this)
+      class(data_4d_t), intent(inout) :: this
+
+      print*, 'ITS A ME: DATA4D'
+
+   end subroutine who_am_i
+
 
 
    subroutine Ptr_coordinates_4d_data (this, ptr)
