@@ -31,8 +31,6 @@ program main
     print*, 'creating problem t main.f90'
     allocate(prob)
 
-
-
     prob = problem_t(df_obj)
     call prob%Start_calculation()
     call MPI_FINALIZE(ierr)

@@ -119,24 +119,13 @@ module csr_module
     subroutine add_boundary(this)
         implicit none
         class(csr_t), intent(inout) :: this
-        type(indexer_t), pointer ::  index_mapper
         integer :: i,j,k,m
-        integer :: csr_idx
         
-        index_mapper => get_instance()
-        ! print*, 'aaaaaaaaaa', shape(this%idx_map)
-        ! print*, 'bbbbbbbbbb', this%nmats, this%nx, this%ny, this%nz 
-        ! print*, 'aaaaaaaaaaaaaa', this%nx, this%ny, this%nz, this%nmats
-        csr_idx = 0
-
         i = 0
         do k = 0, this%nz
             do j = 0, this%ny
                 do m = 1, this%nmats
-                    this%idx_map(m,i,j,k) = csr_idx
-                    this%nz_values(csr_idx) = 0
-
-                    csr_idx = csr_idx + 1
+                    call this%add_item(m,i,j,k, 0d0)
                 end do
             end do
         end do
@@ -146,10 +135,7 @@ module csr_module
         do k = 0, this%nz
             do j = 0, this%ny
                 do m = 1, this%nmats
-                    this%idx_map(m,i,j,k) = csr_idx
-                    this%nz_values(csr_idx) = 0
-
-                    csr_idx = csr_idx + 1
+                    call this%add_item(m,i,j,k, 0d0)
                 end do
             end do
         end do
@@ -159,10 +145,7 @@ module csr_module
         do k = 0, this%nz
             do i = 0, this%nx
                 do m = 1, this%nmats
-                    this%idx_map(m,i,j,k) = csr_idx
-                    this%nz_values(csr_idx) = 0
-
-                    csr_idx = csr_idx + 1
+                    call this%add_item(m,i,j,k, 0d0)
                 end do
             end do
         end do
@@ -172,10 +155,7 @@ module csr_module
         do k = 0, this%nz
             do i = 0, this%nx
                 do m = 1, this%nmats
-                    this%idx_map(m,i,j,k) = csr_idx
-                    this%nz_values(csr_idx) = 0
-
-                    csr_idx = csr_idx + 1
+                    call this%add_item(m,i,j,k, 0d0)
                 end do
             end do
         end do
@@ -185,10 +165,7 @@ module csr_module
         do j = 0, this%ny
             do i = 0, this%nx
                 do m = 1, this%nmats
-                    this%idx_map(m,i,j,k) = csr_idx
-                    this%nz_values(csr_idx) = 0
-
-                    csr_idx = csr_idx + 1
+                    call this%add_item(m,i,j,k, 0d0)
                 end do
             end do
         end do
@@ -197,20 +174,16 @@ module csr_module
         do j = 0, this%ny
             do i = 0, this%nx
                 do m = 1, this%nmats
-                    this%idx_map(m,i,j,k) = csr_idx
-                    this%nz_values(csr_idx) = 0
-
-                    csr_idx = csr_idx + 1
+                    call this%add_item(m,i,j,k, 0d0)
                 end do
             end do
         end do
 
-        index_mapper%last_idx = csr_idx
     
     end subroutine add_boundary
 
 
-    pure subroutine add_item(this, material_type, i, j, k, val)
+    subroutine add_item(this, material_type, i, j, k, val)
         implicit none
         class(csr_t), intent(inout) :: this
         integer, intent(in) :: i, j, k, material_type
@@ -221,6 +194,13 @@ module csr_module
         last_idx = this%index_mapper%last_idx
         idx = this%idx_map(material_type, i, j, k)
 
+        ! if (material_type==1 .and. i==12 .and. j==2 .and. k==11) then
+        !     print*, 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+        !     print*, idx
+
+        !     print*, this%get_item( material_type, i, j, k), '->', val
+        ! end if
+
         if (idx > -1) then
             this%nz_values(idx) = val
         else
@@ -229,6 +209,7 @@ module csr_module
 
             this%index_mapper%last_idx = last_idx + 1
         end if
+
     end subroutine add_item
 
 
@@ -378,9 +359,9 @@ module csr_module
                         index = mapper(m,i,j,k) 
 
                         if (index == -1) then
-                            write(414,*)  0d0  
+                            write(414,*) m, i, j, k, 0d0  
                         else
-                            write(414,*)  this%nz_values(index)
+                            write(414,*)  m, i, j, k, this%nz_values(index)
                         end if
                         
                     end do

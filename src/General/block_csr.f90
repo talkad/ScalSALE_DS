@@ -64,14 +64,16 @@ module block_csr_module
     contains
     
 
-    type(block_csr_t) function Constructor_init_val(initial_val, d1, d2, d3, d4)
+    function Constructor_init_val(initial_val, d1, d2, d3, d4)
         implicit none
 
+        type(block_csr_t), pointer :: Constructor_init_val
         real(8)           , intent(in) :: initial_val  
         integer           , intent(in) :: d1, d2, d3, d4  
         integer                        :: block_size
 
         print*, 'init_block_csr'
+        allocate(Constructor_init_val)
         allocate(Constructor_init_val%values(0:1,0:1,0:1,0:1))
         Constructor_init_val%values = 0
 
@@ -97,93 +99,78 @@ module block_csr_module
         implicit none
         class(block_csr_t), intent(inout) :: this
         integer :: i,j,k,m
-        
-        ! i = 0
-        ! do k = 0, this%nz
-        !     do j = 0, this%ny
-        !         do m = 1, this%nmats
-        !             this%idx_map(m,i,j,k) = csr_idx
-        !             this%nz_values(csr_idx) = 0
-
-        !             csr_idx = csr_idx + 1
-        !         end do
-        !     end do
-        ! end do
+                
+        i = 0
+        do k = 0, this%nz
+            do j = 0, this%ny
+                do m = 1, this%nmats
+                    call this%add_item(m,i,j,k, 0d0)
+                end do
+            end do
+        end do
 
 
-        ! i = this%nx
-        ! do k = 0, this%nz
-        !     do j = 0, this%ny
-        !         do m = 1, this%nmats
-        !             this%idx_map(m,i,j,k) = csr_idx
-        !             this%nz_values(csr_idx) = 0
-
-        !             csr_idx = csr_idx + 1
-        !         end do
-        !     end do
-        ! end do
+        i = this%nx
+        do k = 0, this%nz
+            do j = 0, this%ny
+                do m = 1, this%nmats
+                    call this%add_item(m,i,j,k, 0d0)
+                end do
+            end do
+        end do
 
 
-        ! j = 0
-        ! do k = 0, this%nz
-        !     do i = 0, this%nx
-        !         do m = 1, this%nmats
-        !             this%idx_map(m,i,j,k) = csr_idx
-        !             this%nz_values(csr_idx) = 0
-
-        !             csr_idx = csr_idx + 1
-        !         end do
-        !     end do
-        ! end do
+        j = 0
+        do k = 0, this%nz
+            do i = 0, this%nx
+                do m = 1, this%nmats
+                    call this%add_item(m,i,j,k, 0d0)
+                end do
+            end do
+        end do
 
 
-        ! j = this%ny
-        ! do k = 0, this%nz
-        !     do i = 0, this%nx
-        !         do m = 1, this%nmats
-        !             this%idx_map(m,i,j,k) = csr_idx
-        !             this%nz_values(csr_idx) = 0
-
-        !             csr_idx = csr_idx + 1
-        !         end do
-        !     end do
-        ! end do
+        j = this%ny
+        do k = 0, this%nz
+            do i = 0, this%nx
+                do m = 1, this%nmats
+                    call this%add_item(m,i,j,k, 0d0)
+                end do
+            end do
+        end do
 
 
-        ! k = 0
-        ! do j = 0, this%ny
-        !     do i = 0, this%nx
-        !         do m = 1, this%nmats
-        !             this%idx_map(m,i,j,k) = csr_idx
-        !             this%nz_values(csr_idx) = 0
+        k = 0
+        do j = 0, this%ny
+            do i = 0, this%nx
+                do m = 1, this%nmats
+                    call this%add_item(m,i,j,k, 0d0)
+                end do
+            end do
+        end do
 
-        !             csr_idx = csr_idx + 1
-        !         end do
-        !     end do
-        ! end do
+        k = this%nz
+        do j = 0, this%ny
+            do i = 0, this%nx
+                do m = 1, this%nmats
+                    call this%add_item(m,i,j,k, 0d0)
+                end do
+            end do
+        end do
 
-        ! k = this%nz
-        ! do j = 0, this%ny
-        !     do i = 0, this%nx
-        !         do m = 1, this%nmats
-        !             this%idx_map(m,i,j,k) = csr_idx
-        !             this%nz_values(csr_idx) = 0
-
-        !             csr_idx = csr_idx + 1
-        !         end do
-        !     end do
-        ! end do
     
     end subroutine add_boundary
 
 
-    pure subroutine add_item(this, material_type, i, j, k, val)
+    subroutine add_item(this, material_type, i, j, k, val)
         implicit none
         class(block_csr_t), intent(inout) :: this
         integer, intent(in) :: i, j, k, material_type
         real(8), intent(in) :: val
         integer :: i_new, j_new, k_new
         type(block_t) :: block
+
+        print*, 'block csr add item'
 
         i_new = i/this%block_size
         j_new = j/this%block_size
@@ -199,6 +186,7 @@ module block_csr_module
         block%matrix(mod(i, this%block_size), mod(j, this%block_size) ,mod(k, this%block_size)) = val
     end subroutine add_item
 
+
     function get_item(this, material_type, i, j, k)
         implicit none
         class(block_csr_t), intent(in) :: this
@@ -207,6 +195,9 @@ module block_csr_module
         real(8) :: get_item
         type(block_t) :: block
         get_item = 0d0
+
+        print*, 'block csr get item'
+
 
         i_new = i/this%block_size
         j_new = j/this%block_size
@@ -244,7 +235,7 @@ module block_csr_module
                         block = this%grid(material_type, i_new, j_new ,k_new)
 
                         if (allocated(block%matrix)) then 
-                            write(414,*) block%matrix(mod(i, this%block_size), mod(j, this%block_size) ,mod(k, this%block_size))
+                            write(414,*) m, i, j, k, block%matrix(mod(i, this%block_size), mod(j, this%block_size) ,mod(k, this%block_size))
                         else
                             write(414,*) 0d0
                         end if

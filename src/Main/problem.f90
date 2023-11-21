@@ -353,6 +353,7 @@ contains
         end if
         write(*,*) "done mesh"
 
+
         Constructor%total_temperature   = temperature_t(df%init_temperature, nxp, nyp, nzp, bc_c_wrap_arr,&
             Constructor%boundary_params)
         Constructor%total_dp_de_deriv   = data_t  (nxp, nyp, nzp)
@@ -361,8 +362,9 @@ contains
         Constructor%total_dt_drho_deriv = data_t  (nxp, nyp, nzp)
 
 
-
         Constructor%total_volume        = volume_t              (0d0, nxp, nyp, nzp, bc_c_wrap_arr,Constructor%boundary_params)
+
+
         Constructor%total_pressure      = pressure_t            (0d0, nxp, nyp, nzp, bc_c_wrap_arr,Constructor%boundary_params)
         Constructor%total_pressure_sum  = pressure_t            (0d0, nxp, nyp, nzp, bc_c_wrap_arr,Constructor%boundary_params)
         Constructor%total_sound_vel     = sound_velocity_t      (0d0, nxp, nyp, nzp, bc_c_wrap_arr,Constructor%boundary_params)
@@ -570,11 +572,23 @@ contains
         call Constructor%materials%cell_mass%Exchange_virtual_space_blocking()
         call Constructor%materials%temperature%Exchange_virtual_space_blocking()
 
-        ! call debug(cell_mass_vof, 'material_results/cell_mass_vof.txt', Constructor%nz, Constructor%ny, Constructor%nx, Constructor%n_materials)
-        ! call debug(Constructor%materials%temperature%data_4d%nz_values, 'material_results/temperature.txt', Constructor%nz, Constructor%ny, Constructor%nx, Constructor%n_materials)
-        ! call debug(Constructor%materials%density%data_4d%nz_values, 'material_results/density.txt', Constructor%nz, Constructor%ny, Constructor%nx, Constructor%n_materials)
-        ! call debug(Constructor%materials%sie%data_4d%nz_values, 'material_results/sie.txt', Constructor%nz, Constructor%ny, Constructor%nx, Constructor%n_materials)
+        print*, 'total_temperature:'
+        call Constructor%total_temperature%who_am_i()
+        print*, 'total_vof:'
+        call Constructor%total_vof%who_am_i()
+        print*, 'density:'
+        call Constructor%materials%density%who_am_i()
+        print*, 'pressure:'
+        call Constructor%materials%pressure%who_am_i()
+        print*, 'temperature:'
+        call Constructor%materials%temperature%who_am_i()
 
+        print*, 'cell_mass:'
+        call Constructor%materials%cell_mass%who_am_i()
+        print*, 'sie:'
+        call Constructor%materials%sie%who_am_i()
+        print*, 'cell_mass:'
+        call Constructor%materials%cell_mass%who_am_i()
 
 
         call Constructor%Initialize_sie(Constructor%emf) ! xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
@@ -724,9 +738,9 @@ contains
                         !call this%Write_to_files()
         ncyc = 1
         if (this%rezone_type == 0) then
-            max_ncyc = 100
+            max_ncyc = 200
         else
-            max_ncyc = 100
+            max_ncyc = 200
         end if
 
         print*, 'execute ', this%mesh%dimension, ' dimentional problem for ', max_ncyc, ' iterations'
@@ -899,34 +913,6 @@ contains
 
         ! call debug(sie_vof, 'material_results/Initialize_sie.txt', this%nz, this%ny, this%nx, this%n_materials)
     end subroutine Initialize_sie
-
-
-    subroutine debug(arr, file_name, nzp, nyp, nxp, nmats)
-        class(data_struct_t), pointer, intent(in)   ::   arr
-        integer, intent(in)                              ::   nzp, nyp, nxp, nmats
-        character(len=*), intent(in)                      ::   file_name
-
-
-        integer :: i,j,k,m
-        integer :: unit
-
-        open (unit=414, file=file_name, status = 'replace')  
-        
-        do k = 0, nzp
-            do j = 0, nyp
-                do i = 0, nxp
-                    do m = 1, nmats
-
-                        write(414,*) arr%get_item(m,i,j,k)
-                        
-                    end do
-                end do
-            end do
-        end do
-        
-        close (414)
-
-    end subroutine debug
 
 
     subroutine Initialize_communication(this, df)

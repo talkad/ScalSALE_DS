@@ -2,7 +2,8 @@
 
 def convert_data(file_path):
     with open(file_path, 'r') as f:
-        data = [float(line) for line in f.readlines()]
+        # data = [float(line) for line in f.readlines()]
+        data = [line for line in f.readlines()]
 
     return data
 
@@ -16,8 +17,10 @@ for file in files:
 
     data1, data2 = convert_data(file_path1), convert_data(file_path2)
 
-    for val1, val2 in zip(data1, data2):
+    for idx, (val1, val2) in enumerate(zip(data1, data2)):
+        # print(idx)
         if val1 != val2:
+            print(f'idx {idx}:\n    val1 {val1}\n   val2 {val2}')
             print(f"You piece of shit - {file}")
             break
 

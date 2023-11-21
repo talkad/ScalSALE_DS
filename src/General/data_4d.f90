@@ -127,7 +127,7 @@ contains
                do j = 0, this%ny
                   do i = 0, this%nx
                      do m = 1, this%nmats
-                        write(414,*)  this%values(m,i,j,k)                        
+                        write(414,*)   m, i, j, k, this%values(m,i,j,k)                        
                      end do
                   end do
                end do

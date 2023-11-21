@@ -9,6 +9,7 @@ module quantity_module
     use data_struct_base, only : data_struct_t
     use data_4d_module, only : data_4d_t
     use csr_module, only : csr_t
+    use block_csr_module, only : block_csr_t
 
     
     use indexer_module
@@ -87,6 +88,7 @@ module quantity_module
         generic :: read(unformatted) => Read_quantity
 
         procedure, public   :: get_quantity_grid
+        procedure, public :: who_am_i
 
     end type
 
@@ -102,6 +104,20 @@ contains
 
         quantity => this%data_4d
     end subroutine get_quantity_grid
+
+    subroutine who_am_i(this)
+        implicit none
+        class(quantity_t)        , intent(in out) :: this
+
+        if (associated(this%data)) then
+            print*, 'IMMA FUCKING 3D'
+        else if (associated(this%data_4d)) then
+            call this%data_4d%who_am_i()
+        else
+            print*, 'IMMA FUCKING NULL'
+        end if
+
+    end subroutine who_am_i
 
     subroutine Init_quantity_init_arr(this, initial_data, d1, d2, d3, axises_num, bc_params)
         implicit none
@@ -183,6 +199,9 @@ contains
             
             allocate (csr_t :: this%data_4d)
             this%data_4d => csr_t(initial_val, d1, d2, d3, d4, index_mapper%mapper)
+        else if (data_type == "block_csr") then
+            allocate (block_csr_t :: this%data_4d)
+            this%data_4d => block_csr_t(initial_val, d1, d2, d3, d4)
         end if 
 
         this%d1 = d1 - 1

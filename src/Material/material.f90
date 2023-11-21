@@ -121,24 +121,24 @@ contains
 
         call Constructor%Init_material_base(nxp, nyp, nzp, nmats, mat_ids, bc_cell, bc_params)
         print*, 'dp_de'
-        Constructor%dp_de   = material_quantity_t(0d0, nxp, nyp, nzp, nmats)
+        Constructor%dp_de   = material_quantity_t(0d0, nxp, nyp, nzp, nmats) !, "csr")
         print*, 'dp_drho'
-        Constructor%dp_drho = material_quantity_t(0d0, nxp, nyp, nzp, nmats)
+        Constructor%dp_drho = material_quantity_t(0d0, nxp, nyp, nzp, nmats) !, "csr")
         print*, 'dt_de'
-        Constructor%dt_de   = material_quantity_t(0d0, nxp, nyp, nzp, nmats)
+        Constructor%dt_de   = material_quantity_t(0d0, nxp, nyp, nzp, nmats) !, "csr")
         print*, 'dt_drho'
-        Constructor%dt_drho = material_quantity_t(0d0, nxp, nyp, nzp, nmats)
+        Constructor%dt_drho = material_quantity_t(0d0, nxp, nyp, nzp, nmats) !, "csr")
 
         print*, 'density'
-        Constructor%density = material_quantity_t(0d0, nxp, nyp, nzp, nmats, bc_cell, bc_params)
+        Constructor%density = material_quantity_t(0d0, nxp, nyp, nzp, nmats, bc_cell, bc_params) !, "csr")
         print*, 'pressure'
-        Constructor%pressure = material_quantity_t (0d0, nxp, nyp, nzp, nmats, bc_cell, bc_params)
+        Constructor%pressure = material_quantity_t (0d0, nxp, nyp, nzp, nmats, bc_cell, bc_params) !, "csr")
         print*, 'temperature'
-        Constructor%temperature = material_quantity_t (0d0, nxp, nyp, nzp, nmats, bc_cell, bc_params)
+        Constructor%temperature = material_quantity_t (0d0, nxp, nyp, nzp, nmats, bc_cell, bc_params) !, "csr")
         print*, 'temperature_old'
-        Constructor%temperature_old = material_quantity_t (0d0, nxp, nyp, nzp, nmats, bc_cell, bc_params)
+        Constructor%temperature_old = material_quantity_t (0d0, nxp, nyp, nzp, nmats, bc_cell, bc_params) !, "csr")
         print*, 'sound_vel'
-        Constructor%sound_vel = material_quantity_t (0d0, nxp, nyp, nzp, nmats, bc_cell, bc_params)
+        Constructor%sound_vel = material_quantity_t (0d0, nxp, nyp, nzp, nmats, bc_cell, bc_params) !, "csr")
 
         allocate(eos_c_wrap)
         eos_c_wrap%eos => ig_eos_c
@@ -150,8 +150,6 @@ contains
             Constructor%num_protons_2(i) = num_protons_2(i)
             Constructor%gamma_gas(i) = gamma_gas(i)
         end do
-
-
 
         call Constructor%density%get_quantity_grid(density_vof)
         call Constructor%vof%get_quantity_grid(mat_vof)

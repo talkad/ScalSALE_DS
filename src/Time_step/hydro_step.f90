@@ -412,7 +412,6 @@ contains
         integer :: i,j,k
         call this%total_sie%Point_to_data(1, x)
 
-
         call this%Calculate_thermodynamics()
 
         call time%Calculate_dt(this%mesh, this%velocity, this%rezone%mesh_velocity, this%vertex_mass, this%total_vof, this%emfm)
@@ -585,7 +584,8 @@ contains
                     end do
                 end do
             end do
-        end do
+        end do 
+
 
 
         allocate(dt_de_temp(this%nx, this%ny, this%nz))
@@ -731,9 +731,8 @@ contains
                 do i = 0, nxp
                     do m = 1, nmats
 
-                        write(414,*)  arr%get_item(m,i,j,k)  ! m,i,j,k,
+                        write(414,*)  m, i, j, k, arr%get_item(m,i,j,k)  ! m,i,j,k,
 
-                        
                     end do
                 end do
             end do
