@@ -121,24 +121,35 @@ contains
 
         call Constructor%Init_material_base(nxp, nyp, nzp, nmats, mat_ids, bc_cell, bc_params)
         print*, 'dp_de'
-        Constructor%dp_de   = material_quantity_t(0d0, nxp, nyp, nzp, nmats) !, "csr")
+        Constructor%dp_de   = material_quantity_t(0d0, nxp, nyp, nzp, nmats, "csr")
         print*, 'dp_drho'
-        Constructor%dp_drho = material_quantity_t(0d0, nxp, nyp, nzp, nmats) !, "csr")
+        Constructor%dp_drho = material_quantity_t(0d0, nxp, nyp, nzp, nmats, "csr")
         print*, 'dt_de'
-        Constructor%dt_de   = material_quantity_t(0d0, nxp, nyp, nzp, nmats) !, "csr")
+        Constructor%dt_de   = material_quantity_t(0d0, nxp, nyp, nzp, nmats, "csr")
         print*, 'dt_drho'
-        Constructor%dt_drho = material_quantity_t(0d0, nxp, nyp, nzp, nmats) !, "csr")
+        Constructor%dt_drho = material_quantity_t(0d0, nxp, nyp, nzp, nmats, "csr")
 
         print*, 'density'
-        Constructor%density = material_quantity_t(0d0, nxp, nyp, nzp, nmats, bc_cell, bc_params) !, "csr")
+        Constructor%density = material_quantity_t(0d0, nxp, nyp, nzp, nmats, bc_cell, bc_params, "csr")
         print*, 'pressure'
-        Constructor%pressure = material_quantity_t (0d0, nxp, nyp, nzp, nmats, bc_cell, bc_params) !, "csr")
+        Constructor%pressure = material_quantity_t (0d0, nxp, nyp, nzp, nmats, bc_cell, bc_params, "csr")
         print*, 'temperature'
-        Constructor%temperature = material_quantity_t (0d0, nxp, nyp, nzp, nmats, bc_cell, bc_params) !, "csr")
+        Constructor%temperature = material_quantity_t (0d0, nxp, nyp, nzp, nmats, bc_cell, bc_params, "csr")
         print*, 'temperature_old'
-        Constructor%temperature_old = material_quantity_t (0d0, nxp, nyp, nzp, nmats, bc_cell, bc_params) !, "csr")
+        Constructor%temperature_old = material_quantity_t (0d0, nxp, nyp, nzp, nmats, bc_cell, bc_params, "csr")
         print*, 'sound_vel'
-        Constructor%sound_vel = material_quantity_t (0d0, nxp, nyp, nzp, nmats, bc_cell, bc_params) !, "csr")
+        Constructor%sound_vel = material_quantity_t (0d0, nxp, nyp, nzp, nmats, bc_cell, bc_params, "csr")
+
+        print*, 'dt_de:'
+        call Constructor%dt_de%who_am_i()
+        print*, 'density:'
+        call Constructor%density%who_am_i()
+        print*, 'pressure:'
+        call Constructor%pressure%who_am_i()
+        print*, 'temperature:'
+        call Constructor%temperature%who_am_i()
+        print*, 'sound_vel:'
+        call Constructor%sound_vel%who_am_i()
 
         allocate(eos_c_wrap)
         eos_c_wrap%eos => ig_eos_c
@@ -157,6 +168,11 @@ contains
         call Constructor%temperature_old%get_quantity_grid(temp_old)
         call Constructor%sie%get_quantity_grid(sie_vof)
         call mat_cells%Point_to_data(mat_cell)
+        
+        print*, 'helloooooooooooooooooooooo'
+        call density_vof%print_data('material_results/density_vof_1')
+        call sie_vof%print_data('material_results/sie_vof_1')
+        ! call mat_cell%print_data('aa3')
 
         do k = 1, nzp
             do j = 1, nyp
@@ -182,6 +198,11 @@ contains
                 end do
             end do
         end do
+
+        call density_vof%print_data('material_results/density_vof_2')
+        call sie_vof%print_data('material_results/sie_vof_2')
+
+        ! call mat_cell%print_data('bb3')
 
     end function
 

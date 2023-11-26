@@ -149,6 +149,9 @@ contains
         
         type(indexer_t), pointer ::  index_mapper
 
+        real(8), dimension(:,:,:)  , pointer                         :: debug_arr
+
+
         type(datafile_t), intent(in)                      :: df        
         logical                                           :: saw_index
         integer                                           :: i, j, k, lay_j, lay_i, i_curr, j_curr, num_mat, ele_i, ele_j, nc, f_id
@@ -361,6 +364,10 @@ contains
         Constructor%total_dt_de_deriv   = data_t  (nxp, nyp, nzp)
         Constructor%total_dt_drho_deriv = data_t  (nxp, nyp, nzp)
 
+        call Constructor%mat_cells%Point_to_data(debug_arr)
+        call debug_3d(debug_arr, 'material_results/aaaa.txt', Constructor%nz, Constructor%ny, Constructor%nx)
+
+
 
         Constructor%total_volume        = volume_t              (0d0, nxp, nyp, nzp, bc_c_wrap_arr,Constructor%boundary_params)
 
@@ -384,7 +391,7 @@ contains
         ! index_mapper => get_instance(2, nx, ny, nz) 
         ! call debug(Constructor%materials%vof%data_4d%nz_values, 'material_results/vof1.txt', Constructor%nz, Constructor%ny, Constructor%nx, 2)   
         
-        index_mapper => get_instance(2, nxp, nyp, nzp)    ! TODO: only for CSR
+        index_mapper => get_instance(3, nxp, nyp, nzp)    ! TODO: only for CSR
         call Constructor%Create_materials (df, bc_c_wrap_arr, Constructor%mat_cells)  ! xxxxxxxxxxxxxxxxxxxxxxxxxxxx
         
         ! call debug(Constructor%materials%vof%data_4d%nz_values, 'material_results/vof2.txt', Constructor%nz, Constructor%ny, Constructor%nx, 2)   
@@ -601,6 +608,34 @@ contains
         ! call debug(Constructor%materials%sie%data_4d%nz_values, 'material_results/sie.txt', Constructor%nz, Constructor%ny, Constructor%nx, Constructor%n_materials)
 
     end function
+
+
+    subroutine debug_3d(arr, file_name, nzp, nyp, nxp)
+        real(8), dimension(:,:,:), pointer, intent(in)   ::   arr
+        integer, intent(in)                              ::   nzp, nyp, nxp
+        character(len=*), intent(in)                      ::   file_name
+
+        integer :: i,j,k,m
+        integer :: unit
+        integer :: total_debug
+        total_debug = 0
+
+
+        open (unit=414, file=file_name,  status = 'replace')  
+        
+        
+        do k = 0, nzp
+            do j = 0, nyp
+                do i = 0, nxp
+                    write(414,*) arr(i,j,k)
+                end do
+            end do
+        end do
+        
+        close (414)
+
+
+    end subroutine debug_3d
 
 
     subroutine Set_communication(this)
@@ -876,7 +911,7 @@ contains
         real(8)         , intent(in)         :: emf              
 
 
-        integer                              :: i, j, k, tmp_mat
+        integer                       :: i, j, k, tmp_mat
         class(data_struct_t), pointer :: sie_vof
         class(data_struct_t), pointer :: cell_mass_vof
         real(8), dimension(:, :, :), pointer :: cell_mass    
@@ -889,7 +924,10 @@ contains
 
         call this%total_sie%Point_to_data(sie)
         call this%total_cell_mass%Point_to_data(cell_mass)
+
+        call sie_vof%print_data('material_results/cc1')
         call this%materials%Apply_eos(this%nx, this%ny, this%nz,emf,.false.)
+        call sie_vof%print_data('material_results/cc2')
 
 
         do k = 1, this%nz

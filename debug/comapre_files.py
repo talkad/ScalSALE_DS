@@ -10,6 +10,7 @@ def convert_data(file_path):
 
 files = ['split_debug2', 'split_debug1', 'sound_vel', 'temperature', 'density', 'dp_de', 'dt_de', 'dt_drho', 'vof_new', 'sie', 'cell_mass']
 
+# files = ['cc1', 'cc2'] # ['density_vof_1', 'sie_vof_1', 'density_vof_2', 'sie_vof_2']
 
 for file in files:
     file_path1 = f'/home/talkad/Desktop/ScalSALE_DS_master/src/Scripts/material_results/{file}.txt'

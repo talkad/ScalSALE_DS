@@ -65,7 +65,7 @@ contains
 
                if (vof%get_item(mat_num,i,j,k) >= emf) then
                   if (nrg_or_tmp == 1) then
-                     call sie%add_item(mat_num, i , j, k, 1d0 / gamma1 * K_BOLTZMAN * sie%get_item(mat_num,i,j,k) / atomic_weight)
+                     call sie%add_item(mat_num, i , j, k, 1d0 / gamma1 * K_BOLTZMAN * temperature%get_item(mat_num,i,j,k) / atomic_weight)
                   else
                      call temperature%add_item(mat_num, i , j, k, atomic_weight * sie%get_item(mat_num,i,j,k) * gamma1 / K_BOLTZMAN)
                   end if

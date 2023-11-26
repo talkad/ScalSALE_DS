@@ -222,6 +222,8 @@ module block_csr_module
         integer :: unit
 
         open (unit=414, file=file_name, status = 'replace')  
+
+        print*, this%nz, this%ny, this%nx, this%nmats
         
         do k = 0, this%nz
             do j = 0, this%ny
