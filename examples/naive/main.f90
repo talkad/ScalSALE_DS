@@ -11,13 +11,17 @@ program program
 
     ! print*, 'hello world', data%get_value(1,1,1,1)
 
-    real(8) :: a = 16.5
-    integer :: b = 3, c
+    real(8), dimension(:), allocatable, target :: A
+    real(8), dimension(:), pointer :: B
+    
+    
+    allocate(A(-1:3))
+    A = (/56,1,2,3,4/)
 
+    B => A
 
-    c = a / b
-
-    print*, c 
+    print*, A(0)
+    print*, B(0)
 end program 
 
 

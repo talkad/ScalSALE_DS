@@ -239,6 +239,9 @@ contains
 
             allocate (csr_t :: this%data_4d)
             this%data_4d => csr_t(initial_val, d1, d2, d3, d4, index_mapper%mapper)
+        else if (data_type == "block_csr") then
+            allocate (block_csr_t :: this%data_4d)
+            this%data_4d => block_csr_t(initial_val, d1, d2, d3, d4)
         end if 
 
 
@@ -354,14 +357,17 @@ contains
         type(communication_parameters_t), pointer :: comm_params
         integer :: i
 
+        print*, 'TFIIII'
         if (associated(this%data)) then
             do i=1, this%number_of_axises
                 call this%data(i)%Set_communication (comm, comm_params)
             end do
         else
+            print*, 'tachinu ta tachat ze heil avir'
             call this%data_4d%Set_communication(comm, comm_params)
         end if
         this%parallel_params => comm%parallel_params
+        print*, 'BNEI AMALEK'
     end subroutine Set_communication
 
 

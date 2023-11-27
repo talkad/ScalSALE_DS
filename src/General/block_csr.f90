@@ -3,7 +3,7 @@ module block_csr_module
 
 
     type :: block_t
-        real(8), dimension(:,:,:), allocatable :: matrix
+        real(8), dimension(:,:,:), pointer :: matrix
     end type block_t
 
 
@@ -19,7 +19,7 @@ module block_csr_module
     contains
 
 
-        ! procedure, public :: Ptr_coordinates_4d => Ptr_coordinates_4d_csr
+        procedure, public :: Ptr_coordinates_4d => Ptr_coordinates_4d_block
 
         procedure, public :: Clean_data => Clean_data_imp
 
@@ -70,10 +70,13 @@ module block_csr_module
         type(block_csr_t), pointer :: Constructor_init_val
         real(8)           , intent(in) :: initial_val  
         integer           , intent(in) :: d1, d2, d3, d4  
-        integer                        :: block_size
+        integer                        :: k,j,i,m, block_size
 
         print*, 'init_block_csr'
+
         allocate(Constructor_init_val)
+        Constructor_init_val%communication => null()
+
         allocate(Constructor_init_val%values(0:1,0:1,0:1,0:1))
         Constructor_init_val%values = 0
 
@@ -84,15 +87,33 @@ module block_csr_module
 
         block_size = Constructor_init_val%block_size
 
-        Constructor_init_val%d1_block = d1/block_size
-        Constructor_init_val%d2_block = d2/block_size
-        Constructor_init_val%d3_block = d3/block_size
+        Constructor_init_val%d1_block = d1/block_size 
+        Constructor_init_val%d2_block = d2/block_size 
+        Constructor_init_val%d3_block = d3/block_size 
 
         allocate(Constructor_init_val%grid(1:d4, 0:Constructor_init_val%d1_block, 0:Constructor_init_val%d2_block, 0:Constructor_init_val%d3_block))  ! m,i,j,k
+
+        do k = 0, Constructor_init_val%d3_block
+            do j = 0, Constructor_init_val%d2_block
+                do i = 0, Constructor_init_val%d1_block
+                    do m = 1, Constructor_init_val%nmats
+                        Constructor_init_val%grid(m, i, j ,k)%matrix => null()
+                    end do
+                end do
+            end do
+        end do        
 
         call Constructor_init_val%add_boundary()
 
     end function
+
+
+    subroutine Ptr_coordinates_4d_block (this, ptr)
+        class (block_csr_t)                    , intent(in out)  :: this
+        real(8), dimension(:,:,:,:), pointer, intent(out) :: ptr
+
+        ptr => this%values
+    end subroutine Ptr_coordinates_4d_block
 
 
     subroutine add_boundary(this)
@@ -168,22 +189,24 @@ module block_csr_module
         integer, intent(in) :: i, j, k, material_type
         real(8), intent(in) :: val
         integer :: i_new, j_new, k_new
-        type(block_t) :: block
+        real(8), dimension(:,:,:), allocatable, target :: matrix
 
-        print*, 'block csr add item'
+        ! print*, 'block csr add item1'
 
         i_new = i/this%block_size
         j_new = j/this%block_size
         k_new = k/this%block_size
 
-        block = this%grid(material_type, i_new, j_new ,k_new)
-
-        if (.not. allocated(block%matrix)) then 
-            allocate(block%matrix(0:this%block_size, 0:this%block_size, 0:this%block_size))
-            this%grid(material_type, i_new, j_new ,k_new) = block
+        if (.not. associated(this%grid(material_type, i_new, j_new ,k_new)%matrix )) then 
+            ! print*, 'block csr add item2'
+            allocate(this%grid(material_type, i_new, j_new ,k_new)%matrix(0:this%block_size, 0:this%block_size, 0:this%block_size))
+            ! print*, 'block csr add item3'
+            ! this%grid(material_type, i_new, j_new ,k_new)%matrix => matrix
         end if
-
-        block%matrix(mod(i, this%block_size), mod(j, this%block_size) ,mod(k, this%block_size)) = val
+        ! print*, 'block csr add item4',mod(i, this%block_size), mod(j, this%block_size) ,mod(k, this%block_size), 'shape', shape(this%grid(material_type, i_new, j_new ,k_new)%matrix)
+        ! print*, 'aaaaaaaaaaaa', associated(this%grid(material_type, i_new, j_new ,k_new)%matrix )
+        this%grid(material_type, i_new, j_new ,k_new)%matrix(mod(i, this%block_size), mod(j, this%block_size) ,mod(k, this%block_size)) = val
+        ! print*, 'block csr add item5'
     end subroutine add_item
 
 
@@ -193,20 +216,15 @@ module block_csr_module
         integer, intent(in) :: i, j, k, material_type
         integer :: i_new, j_new, k_new
         real(8) :: get_item
-        type(block_t) :: block
         get_item = 0d0
-
-        print*, 'block csr get item'
-
 
         i_new = i/this%block_size
         j_new = j/this%block_size
         k_new = k/this%block_size
 
-        block = this%grid(material_type, i_new, j_new ,k_new)
-
-        if (allocated(block%matrix)) then 
-            get_item = block%matrix(mod(i, this%block_size), mod(j, this%block_size) ,mod(k, this%block_size))
+        if (associated(this%grid(material_type, i_new, j_new ,k_new)%matrix)) then 
+            ! print*, 'block get'
+            get_item = this%grid(material_type, i_new, j_new ,k_new)%matrix(mod(i, this%block_size), mod(j, this%block_size) ,mod(k, this%block_size))
         end if
 
     end function get_item
@@ -223,7 +241,7 @@ module block_csr_module
 
         open (unit=414, file=file_name, status = 'replace')  
 
-        print*, this%nz, this%ny, this%nx, this%nmats
+        ! print*, this%nz, this%ny, this%nx, this%nmats
         
         do k = 0, this%nz
             do j = 0, this%ny
@@ -234,10 +252,8 @@ module block_csr_module
                         j_new = j/this%block_size
                         k_new = k/this%block_size
 
-                        block = this%grid(material_type, i_new, j_new ,k_new)
-
-                        if (allocated(block%matrix)) then 
-                            write(414,*) m, i, j, k, block%matrix(mod(i, this%block_size), mod(j, this%block_size) ,mod(k, this%block_size))
+                        if (associated(this%grid(material_type, i_new, j_new ,k_new)%matrix)) then 
+                            write(414,*) m, i, j, k, this%grid(material_type, i_new, j_new ,k_new)%matrix(mod(i, this%block_size), mod(j, this%block_size) ,mod(k, this%block_size))
                         else
                             write(414,*) 0d0
                         end if
@@ -254,16 +270,13 @@ module block_csr_module
    subroutine deallocate_data(this)
         class(block_csr_t), intent(inout) :: this
         integer :: i,j,k,m
-        type(block_t) :: block
         
         do k = 0, this%d3_block
             do j = 0, this%d2_block
                 do i = 0, this%d1_block
                     do m = 1, this%nmats
 
-                        block = this%grid(m, i, j ,k)
-
-                        if (allocated(block%matrix)) deallocate(block%matrix)
+                        if (associated(this%grid(m, i, j ,k)%matrix)) deallocate(this%grid(m, i, j ,k)%matrix)
                         
                     end do
                 end do

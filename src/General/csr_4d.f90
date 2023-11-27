@@ -22,7 +22,6 @@ module csr_module
         !                     Ptr_coordinates_4d
 
         procedure, public :: Ptr_coordinates_1d => Ptr_coordinates_1d_csr
-        ! procedure, public :: Ptr_coordinates_4d => Ptr_coordinates_4d_csr
 
 
 

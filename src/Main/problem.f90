@@ -367,6 +367,7 @@ contains
         call Constructor%mat_cells%Point_to_data(debug_arr)
         call debug_3d(debug_arr, 'material_results/aaaa.txt', Constructor%nz, Constructor%ny, Constructor%nx)
 
+         print*, 'WWOWWWWWW'
 
 
         Constructor%total_volume        = volume_t              (0d0, nxp, nyp, nzp, bc_c_wrap_arr,Constructor%boundary_params)
@@ -387,6 +388,7 @@ contains
 
         call Constructor%total_volume%Point_to_data (vol)
 
+        print*, 'KEEP GOING MATE :)'
         ! print*,  'bbbbbbbbbbbbbbbbbbbbb', num_mat  ! still not right arg
         ! index_mapper => get_instance(2, nx, ny, nz) 
         ! call debug(Constructor%materials%vof%data_4d%nz_values, 'material_results/vof1.txt', Constructor%nz, Constructor%ny, Constructor%nx, 2)   
@@ -437,6 +439,7 @@ contains
         ! print*, 'hello there', Constructor%nz, Constructor%ny, Constructor%nx, 2
         ! call debug(Constructor%materials%vof%data_4d%nz_values, 'material_results/vof1.txt', Constructor%nz, Constructor%ny, Constructor%nx, 2)   
 
+        print*, 'YOU ARE GREATTTT'
         Constructor%hydro = hydro_step_t(df, Constructor%nx , Constructor%ny , Constructor%nz, Constructor%nxp         ,&
             Constructor%nyp, Constructor%nzp, Constructor%wilkins_scheme, Constructor%mesh,&
             Constructor%velocity , Constructor%acceleration, Constructor%total_volume     ,&
@@ -458,6 +461,8 @@ contains
         !        if ( df%num_diag_hdf5 > 0 ) then
          !   Constructor%main_hdf5_diagnostics_file_id = Static_hdf5_init()
         !        end if
+
+        print*, 'INCREDIBLEE'
 
         text_diag_counter = 1
         hdf5_diag_counter = 1
@@ -489,9 +494,14 @@ contains
             end if
         end do
 
+        print*, 'BRILLIANT!!!!'
+
         call Constructor%Set_communication()
+        print*, 'BRILLIANT!!!!'
 
         call Constructor%mesh%Exchange_virtual_space_blocking()
+        print*, 'BRILLIANT!!!!'
+
         call Constructor%total_vof%Exchange_virtual_space_blocking()
 
         write(*,*) "Done diagnostics"
@@ -562,6 +572,8 @@ contains
         call Constructor%materials%density%get_quantity_grid(density_vof)
         call Constructor%materials%cell_mass%get_quantity_grid(cell_mass_vof)
 
+        print*, 'amaizingggg'
+
         do k = 1, Constructor%nz
             do j = 1, Constructor%ny
                 do i = 1, Constructor%nx
@@ -574,6 +586,7 @@ contains
             end do
         end do
 
+        print*, 'coollllllllllllllll'
         call Constructor%materials%sie%Exchange_virtual_space_blocking()
         call Constructor%materials%density%Exchange_virtual_space_blocking()
         call Constructor%materials%cell_mass%Exchange_virtual_space_blocking()
