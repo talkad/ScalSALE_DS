@@ -121,24 +121,24 @@ contains
         print*, 'build materials.f90'
         call Constructor%Init_material_base(nxp, nyp, nzp, nmats, mat_ids, bc_cell, bc_params)
         print*, 'dp_de'
-        Constructor%dp_de   = material_quantity_t(0d0, nxp, nyp, nzp, nmats, "block_csr")
+        Constructor%dp_de   = material_quantity_t(0d0, nxp, nyp, nzp, nmats, "leeor_csr") ! block_csr
         print*, 'dp_drho'
-        Constructor%dp_drho = material_quantity_t(0d0, nxp, nyp, nzp, nmats, "block_csr")
+        Constructor%dp_drho = material_quantity_t(0d0, nxp, nyp, nzp, nmats, "leeor_csr")
         print*, 'dt_de'
-        Constructor%dt_de   = material_quantity_t(0d0, nxp, nyp, nzp, nmats, "block_csr")
+        Constructor%dt_de   = material_quantity_t(0d0, nxp, nyp, nzp, nmats, "leeor_csr")
         print*, 'dt_drho'
-        Constructor%dt_drho = material_quantity_t(0d0, nxp, nyp, nzp, nmats, "block_csr")
+        Constructor%dt_drho = material_quantity_t(0d0, nxp, nyp, nzp, nmats, "leeor_csr")
 
         print*, 'density'
-        Constructor%density = material_quantity_t(0d0, nxp, nyp, nzp, nmats, bc_cell, bc_params, "block_csr")
+        Constructor%density = material_quantity_t(0d0, nxp, nyp, nzp, nmats, bc_cell, bc_params, "leeor_csr")
         print*, 'pressure'
-        Constructor%pressure = material_quantity_t (0d0, nxp, nyp, nzp, nmats, bc_cell, bc_params, "block_csr")
+        Constructor%pressure = material_quantity_t (0d0, nxp, nyp, nzp, nmats, bc_cell, bc_params, "leeor_csr")
         print*, 'temperature'
-        Constructor%temperature = material_quantity_t (0d0, nxp, nyp, nzp, nmats, bc_cell, bc_params, "block_csr")
+        Constructor%temperature = material_quantity_t (0d0, nxp, nyp, nzp, nmats, bc_cell, bc_params, "leeor_csr")
         print*, 'temperature_old'
-        Constructor%temperature_old = material_quantity_t (0d0, nxp, nyp, nzp, nmats, bc_cell, bc_params, "block_csr")
+        Constructor%temperature_old = material_quantity_t (0d0, nxp, nyp, nzp, nmats, bc_cell, bc_params, "leeor_csr")
         print*, 'sound_vel'
-        Constructor%sound_vel = material_quantity_t (0d0, nxp, nyp, nzp, nmats, bc_cell, bc_params, "block_csr")
+        Constructor%sound_vel = material_quantity_t (0d0, nxp, nyp, nzp, nmats, bc_cell, bc_params, "leeor_csr")
 
         print*, 'dt_de:'
         call Constructor%dt_de%who_am_i()

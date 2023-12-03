@@ -1,25 +1,24 @@
-module block_csr_module
+module leeor_csr_module
     use data_struct_base
 
 
-    type :: block_t
-        real(8), dimension(:,:,:), pointer :: matrix
-    end type block_t
+    type :: leeor_materials_t
+        integer :: material_idx
+        real(8) :: material_val
+        real(8), dimension(:), pointer :: materials
+    end type leeor_materials_t
 
 
-    type, extends(data_struct_t) :: block_csr_t
+    type, extends(data_struct_t) :: leeor_csr_t
 
         real(8), dimension(:,:,:,:), pointer, public         :: values
 
-        type(block_t), dimension(:,:,:,:), allocatable :: grid
-
-        integer :: block_size = 16
-        integer :: d1_block, d2_block, d3_block
+        type(leeor_materials_t), dimension(:,:,:), allocatable :: grid
 
     contains
 
 
-        procedure, public :: Ptr_coordinates_4d => Ptr_coordinates_4d_block
+        procedure, public :: Ptr_coordinates_4d => Ptr_coordinates_4d_leeor
 
         procedure, public :: Clean_data => Clean_data_imp
 
@@ -56,7 +55,7 @@ module block_csr_module
     public :: Get_copy
 
 
-    interface block_csr_t
+    interface leeor_csr_t
         module procedure Constructor_init_val
     end interface
 
@@ -67,12 +66,12 @@ module block_csr_module
     function Constructor_init_val(initial_val, d1, d2, d3, d4)
         implicit none
 
-        type(block_csr_t), pointer :: Constructor_init_val
+        type(leeor_csr_t), pointer :: Constructor_init_val
         real(8)           , intent(in) :: initial_val  
         integer           , intent(in) :: d1, d2, d3, d4  
-        integer                        :: k,j,i,m, block_size
+        integer                        :: k,j,i,m
 
-        print*, 'init_block_csr'
+        print*, 'init_leeor_csr'
 
         allocate(Constructor_init_val)
         Constructor_init_val%communication => null()
@@ -85,20 +84,14 @@ module block_csr_module
         Constructor_init_val%nz = d3
         Constructor_init_val%nmats = d4
 
-        block_size = Constructor_init_val%block_size
+! 1:d4, 
+        allocate(Constructor_init_val%grid(0:d1, 0:d2, 0:d3)) 
 
-        Constructor_init_val%d1_block = d1/block_size 
-        Constructor_init_val%d2_block = d2/block_size 
-        Constructor_init_val%d3_block = d3/block_size 
-
-        allocate(Constructor_init_val%grid(1:d4, 0:Constructor_init_val%d1_block, 0:Constructor_init_val%d2_block, 0:Constructor_init_val%d3_block))  ! m,i,j,k
-
-        do k = 0, Constructor_init_val%d3_block
-            do j = 0, Constructor_init_val%d2_block
-                do i = 0, Constructor_init_val%d1_block
-                    do m = 1, Constructor_init_val%nmats
-                        Constructor_init_val%grid(m, i, j ,k)%matrix => null()
-                    end do
+        do k = 0, d3
+            do j = 0, d2
+                do i = 0, d1
+                    Constructor_init_val%grid(i, j ,k)%materials => null()
+                    Constructor_init_val%grid(i, j ,k)%material_idx = -1
                 end do
             end do
         end do        
@@ -108,17 +101,17 @@ module block_csr_module
     end function
 
 
-    subroutine Ptr_coordinates_4d_block (this, ptr)
-        class (block_csr_t)                    , intent(in out)  :: this
+    subroutine Ptr_coordinates_4d_leeor(this, ptr)
+        class (leeor_csr_t)                    , intent(in out)  :: this
         real(8), dimension(:,:,:,:), pointer, intent(out) :: ptr
 
         ptr => this%values
-    end subroutine Ptr_coordinates_4d_block
+    end subroutine Ptr_coordinates_4d_leeor
 
 
     subroutine add_boundary(this)
         implicit none
-        class(block_csr_t), intent(inout) :: this
+        class(leeor_csr_t), intent(inout) :: this
         integer :: i,j,k,m
                 
         i = 0
@@ -185,72 +178,57 @@ module block_csr_module
 
     subroutine add_item(this, material_type, i, j, k, val)
         implicit none
-        class(block_csr_t), intent(inout) :: this
+        class(leeor_csr_t), intent(inout) :: this
         integer, intent(in) :: i, j, k, material_type
         real(8), intent(in) :: val
-        integer :: i_new, j_new, k_new
-        real(8), dimension(:,:,:), allocatable, target :: matrix
 
-        i_new = i/this%block_size
-        j_new = j/this%block_size
-        k_new = k/this%block_size
+        if (this%grid(i,j,k)%material_idx == -1) then
+            this%grid(i,j,k)%material_idx = material_type
+            this%grid(i,j,k)%material_val = val
+        else
+            if (.not. associated(this%grid(i,j,k)%materials)) then
+                allocate(this%grid(i,j,k)%materials(1:this%nmats))
+                this%grid(i,j,k)%materials = 0d0
+                this%grid(i,j,k)%materials(this%grid(i,j,k)%material_idx) = this%grid(i,j,k)%material_val
+            end if
 
-        if (.not. associated(this%grid(material_type, i_new, j_new ,k_new)%matrix )) then 
-            allocate(this%grid(material_type, i_new, j_new ,k_new)%matrix(0:this%block_size, 0:this%block_size, 0:this%block_size))
+            this%grid(i,j,k)%materials(material_type) = val
         end if
 
-        this%grid(material_type, i_new, j_new ,k_new)%matrix(mod(i, this%block_size), mod(j, this%block_size) ,mod(k, this%block_size)) = val
     end subroutine add_item
 
 
     function get_item(this, material_type, i, j, k)
         implicit none
-        class(block_csr_t), intent(in) :: this
+        class(leeor_csr_t), intent(in) :: this
         integer, intent(in) :: i, j, k, material_type
-        integer :: i_new, j_new, k_new
         real(8) :: get_item
         get_item = 0d0
 
-        i_new = i/this%block_size
-        j_new = j/this%block_size
-        k_new = k/this%block_size
-
-        if (associated(this%grid(material_type, i_new, j_new ,k_new)%matrix)) then 
-            ! print*, 'block get'
-            get_item = this%grid(material_type, i_new, j_new ,k_new)%matrix(mod(i, this%block_size), mod(j, this%block_size) ,mod(k, this%block_size))
+        if (associated(this%grid(i,j,k)%materials)) then
+            get_item = this%grid(i,j,k)%materials(material_type)
+        else if (this%grid(i,j,k)%material_idx == material_type) then
+            get_item = this%grid(i,j,k)%material_val
         end if
 
     end function get_item
 
 
     subroutine print_data(this, file_name)
-        class(block_csr_t), intent(inout) :: this
+        class(leeor_csr_t), intent(inout) :: this
         character(len=*), intent(in)        ::   file_name
         integer :: i_new, j_new, k_new
-        type(block_t) :: block
 
         integer :: i,j,k,m
         integer :: unit
 
         open (unit=414, file=file_name, status = 'replace')  
-
-        ! print*, this%nz, this%ny, this%nx, this%nmats
         
         do k = 0, this%nz
             do j = 0, this%ny
                 do i = 0, this%nx
                     do m = 1, this%nmats
-
-                        i_new = i/this%block_size
-                        j_new = j/this%block_size
-                        k_new = k/this%block_size
-
-                        if (associated(this%grid(material_type, i_new, j_new ,k_new)%matrix)) then 
-                            write(414,*) m, i, j, k, this%grid(material_type, i_new, j_new ,k_new)%matrix(mod(i, this%block_size), mod(j, this%block_size) ,mod(k, this%block_size))
-                        else
-                            write(414,*) 0d0
-                        end if
-                        
+                        write(414,*) this%get_item(m, i, j, k)                      
                     end do
                 end do
             end do
@@ -261,17 +239,13 @@ module block_csr_module
 
 
    subroutine deallocate_data(this)
-        class(block_csr_t), intent(inout) :: this
+        class(leeor_csr_t), intent(inout) :: this
         integer :: i,j,k,m
         
-        do k = 0, this%d3_block
-            do j = 0, this%d2_block
-                do i = 0, this%d1_block
-                    do m = 1, this%nmats
-
-                        if (associated(this%grid(m, i, j ,k)%matrix)) deallocate(this%grid(m, i, j ,k)%matrix)
-                        
-                    end do
+        do k = 0, this%nz
+            do j = 0, this%ny
+                do i = 0, this%nz
+                    if (associated(this%grid(i, j ,k)%materials)) deallocate(this%grid(i, j ,k)%materials)    
                 end do
             end do
         end do
@@ -283,15 +257,15 @@ module block_csr_module
 
 
     subroutine who_am_i(this)
-      class(block_csr_t), intent(inout) :: this
+      class(leeor_csr_t), intent(inout) :: this
 
-      print*, 'ITS A ME: BLOCK CSR'
+      print*, 'ITS A ME: LEE-OR CSR'
 
     end subroutine who_am_i
 
     subroutine Ptr_coordinates_4d_csr(this, ptr)
-        ! class(block_csr_t), intent(in out) :: this
-        ! type(block_t), dimension(:,:,:,:), pointer, intent(out) :: ptr
+        ! class(leeor_csr_t), intent(in out) :: this
+        ! type(leeor_csr_t), dimension(:,:,:,:), pointer, intent(out) :: ptr
 
         ! ptr => this%grid
 
@@ -301,14 +275,14 @@ module block_csr_module
 
 
     function Get_copy (this)
-        class(block_csr_t)       , intent(in)  :: this
+        class(leeor_csr_t)       , intent(in)  :: this
         real(8), dimension(:,:,:,:), pointer :: Get_copy
 
         ! Get_copy = this%values
     end function Get_copy
 
     subroutine Clean_data_imp (this)
-        class(block_csr_t), intent(in out) :: this
+        class(leeor_csr_t), intent(in out) :: this
 
         ! TODO: implement
     end subroutine Clean_data_imp
@@ -317,7 +291,7 @@ module block_csr_module
 
 
     subroutine Get_recv_buf_imp(this)
-        class(block_csr_t), intent(in out) :: this
+        class(leeor_csr_t), intent(in out) :: this
         integer, dimension(4) :: vals_shape
         integer :: d1, d2, d3, x, y, z, m
         m=this%nmats
@@ -489,7 +463,7 @@ module block_csr_module
 
 
     subroutine Set_send_buf_imp(this)
-        class(block_csr_t), intent(in out) :: this
+        class(leeor_csr_t), intent(in out) :: this
         integer, dimension(4) :: vals_shape
         integer :: d1, d2, d3, x, y, z, offset
         integer :: m
@@ -687,7 +661,7 @@ module block_csr_module
 
     subroutine Debug_check_nan(this, caller)
         implicit none
-        class(block_csr_t), intent(in out) :: this
+        class(leeor_csr_t), intent(in out) :: this
         CHARACTER(*) caller
 
         integer :: i,j,k
@@ -706,7 +680,7 @@ module block_csr_module
 
     subroutine debug_print(this, caller, flag)
         implicit none
-        class(block_csr_t), intent(in out) :: this
+        class(leeor_csr_t), intent(in out) :: this
         integer, optional :: flag
         CHARACTER(*) caller
         integer :: width
@@ -729,7 +703,7 @@ module block_csr_module
 
 
     subroutine Write_data(this, unit, iostat, iomsg)
-        class(block_csr_t), intent(in) :: this
+        class(leeor_csr_t), intent(in) :: this
         integer,      intent(in)     :: unit
         integer,      intent(out)    :: iostat
         character(*), intent(in out)  :: iomsg
@@ -747,7 +721,7 @@ module block_csr_module
     end subroutine Write_data
 
     subroutine Read_data(this, unit, iostat, iomsg)
-        class(block_csr_t), intent(in out) :: this
+        class(leeor_csr_t), intent(in out) :: this
         integer,      intent(in)     :: unit
         integer,      intent(out)    :: iostat
         character(*), intent(in out)  :: iomsg

@@ -10,7 +10,7 @@ module quantity_module
     use data_4d_module, only : data_4d_t
     use csr_module, only : csr_t
     use block_csr_module, only : block_csr_t
-
+    use leeor_csr_module, only : leeor_csr_t
     
     use indexer_module
 
@@ -202,6 +202,9 @@ contains
         else if (data_type == "block_csr") then
             allocate (block_csr_t :: this%data_4d)
             this%data_4d => block_csr_t(initial_val, d1, d2, d3, d4)
+        else if (data_type == "leeor_csr") then
+            allocate (leeor_csr_t :: this%data_4d)
+            this%data_4d => leeor_csr_t(initial_val, d1, d2, d3, d4)
         end if 
 
         this%d1 = d1 - 1
@@ -242,6 +245,9 @@ contains
         else if (data_type == "block_csr") then
             allocate (block_csr_t :: this%data_4d)
             this%data_4d => block_csr_t(initial_val, d1, d2, d3, d4)
+        else if (data_type == "leeor_csr") then
+            allocate (leeor_csr_t :: this%data_4d)
+            this%data_4d => leeor_csr_t(initial_val, d1, d2, d3, d4)
         end if 
 
 
