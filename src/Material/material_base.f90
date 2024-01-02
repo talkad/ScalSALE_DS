@@ -82,13 +82,13 @@ contains
       end do
 
       print*, 'vof'
-      this%vof = material_quantity_t(0d0, nxp, nyp, nzp,nmats, bc_cell, bc_params, data_type)
+      this%vof = material_quantity_t(0d0, nxp, nyp, nzp,nmats, bc_cell, bc_params, 'full_grid')
       print*, 'sie'
       this%sie = material_quantity_t (0d0, nxp, nyp, nzp, nmats,bc_cell, bc_params, data_type)
       print*, 'cell_mass'
       this%cell_mass = material_quantity_t (0d0, nxp, nyp, nzp,nmats, bc_cell, bc_params, data_type)
       print*, 'initial_layers_of_mats'
-      this%initial_layers_of_mats = material_quantity_t (0d0, nxp, nyp, nzp, nmats, data_type)
+      this%initial_layers_of_mats = material_quantity_t (0d0, nxp, nyp, nzp, nmats, 'full_grid')
 
 !      if (sie_0(1) == 0) then
 !         this%nrg_calc = 1

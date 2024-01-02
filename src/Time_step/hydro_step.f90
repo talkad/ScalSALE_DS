@@ -403,13 +403,15 @@ contains
     end subroutine do_time_step_2d
 
 
-    subroutine do_time_step_3d(this, time)
+    subroutine do_time_step_3d(this, time, ncyc)
         use omp_lib
         class (hydro_step_t)         , intent (in out) :: this 
         type (time_t)                , intent (in out) :: time 
+        integer, intent(in) :: ncyc
 
         real(8), dimension(:, :, :), pointer :: p,x              
         integer :: i,j,k
+
         call this%total_sie%Point_to_data(1, x)
 
         call this%Calculate_thermodynamics()
@@ -433,48 +435,95 @@ contains
 
         if (this%rezone%rezone_type /= 0) call this%advect%Calculate_advect_3d()
 
-        call this%print_materials()
-
+        this%ncyc = this%ncyc  + 1
+        ! call this%materials%pressure%data_4d%print_data('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')  
+        if (mod(ncyc,10) == 0)        call this%print_materials()
+        
     end subroutine do_time_step_3d
 
 
-    subroutine print_materials(this)
+  subroutine print_materials(this)
         class (hydro_step_t) , intent(inout)   :: this
-        class(data_struct_t), pointer :: sound_vel
-        class(data_struct_t), pointer :: temperature
-        class(data_struct_t), pointer :: density
-        class(data_struct_t), pointer :: dp_de
-        class(data_struct_t), pointer :: dp_drho
-        class(data_struct_t), pointer :: dt_de
-        class(data_struct_t), pointer :: dt_drho
-        class(data_struct_t), pointer :: vof
-        class(data_struct_t), pointer :: sie
-        class(data_struct_t), pointer :: cell_mass
+        integer :: k,j,i,m, total, total_zero
+        real(8), dimension(:, :, :), pointer :: inversed_vertex_mass  
+        real(8), dimension(:, :, :), pointer :: pressure_sum          
+        real(8), dimension(:, :, :), pointer :: temperature           
+        real(8), dimension(:, :, :), pointer :: vertex_mass           
+        real(8), dimension(:, :, :), pointer :: cell_mass             
+        real(8), dimension(:, :, :), pointer :: sound_vel             
+        real(8), dimension(:, :, :), pointer :: pressure              
+        real(8), dimension(:, :, :), pointer :: density               
+        real(8), dimension(:, :, :), pointer :: dp_drho               
+        real(8), dimension(:, :, :), pointer :: dp_de                 
+        real(8), dimension(:, :, :), pointer :: sie                   
+        real(8), dimension(:, :, :), pointer :: vof 
+        real(8), dimension(:, :, :), pointer :: vol, total_vof
+        logical :: flag
+        total = 0
+        total_zero = 0
 
-        call this%materials%sound_vel%get_quantity_grid(sound_vel)
-        call this%materials%temperature%get_quantity_grid(temperature)
-        call this%materials%density%get_quantity_grid(density)
-        call this%materials%dp_de%get_quantity_grid(dp_de)
-        call this%materials%dp_drho%get_quantity_grid(dp_drho)
-        call this%materials%dt_de%get_quantity_grid(dt_de)
-        call this%materials%dt_drho%get_quantity_grid(dt_drho)
-        call this%materials%vof%get_quantity_grid(vof)
-        call this%materials%sie%get_quantity_grid(sie)
-        call this%materials%cell_mass%get_quantity_grid(cell_mass)
+        call this%materials%pressure%data_4d%print_data('material_results/pressure.txt')  
+        ! ! call this%materials%sound_vel%data_4d%print_data('material_results/sound_vel.txt')  
+        ! call this%materials%temperature%data_4d%print_data('material_results/temperature.txt')  
+        ! call this%materials%density%data_4d%print_data('material_results/density.txt')  
+        ! call this%materials%dp_de%data_4d%print_data('material_results/dp_de.txt')  
+        ! ! call this%materials%dp_drho%data_4d%print_data('material_results/dp_drho.txt')  
+        ! ! call this%materials%dt_de%data_4d%print_data('material_results/dt_de.txt')  
+        ! ! call this%materials%dt_drho%data_4d%print_data('material_results/dt_drho.txt')  
+        ! ! call this%materials%vof%data_4d%print_data('material_results/vof_new.txt')   
+        ! call this%materials%sie%data_4d%print_data('material_results/sie.txt')  
+        ! ! call this%materials%cell_mass%data_4d%print_data('material_results/cell_mass.txt')
 
-        call debug(sound_vel, 'material_results/sound_vel.txt', this%nz, this%ny, this%nx, this%nmats)  
-        call debug(temperature, 'material_results/temperature.txt', this%nz, this%ny, this%nx, this%nmats)  
-        call debug(density, 'material_results/density.txt', this%nz, this%ny, this%nx, this%nmats)  
-        call debug(dp_de, 'material_results/dp_de.txt', this%nz, this%ny, this%nx, this%nmats)  
-        call debug(dp_drho, 'material_results/dp_drho.txt', this%nz, this%ny, this%nx, this%nmats)  
-        call debug(dt_de, 'material_results/dt_de.txt', this%nz, this%ny, this%nx, this%nmats)  
-        call debug(dt_drho, 'material_results/dt_drho.txt', this%nz, this%ny, this%nx, this%nmats)  
-   
-        call debug(vof, 'material_results/vof_new.txt', this%nz, this%ny, this%nx, this%nmats)   
-        call debug(sie, 'material_results/sie.txt', this%nz, this%ny, this%nx, this%nmats)  
-        call debug(cell_mass, 'material_results/cell_mass.txt', this%nz, this%ny, this%nx, this%nmats)  
+        ! call this%total_pressure_sum  %Point_to_data(pressure_sum)
+        ! call this%total_temperature   %Point_to_data(temperature)
+        ! call this%total_cell_mass     %Point_to_data(cell_mass)
+        ! call this%total_sound_vel     %Point_to_data(sound_vel)
+        ! call this%total_pressure      %Point_to_data(pressure)
+        ! call this%total_density       %Point_to_data(density)
+        ! call this%total_dp_drho       %Point_to_data(dp_drho)
+        ! call this%total_dp_de         %Point_to_data(dp_de)
+        ! call this%total_volume        %Point_to_data(vol)
+        ! call this%total_vof        %Point_to_data(total_vof)
+        ! call this%total_sie           %Point_to_data(sie)
+
+        ! call debug_3d(pressure_sum, 'material_results/pressure_sum_total.txt', this%nz, this%ny, this%nx) 
+        ! ! call debug_3d(temperature, 'material_results/temperature_total.txt', this%nz, this%ny, this%nx)  
+        ! ! call debug_3d(cell_mass, 'material_results/cell_mas_total.txt', this%nz, this%ny, this%nx)  
+        ! ! call debug_3d(sound_vel, 'material_results/sound_total.txt', this%nz, this%ny, this%nx)  
+        ! ! call debug_3d(pressure, 'material_results/pressure_total.txt', this%nz, this%ny, this%nx)  
+        ! ! call debug_3d(density, 'material_results/density_total.txt', this%nz, this%ny, this%nx)  
+        ! ! call debug_3d(dp_drho, 'material_results/dp_drho_total.txt', this%nz, this%ny, this%nx)  
+        ! ! call debug_3d(dp_de, 'material_results/dt_de_total.txt', this%nz, this%ny, this%nx)  
+        ! ! call debug_3d(vol, 'material_results/volume_total.txt', this%nz, this%ny, this%nx)  
+        ! ! call debug_3d(sie, 'material_results/sie_total.txt', this%nz, this%ny, this%nx)  
+        ! call debug_3d(total_vof, 'material_results/total_vof.txt', this%nz, this%ny, this%nx)  
+
+                
+        print*, this%materials%density%data_4d%nz, this%materials%density%data_4d%ny, this%materials%density%data_4d%nx, this%materials%density%data_4d%nmats
+        do k = 1, this%materials%density%data_4d%nz-1
+            do j = 1, this%materials%density%data_4d%ny-1
+                do i = 1, this%materials%density%data_4d%nx-1
+                    total = total + 1
+                    flag= .false.
+                    do m = 1, this%materials%density%data_4d%nmats
+                        
+                        if (this%materials%density%data_4d%get_item(m,i,j,k) > 0 .and. flag) then
+                          total_zero = total_zero + 1
+                        !   write(this%ncyc, *) i,j,k
+                          exit
+                        end if
+                        if (this%materials%density%data_4d%get_item(m,i,j,k) > 0) flag=.true.
+                    end do
+                end do
+            end do
+        end do
+
+        print*, 'ratio', total_zero, total, real(total_zero) / real(total)
+        
+        ! close (414)
     end subroutine print_materials
 
+     
 
     subroutine Calculate_thermodynamics(this)
         use omp_lib
@@ -546,7 +595,6 @@ contains
         call this%total_vof           %Point_to_data(vof)
         call this%total_sie           %Point_to_data(sie)
 
-
         call this%materials%temperature%get_quantity_grid(temperature_vof)
         call this%materials%temperature_old%get_quantity_grid(temperature_vof_old)
         call this%materials%pressure   %get_quantity_grid(pressure_vof)
@@ -558,7 +606,7 @@ contains
         call this%materials%vof            %get_quantity_grid(mat_vof)
         call this%materials%sie            %get_quantity_grid(sie_vof)
 
-        call debug(sie_vof, 'material_results/sie_vofff1.txt', this%nz, this%ny, this%nx, this%nmats)
+        ! call debug(sie_vof, 'material_results/sie_vofff1.txt', this%nz, this%ny, this%nx, this%nmats)
 
 
         call this%Calculate_density(this%total_volume)
@@ -568,7 +616,6 @@ contains
         pressure    = 0d0
         dp_drho     = 0d0
         dp_de       = 0d0
-
 
         do k = 1, this%nz
             do j = 1, this%ny
@@ -585,7 +632,6 @@ contains
                 end do
             end do
         end do 
-
 
 
         allocate(dt_de_temp(this%nx, this%ny, this%nz))
@@ -661,14 +707,14 @@ contains
         call this%total_sie    %Apply_boundary(.false.)
         call this%total_vof    %Apply_boundary(.false.)
         call this%materials%cell_mass%Apply_boundary(.false.)
-        ! call this%materials%density  %Apply_boundary(.false.)xxxxxxxxxxxxxxxxxxxxxxxxxxx
+        call this%materials%density  %Apply_boundary(.false.)
         ! call debug(sie_vof, 'material_results/sie_vof1.txt', this%nz, this%ny, this%nx, this%nmats)
-        ! call this%materials%sie      %Apply_boundary(.false.)xxxxxxxxxxxxxxxxxxxxxxxxxx
+        call this%materials%sie      %Apply_boundary(.false.)
         ! call debug(sie_vof, 'material_results/sie_vof2.txt', this%nz, this%ny, this%nx, this%nmats)
 
 
         ! call debug(mat_vof, 'material_results/mat_vof1.txt', this%nz, this%ny, this%nx, this%nmats)
-        ! call this%materials%vof      %Apply_boundary(.false.)  ! ????????????????
+        call this%materials%vof      %Apply_boundary(.false.)
         ! call debug(mat_vof, 'material_results/mat_vof2.txt', this%nz, this%ny, this%nx, this%nmats)
 
 
@@ -714,8 +760,9 @@ contains
     end subroutine Calculate_thermodynamics
 
 
+
     subroutine debug(arr, file_name, nzp, nyp, nxp, nmats)
-        class(data_struct_t), pointer, intent(in)   ::   arr
+        real(8), dimension(:,:,:,:), pointer, intent(in)   ::   arr
         integer, intent(in)                              ::   nzp, nyp, nxp, nmats
         character(len=*), intent(in)                      ::   file_name
 
@@ -724,15 +771,18 @@ contains
         integer :: total_debug
         total_debug = 0
 
-        open (unit=414, file=file_name, status = 'replace')  
+
+        open (unit=414, file=file_name,  status = 'replace')  
         
-        do k = 0, nzp
-            do j = 0, nyp
-                do i = 0, nxp
+        
+        do k = 0, nzp+1
+            do j = 0, nyp+1
+                do i = 0, nxp+1
                     do m = 1, nmats
 
-                        write(414,*)  m, i, j, k, arr%get_item(m,i,j,k)  ! m,i,j,k,
-
+                        if (arr(m,i,j,k) == 0)   total_debug = total_debug + 1
+                        ! write(414, '(I10, I10, I10, I10, Z17)') m, i, j, k, arr(m, i, j, k)
+                        write(414, *)  i, j, k, arr(m, i, j, k)
                     end do
                 end do
             end do
@@ -740,8 +790,40 @@ contains
         
         close (414)
 
+
     end subroutine debug
 
+
+
+    subroutine debug_3d(arr, file_name, nzp, nyp, nxp)
+        real(8), dimension(:,:,:), pointer, intent(in)   ::   arr
+        integer, intent(in)                              ::   nzp, nyp, nxp
+        character(len=*), intent(in)                      ::   file_name
+
+        integer :: i,j,k,m
+        integer :: unit
+        integer :: total_debug
+        total_debug = 0
+
+
+        open (unit=414, file=file_name,  status = 'replace')  
+        
+        
+        do k = 0, nzp+1
+            do j = 0, nyp+1
+                do i = 0, nxp+1
+
+                        if (arr(i,j,k) == 0)   total_debug = total_debug + 1
+                        ! write(414, '(I10, I10, I10, Z17)')  i, j, k, arr(i,j,k)
+                        write(414, *)  i, j, k, arr(i,j,k)
+                end do
+            end do
+        end do
+        
+        close (414)
+
+
+    end subroutine debug_3d
 
 
 
@@ -1899,8 +1981,7 @@ contains
         call this%materials%sie        %get_quantity_grid(sie_vof)
         call this%materials%vof        %get_quantity_grid(mat_vof)
 
-
-        call debug(sie_vof, 'material_results/sie_vof1.txt', this%nz, this%ny, this%nx, this%nmats)
+        ! call debug(sie_vof, 'material_results/sie_vof1.txt', this%nz, this%ny, this%nx, this%nmats)
         do k = 1, this%nz
             do j = 1, this%ny
                 do i = 1, this%nx
@@ -1969,7 +2050,7 @@ contains
 
         call this%materials%sie%Exchange_virtual_space_nonblocking()
 
-        call debug(sie_vof, 'material_results/sie_vof2.txt', this%nz, this%ny, this%nx, this%nmats)
+        ! call debug(sie_vof, 'material_results/sie_vof2.txt', this%nz, this%ny, this%nx, this%nmats)
 
         return
     end subroutine Calculate_energy_3d
@@ -2125,9 +2206,9 @@ contains
         real(8), dimension(:, :, :), pointer :: vof                 
         real(8), dimension(:, :, :), pointer :: sie                 
 
-        real(8), dimension(:), pointer :: cell_mass_vof
-        real(8), dimension(:), pointer :: mat_vof
-        real(8), dimension(:), pointer :: sie_vof
+        class(data_struct_t), pointer  :: cell_mass_vof
+        class(data_struct_t), pointer  :: mat_vof
+        class(data_struct_t), pointer  :: sie_vof
 
         real(8), dimension(:, :, :), allocatable :: vof_sum_arr          
         real(8), dimension(:, :, :), allocatable :: vof_max_arr          
@@ -2147,7 +2228,6 @@ contains
 
         integer :: i, j, k, tmp_mat     
         real(8) :: emf1                 
-
         call this%total_cell_mass  %Point_to_data(cell_mass)
         call this%total_pressure   %Point_to_data(pressure)
         call this%num_mat_cells    %Point_to_data(nmats_in_cell)
@@ -2157,8 +2237,11 @@ contains
         call this%a_visc           %Point_to_data(a_visc)
         call this%rezone%material_volume%Point_to_data(mat_vol)
 
-        emf1 = 1 - this%emf
+        call this%materials%sie%get_quantity_grid(sie_vof)
+        call this%materials%vof%get_quantity_grid(mat_vof)
+        call this%materials%cell_mass%get_quantity_grid(cell_mass_vof)
 
+        emf1 = 1 - this%emf
         allocate(vof_sum_arr(1:this%nx, 1:this%ny, 1:this%nz))
         allocate(vof_max_arr(1:this%nx, 1:this%ny, 1:this%nz))
         allocate(sie_vof_sum_arr(1:this%nx, 1:this%ny, 1:this%nz))
@@ -2172,11 +2255,7 @@ contains
         mat_vof_max_arr = 0
             
 
-            call this%materials%sie      %Point_to_data(sie_vof)
-            call this%materials%vof      %Point_to_data(mat_vof)
-            call this%materials%cell_mass%Point_to_data(cell_mass_vof)
 
-        
 !        do tmp_mat = 1, this%nmats
 !
 !
@@ -2245,15 +2324,14 @@ contains
 
 call this%total_sie%exchange_end()
 call this%materials%sie%exchange_end()
-
-        deallocate(vof_sum_arr)
+        deallocate(vof_sum_arr)  
         deallocate(vof_max_arr)
         deallocate(sie_vof_sum_arr)
         deallocate(cell_mass_vof_sum_arr)
         deallocate(mat_vof_max_arr)
+        
         call this%total_vof%Apply_boundarY(.false.)
-            ! call this%materials%vof%Apply_boundarY(is_blocking=.false.) xxxxxxxxxxxxxxxxxxxxxxxxxxx
-
+            call this%materials%vof%Apply_boundarY(is_blocking=.false.)
 
             ! call debug(cell_mass_vof, 'material_results/cell_mass_vof.txt', this%nz, this%ny, this%nx, this%nmats)
             ! call debug(mat_vof, 'material_results/mat_vof.txt', this%nz, this%ny, this%nx, this%nmats)

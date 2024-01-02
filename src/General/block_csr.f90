@@ -13,7 +13,7 @@ module block_csr_module
 
         type(block_t), dimension(:,:,:,:), allocatable :: grid
 
-        integer :: block_size = 16
+        integer :: block_size = 8
         integer :: d1_block, d2_block, d3_block
 
     contains
@@ -48,6 +48,7 @@ module block_csr_module
         procedure :: print_data => print_data
         procedure :: deallocate_data => deallocate_data
         procedure :: who_am_i => who_am_i
+        procedure :: reorder => reorder
 
         procedure, private :: add_boundary
 
@@ -125,7 +126,7 @@ module block_csr_module
         do k = 0, this%nz
             do j = 0, this%ny
                 do m = 1, this%nmats
-                    call this%add_item(m,i,j,k, 0d0)
+                    call this%add_item(m,i,j,k, 0d0, .true.)
                 end do
             end do
         end do
@@ -135,7 +136,7 @@ module block_csr_module
         do k = 0, this%nz
             do j = 0, this%ny
                 do m = 1, this%nmats
-                    call this%add_item(m,i,j,k, 0d0)
+                    call this%add_item(m,i,j,k, 0d0, .true.)
                 end do
             end do
         end do
@@ -145,7 +146,7 @@ module block_csr_module
         do k = 0, this%nz
             do i = 0, this%nx
                 do m = 1, this%nmats
-                    call this%add_item(m,i,j,k, 0d0)
+                    call this%add_item(m,i,j,k, 0d0, .true.)
                 end do
             end do
         end do
@@ -155,7 +156,7 @@ module block_csr_module
         do k = 0, this%nz
             do i = 0, this%nx
                 do m = 1, this%nmats
-                    call this%add_item(m,i,j,k, 0d0)
+                    call this%add_item(m,i,j,k, 0d0, .true.)
                 end do
             end do
         end do
@@ -165,7 +166,7 @@ module block_csr_module
         do j = 0, this%ny
             do i = 0, this%nx
                 do m = 1, this%nmats
-                    call this%add_item(m,i,j,k, 0d0)
+                    call this%add_item(m,i,j,k, 0d0, .true.)
                 end do
             end do
         end do
@@ -174,7 +175,7 @@ module block_csr_module
         do j = 0, this%ny
             do i = 0, this%nx
                 do m = 1, this%nmats
-                    call this%add_item(m,i,j,k, 0d0)
+                    call this%add_item(m,i,j,k, 0d0, .true.)
                 end do
             end do
         end do
@@ -183,20 +184,23 @@ module block_csr_module
     end subroutine add_boundary
 
 
-    subroutine add_item(this, material_type, i, j, k, val)
+    subroutine add_item(this, material_type, i, j, k, val, boundry)
         implicit none
         class(block_csr_t), intent(inout) :: this
         integer, intent(in) :: i, j, k, material_type
         real(8), intent(in) :: val
         integer :: i_new, j_new, k_new
         real(8), dimension(:,:,:), allocatable, target :: matrix
+        logical, optional, intent(in) ::  boundry
 
         i_new = i/this%block_size
         j_new = j/this%block_size
         k_new = k/this%block_size
 
         if (.not. associated(this%grid(material_type, i_new, j_new ,k_new)%matrix )) then 
+            if (.not. present(boundry) .and. val == 0) return
             allocate(this%grid(material_type, i_new, j_new ,k_new)%matrix(0:this%block_size, 0:this%block_size, 0:this%block_size))
+            this%grid(material_type, i_new, j_new ,k_new)%matrix(:,:,:) = 0
         end if
 
         this%grid(material_type, i_new, j_new ,k_new)%matrix(mod(i, this%block_size), mod(j, this%block_size) ,mod(k, this%block_size)) = val
@@ -223,6 +227,12 @@ module block_csr_module
     end function get_item
 
 
+    subroutine reorder(this, update_mapper)
+        implicit none
+        class(block_csr_t), intent(inout) :: this
+        logical, intent(in) :: update_mapper
+    end subroutine reorder
+
     subroutine print_data(this, file_name)
         class(block_csr_t), intent(inout) :: this
         character(len=*), intent(in)        ::   file_name
@@ -241,15 +251,7 @@ module block_csr_module
                 do i = 0, this%nx
                     do m = 1, this%nmats
 
-                        i_new = i/this%block_size
-                        j_new = j/this%block_size
-                        k_new = k/this%block_size
-
-                        if (associated(this%grid(material_type, i_new, j_new ,k_new)%matrix)) then 
-                            write(414,*) m, i, j, k, this%grid(material_type, i_new, j_new ,k_new)%matrix(mod(i, this%block_size), mod(j, this%block_size) ,mod(k, this%block_size))
-                        else
-                            write(414,*) 0d0
-                        end if
+                        write(414,*)  m, i, j, k, this%get_item(m,i,j,k)
                         
                     end do
                 end do
@@ -257,6 +259,29 @@ module block_csr_module
         end do
         
         close (414)
+        
+        ! integer :: i,j,k
+        ! real :: result, total
+        ! total = 0
+
+        !  do k = 0, this%nz
+        !     do j = 0, this%ny
+        !         do i = 0, this%nx
+        !             do m = 1, this%nmats
+
+        !                 total = total + 1
+        !                 i_new = i/this%block_size
+        !                 j_new = j/this%block_size
+        !                 k_new = k/this%block_size
+
+        !                 if (associated(this%grid(m, i_new, j_new ,k_new)%matrix))  result = result + 1
+                                        
+        !             end do
+        !         end do
+        !     end do
+        ! end do
+
+        ! print*, 'block csr ratio', result/total
    end subroutine
 
 

@@ -29,7 +29,7 @@
         "index": 1, 
         "Z_2": 4.0, 
         "gamma_gas": 1.667, 
-        "rho_0": 1.0, 
+        "rho_0": 0.2, 
         "Z": 2.0, 
         "eos_type": "ideal"
     }, 
@@ -38,7 +38,7 @@
         "index": 2, 
         "Z_2": 4.0, 
         "gamma_gas": 1.667, 
-        "rho_0": 2.0, 
+        "rho_0": 1.0, 
         "Z": 2.0, 
         "eos_type": "ideal"
     }, 
@@ -47,7 +47,7 @@
         "index": 2, 
         "Z_2": 4.0, 
         "gamma_gas": 1.667, 
-        "rho_0": 1.5, 
+        "rho_0":0.6, 
         "Z": 2.0, 
         "eos_type": "ideal"
     }, 
@@ -146,16 +146,16 @@
     "layers_materials": {
         "number_layers_i": 2, 
         "number_cells_i": [
-            120,
-            120
+            80,
+            80
         ], 
         "number_layers_k":1, 
         "number_cells_k": [
-            120
+            80
         ], 
         "number_layers_j": 1, 
         "number_cells_j": [
-	    	120
+	    	80
         ], 
         "materials": [
             "Be", 
@@ -177,7 +177,7 @@
         "dt_max": 0.1
     },
     "rezone_advect": {
-        "rezone_type": "lagrange"
+        "rezone_type": "euler"
     },
     "parallel": {
 	"np": 1,

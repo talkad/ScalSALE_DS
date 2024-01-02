@@ -32,6 +32,7 @@ module data_struct_base
         procedure(get), public, deferred :: get_item
         procedure(add), public, deferred :: add_item
         procedure(print_struct), public, deferred :: print_data
+        procedure(reorder_struct), public, deferred :: reorder
         procedure(remove), public, deferred :: deallocate_data
         procedure(who), public, deferred :: who_am_i
 
@@ -54,11 +55,18 @@ module data_struct_base
                 real(8) :: get
             end function
 
-            subroutine add(this, material_type, i, j, k, val)
+            subroutine add(this, material_type, i, j, k, val, boundry)
                 import data_struct_t
                 class(data_struct_t), intent(inout) :: this
                 integer, intent(in) :: i, j, k, material_type
                 real(8), intent(in) :: val
+                logical, optional, intent(in) ::  boundry
+            end subroutine
+
+            subroutine reorder_struct(this, update_mapper)
+                import data_struct_t
+                class(data_struct_t), intent(inout) :: this
+                logical, intent(in) :: update_mapper
             end subroutine
 
             subroutine print_struct(this, file_name)
@@ -101,6 +109,8 @@ module data_struct_base
         subroutine Ptr_coordinates_4d(this, ptr)
             class (data_struct_t), intent(in out) :: this
             real(8), dimension(:,:,:,:), pointer, intent(out) :: ptr
+            write(*,*) "Trying to point to a 4d array, when this isn't a 4d array, maybe a CSR?"
+            stop
         end subroutine Ptr_coordinates_4d
 
 
@@ -110,19 +120,11 @@ module data_struct_base
             type(communication_parameters_t), pointer :: comm_params
             ! integer, dimension(4) :: vals_shape
             integer :: d1,d2,d3
-            
-            if (associated(comm)) print*, 'harbu darbu 22222'
-            if (associated(this%communication)) print*, 'harbu darbu 11111'
-            
 
-            print*, 'harbu darbu'
             this%communication => comm
-            print*, 'harbu darbu'
             this%communication_parameters => comm_params
-            print*, 'harbu darbu'
             this%parallel_params => this%communication%parallel_params
             if (this%communication%is_parallel .eqv. .true.) then
-            print*, 'harbu darbu'
             ! vals_shape = shape(this%values)
             ! d1 = vals_shape(2) - 2
             ! d2 = vals_shape(3) - 2
@@ -131,7 +133,7 @@ module data_struct_base
             d1 = this%nx - 2
             d2 = this%ny - 2
             d3 = this%nz - 2
-            print*, 'okokok'
+
             allocate(this%send_buf(0:this%nmats * (2*(d2+2)*(d3+2)+2*(d1+2)*(d3+2)+2*(d1+2)*(d2+2)+4*(d3+2)+4*(d2+2)+4*(d1+2)+8)-1))
             allocate(this%recv_buf(0:this%nmats * (2*(d2+2)*(d3+2)+2*(d1+2)*(d3+2)+2*(d1+2)*(d2+2)+4*(d3+2)+4*(d2+2)+4*(d1+2)+8)-1))
             end if

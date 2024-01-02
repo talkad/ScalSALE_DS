@@ -37,7 +37,7 @@ contains
             select case(edge_num)
                 case(1)
 
-                    call grid%print_data('material_results/split_debug1.txt')
+                    ! call grid%print_data('material_results/split_debug1.txt')
                     i = 1
 
                     do k = 0, nzp
@@ -48,7 +48,7 @@ contains
                         end do
                     end do
 
-                    call grid%print_data('material_results/split_debug2.txt')
+                    ! call grid%print_data('material_results/split_debug2.txt')
 
 
                 case(2)

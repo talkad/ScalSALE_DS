@@ -171,7 +171,8 @@ write(*,*) " making the sod"
         deallocate(start_index)
     end function
 
-    type(materials_in_cells_t) function Constructor_3d_sedov_taylor(d1, d2, d3, bc,bc_params, parallel_params)
+     type(materials_in_cells_t) function Constructor_3d_sedov_taylor(d1, d2, d3, bc,bc_params, parallel_params, number_layers_i, number_layers_j, number_layers_k, &
+        number_cells_i, number_cells_j, number_cells_k, mat_index)
         use parallel_parameters_module ,only : parallel_parameters_t
         implicit none
         type(parallel_parameters_t), pointer              , intent(inout) :: parallel_params
@@ -180,7 +181,13 @@ write(*,*) " making the sod"
         integer                                           , intent(in) :: d3           
         type(cell_bc_wrapper_t), dimension(:), pointer    , intent(in) :: bc           
         type(boundary_parameters_t)          , pointer    , intent(in) :: bc_params
-
+        integer                                           , intent(in) :: number_layers_i  
+        integer                                           , intent(in) :: number_layers_j  
+        integer                                           , intent(in) :: number_layers_k  
+        integer, dimension(:), allocatable                , intent(in) :: number_cells_i 
+        integer, dimension(:), allocatable                , intent(in) :: number_cells_j 
+        integer, dimension(:), allocatable                , intent(in) :: number_cells_k 
+        integer, dimension(:), allocatable                , intent(in) :: mat_index 
 
         real(8), allocatable, dimension (:,:,:)                        :: init_values  
         integer :: i_curr, j_curr, k_curr, num_mat, lay_k, lay_j, lay_i, i, j, k, ele_i, ele_j, ele_k
@@ -207,23 +214,47 @@ write(*,*) " making the sod"
 
         write(*,*) " making sedov-taylor"
 
-
-
-        DO K=1, d3 - 1
-            DO J=1, d2 - 1
-                DO I=1, d1 - 1
-                        if (parallel_params%i_virt(i) == 1 .and. &
-                            parallel_params%j_virt(j) == 1 .and. &
-                            parallel_params%k_virt(k) == 1) then
-                            !write(*,*), "in section 1",i,j,k
-                            init_values(i, j, k) = 1
-                        else
-                            init_values(i, j, k) = 2
-                        end if
-                    !write(*,*),"init_values: ",i,j,k, init_values(i,j,k)
-                END DO
-            END DO
-        END DO
+        j_curr = 1
+        i_curr = 1
+        num_mat = 1
+        do lay_k = 1, number_layers_k 
+            k_curr = 1
+            do lay_j = 1, number_layers_j
+                i_curr = 1
+                do lay_i = 1, number_layers_i
+                    ele_k = number_cells_k(lay_k) + k_curr
+                    ele_j = number_cells_j(lay_j) + j_curr 
+                    ele_i = number_cells_i(lay_i) + i_curr 
+                    
+                    do k = k_curr, ele_k
+                        do j = j_curr, ele_j
+                            do i = i_curr, ele_i
+                                init_values(i, j, k) = mat_index(num_mat)
+                            end do  
+                        end do
+                    end do
+                    i_curr = i_curr + number_cells_i(lay_i) 
+                    num_mat = num_mat + 1
+                end do
+                j_curr = j_curr + number_cells_j(lay_j)
+            end do
+            k_curr = k_curr + number_cells_k(lay_k)
+        end do 
+        ! DO K=1, d3 - 1
+        !     DO J=1, d2 - 1
+        !         DO I=1, d1 - 1
+        !                 if (parallel_params%i_virt(i) == 1 .and. &
+        !                     parallel_params%j_virt(j) == 1 .and. &
+        !                     parallel_params%k_virt(k) == 1) then
+        !                     !write(*,*), "in section 1",i,j,k
+        !                     init_values(i, j, k) = 1
+        !                 else
+        !                     init_values(i, j, k) = 2
+        !                 end if
+        !             !write(*,*),"init_values: ",i,j,k, init_values(i,j,k)
+        !         END DO
+        !     END DO
+        ! END DO
 
 
         call Constructor_3d_sedov_taylor%Init_cell_quantity_init_arr (init_values, d1, d2, d3, bc, bc_params)

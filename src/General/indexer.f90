@@ -1,7 +1,8 @@
 module indexer_module
 
     type :: indexer_t
-        integer, dimension(:,:,:,:), allocatable   ::   mapper
+        
+        integer, dimension(:,:,:,:), allocatable   ::   mapper !, holder
 
         logical :: initiated = .False.
         integer :: m, nx, ny, nz
@@ -23,9 +24,13 @@ module indexer_module
         type(indexer_t), target, allocatable :: mapper_constructor
         
         allocate(mapper_constructor)
-        allocate(mapper_constructor%mapper(1:m,0:nx,0:ny,0:nz))
 
+        allocate(mapper_constructor%mapper(1:m,0:nx,0:ny,0:nz))
         mapper_constructor%mapper(1:m,0:nx,0:ny,0:nz) = -1
+        
+        ! allocate(mapper_constructor%holder(1:m,0:nx,0:ny,0:nz))
+        ! mapper_constructor%holder(1:m,0:nx,0:ny,0:nz) = -1
+
         mapper_constructor%last_idx = 0
 
     end function mapper_constructor
@@ -36,7 +41,6 @@ module indexer_module
         type(indexer_t), pointer :: get_instance
         integer, optional, intent(in) :: m, nx, ny, nz
 
-        ! print*, 'get_instance'
         if (.not. allocated(indexer) .and. present(m) .and. present(nx) .and. present(ny) .and. present(nz)) then
             indexer = mapper_constructor(m, nx, ny, nz)
             get_instance => indexer
@@ -44,7 +48,6 @@ module indexer_module
             get_instance => indexer
         end if
 
-        ! print*, 'mapper shape', shape(indexer%mapper)
     end function get_instance
 
 

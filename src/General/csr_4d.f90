@@ -7,13 +7,14 @@ module csr_module
         real(8), dimension(:,:,:,:), pointer, public         :: values
 
         !! CSR Arguments 
+        real(8), dimension(:), pointer :: nz_values_holder
         real(8), dimension(:), pointer :: nz_values
         type(indexer_t), pointer ::  index_mapper
         integer, dimension(:,:,:,:), pointer :: idx_map        
         integer :: padding_size
         integer :: padding_idx
 
-        real(8) :: ratio = 0.01
+        real(8) :: ratio = 0.1
 
     contains
 
@@ -22,8 +23,6 @@ module csr_module
         !                     Ptr_coordinates_4d
 
         procedure, public :: Ptr_coordinates_1d => Ptr_coordinates_1d_csr
-
-
 
 
         procedure, public :: Clean_data => Clean_data_imp
@@ -53,8 +52,8 @@ module csr_module
         procedure :: print_data => print_data
         procedure :: deallocate_data => deallocate_data
         procedure :: who_am_i => who_am_i
+        procedure :: reorder => reorder
 
-        procedure :: update_struct => update_struct
         procedure, private, nopass :: append_real
         procedure, private :: count_new_cells
         procedure, private :: add_boundary
@@ -86,7 +85,7 @@ module csr_module
 
         print*, 'init_csr'
         allocate(Constructor_init_val%values(0:1,0:1,0:1,0:1))
-        Constructor_init_val%values = 0
+        Constructor_init_val%values = initial_val
 
 
         Constructor_init_val%nx = d1
@@ -94,12 +93,10 @@ module csr_module
         Constructor_init_val%nz = d3
         Constructor_init_val%nmats = d4
 
-        ! print*, 'aaaaaaaaaa', d4, d3, d2, d1
 
         Constructor_init_val%idx_map => idx_map
-        space_size = (d1+1) * (d2+1) * (d3+1) * d4 !* 4
 
-        ! print*, 'nz_size', space_size
+        space_size = (d1+2) * (d2+2) * (d3+2) ! * d4
 
         Constructor_init_val%padding_size = space_size*Constructor_init_val%ratio
         Constructor_init_val%padding_idx = 0
@@ -107,6 +104,9 @@ module csr_module
         allocate(Constructor_init_val%nz_values(0:space_size+int(space_size*Constructor_init_val%ratio)))
         Constructor_init_val%nz_values = 0d0
         ! print*, 'aaaaaaaaaaaaaaaaaaaa',d4,d1,d2,d3
+
+        ! allocate(Constructor_init_val%nz_values_holder(0:space_size+int(space_size*Constructor_init_val%ratio)))
+        ! Constructor_init_val%nz_values_holder = 0d0
 
         Constructor_init_val%index_mapper => get_instance()
 
@@ -119,12 +119,12 @@ module csr_module
         implicit none
         class(csr_t), intent(inout) :: this
         integer :: i,j,k,m
-        
+
         i = 0
         do k = 0, this%nz
             do j = 0, this%ny
                 do m = 1, this%nmats
-                    call this%add_item(m,i,j,k, 0d0)
+                    call this%add_item(m,i,j,k, 0d0, .true.)
                 end do
             end do
         end do
@@ -134,7 +134,7 @@ module csr_module
         do k = 0, this%nz
             do j = 0, this%ny
                 do m = 1, this%nmats
-                    call this%add_item(m,i,j,k, 0d0)
+                    call this%add_item(m,i,j,k, 0d0, .true.)
                 end do
             end do
         end do
@@ -144,7 +144,7 @@ module csr_module
         do k = 0, this%nz
             do i = 0, this%nx
                 do m = 1, this%nmats
-                    call this%add_item(m,i,j,k, 0d0)
+                    call this%add_item(m,i,j,k, 0d0, .true.)
                 end do
             end do
         end do
@@ -154,7 +154,7 @@ module csr_module
         do k = 0, this%nz
             do i = 0, this%nx
                 do m = 1, this%nmats
-                    call this%add_item(m,i,j,k, 0d0)
+                    call this%add_item(m,i,j,k, 0d0, .true.)
                 end do
             end do
         end do
@@ -164,7 +164,7 @@ module csr_module
         do j = 0, this%ny
             do i = 0, this%nx
                 do m = 1, this%nmats
-                    call this%add_item(m,i,j,k, 0d0)
+                    call this%add_item(m,i,j,k, 0d0, .true.)
                 end do
             end do
         end do
@@ -173,140 +173,102 @@ module csr_module
         do j = 0, this%ny
             do i = 0, this%nx
                 do m = 1, this%nmats
-                    call this%add_item(m,i,j,k, 0d0)
+                    call this%add_item(m,i,j,k, 0d0, .true.)
                 end do
             end do
         end do
-
     
     end subroutine add_boundary
 
 
-    subroutine add_item(this, material_type, i, j, k, val)
+    subroutine add_item(this, material_type, i, j, k, val, boundry)
         implicit none
         class(csr_t), intent(inout) :: this
         integer, intent(in) :: i, j, k, material_type
         real(8), intent(in) :: val
+        logical, optional, intent(in) :: boundry
         integer :: idx
-        integer :: last_idx
+        integer :: last_idx, max_idx
 
         last_idx = this%index_mapper%last_idx
         idx = this%idx_map(material_type, i, j, k)
 
-        ! if (material_type==1 .and. i==12 .and. j==2 .and. k==11) then
-        !     print*, 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
-        !     print*, idx
+        if (.not. present(boundry) .and. idx == -1 .and. val == 0) return
+        max_idx = size(this%nz_values)
+        
 
-        !     print*, this%get_item( material_type, i, j, k), '->', val
-        ! end if
-
-        if (idx > -1) then
+        if (idx > -1 .and. idx < max_idx) then
             this%nz_values(idx) = val
+            ! print*, 'old cell ', material_type, i, j, k, val
         else
-            this%nz_values(last_idx) = val
-            this%idx_map(material_type, i, j, k) = last_idx
+            
+            if (last_idx >= max_idx) then
+                print*, 'CSR reallocation'
+                allocate(this%nz_values_holder(0:max_idx-1))
+                this%nz_values_holder(:) = this%nz_values(:)
+                ! print*, 'aa', size(this%nz_values_holder), size(this%nz_values)
+                ! print*, max_idx, associated(this%nz_values)
+                deallocate(this%nz_values)
+                ! print*, max_idx+int(max_idx*this%ratio)
+                allocate(this%nz_values(0:max_idx+int(max_idx*this%ratio)))
+                ! print*, 'bb', size(this%nz_values_holder), size(this%nz_values)
+                this%nz_values(0:max_idx-1) = this%nz_values_holder(0:max_idx-1)
+                deallocate(this%nz_values_holder)
 
-            this%index_mapper%last_idx = last_idx + 1
+            end if
+            ! print*, 'new cell ', material_type, i, j, k, val
+
+            if (idx > -1) then
+                this%nz_values(idx) = val
+            else
+                this%nz_values(last_idx) = val
+                this%idx_map(material_type, i, j, k) = last_idx
+                this%index_mapper%last_idx = last_idx + 1
+            end if
         end if
+        ! print*, 'add end ' 
 
     end subroutine add_item
 
 
-    ! Assume the order of the new values is j i m
-    subroutine update_struct(this, ms, is, js, ks, vals)
+    subroutine reorder(this, update_mapper)
         implicit none
         class(csr_t), intent(inout) :: this
-        integer, dimension(:), allocatable, intent(in) :: is, js, ks, ms
-        real(8), dimension(:), allocatable, intent(in) :: vals
-        integer :: m, i, j, k, materials, nx, ny, nz, insertion_idx, idx, num_vals
-        integer :: num_padding, new_cells, num_pads, prev_size, new_size
-        real(8), dimension(:), allocatable :: temp
-        integer :: current_idx
-        logical :: logic_debug
-        idx = 0
-
-        ! logic_debug = .False.
-        ! num_padding = size(this%nz_values) - this%padding_idx
-        ! new_cells = this%count_new_cells(ms,is,js,ks)
-
-        ! if (new_cells > num_padding) then
-        !     ! rescalse the size of the values array 
-        !     num_pads = (new_cells - num_padding) / this%padding_size + 1 
-
-        !     prev_size = size(this%nz_values, dim=1)
-
-        !     new_size = prev_size + num_pads * this%padding_size - 1
-        !     ! write(*,*) 'reallocation', prev_size, '->', new_size
-
-        !     allocate(temp(0:new_size))                          ! enlarge array size by factor of 2
-        !     temp(0:new_size) = 0d0
-        !     temp(0:prev_size-1) = this%nz_values(0:prev_size-1)    ! copy previous values
-        !     call move_alloc(temp, this%nz_values)                  ! temp gets deallocated
-        ! end if
-
-        ! materials = size(this%idx_map, dim=1)
-        ! nx = size(this%idx_map, dim=2)-1
-        ! ny = size(this%idx_map, dim=3)-1
-        ! nz = size(this%idx_map, dim=4)-1
-        ! num_vals = size(is)-1
+        logical, intent(in) :: update_mapper
+        type(indexer_t), pointer ::  index_mapper
+        integer, dimension(:,:,:,:), pointer   ::   mapper
+        integer, dimension(:,:,:,:), pointer   ::   mapper_holder
+        integer :: i,j,k,m, index, new_index
         
-        ! do i=num_vals, 0, -1
-        !     if (is(i)/=-1) then
-        !         idx = i
-        !         exit
-        !     end if
-        ! end do
-        
-        ! insertion_idx = size(this%nz_values)-1
-        
-        ! do k=nz, 0, -1
-        !     do j=ny, 0, -1
-        !         do i=nx, 0, -1
-        !             do m=materials, 1, -1
+        ! index_mapper => get_instance()
+        ! mapper => index_mapper%mapper
+        ! mapper_holder => index_mapper%holder
 
-        !                 current_idx = this%idx_map(m,i,j,k)
+        ! this%nz_values_holder = this%nz_values
+        ! this%nz_values = 0d0
 
-        !                 if (ms(idx)==m .and. is(idx)==i .and. js(idx)==j .and. ks(idx)==k) then
-        !                     this%nz_values(insertion_idx) = vals(idx)
-        !                     this%idx_map(m,i,j,k) = insertion_idx
-        !                     insertion_idx = insertion_idx - 1
-        !                     idx = idx - 1
-        !                 else if (current_idx > -1) then
-        !                     this%nz_values(insertion_idx) = this%nz_values(current_idx)
-        !                     this%nz_values(current_idx) = 0
-        !                     this%idx_map(m,i,j,k) = insertion_idx
-        !                     insertion_idx = insertion_idx - 1
-        !                 end if 
+        ! new_index = 0
 
-        !             end do
-        !         end do
-        !     end do
-        ! end do 
+        ! do k = 0, this%nz
+        !     do j = 0, this%ny
+        !         do i = 0, this%nx
+        !             do m = 1, this%nmats
+        !                 index = mapper_holder(m,i,j,k) 
+                        
+        !                 if (index > -1) then
+        !                     this%nz_values(new_index) = this%nz_values_holder(index)
+        !                     if (update_mapper) mapper(m,i,j,k) = new_index
 
-        ! idx = 0
-
-        ! do k=0, nz
-        !     do j=0, ny
-        !         do i=0, nx
-        !             do m=1, materials
-
-        !                 current_idx = this%idx_map(m,i,j,k) 
-
-        !                 if (current_idx > -1) then
-        !                     this%nz_values(idx) = this%nz_values(current_idx) 
-        !                     this%nz_values(current_idx) = 0
-        !                     this%idx_map(m,i,j,k) = idx
-        !                     idx = idx + 1
+        !                     new_index = new_index + 1
         !                 end if
-
         !             end do
         !         end do
         !     end do
         ! end do
 
-        ! this%padding_idx = idx
+        ! index_mapper%last_idx = new_index
 
-    end subroutine update_struct
+    end subroutine
 
 
     function count_new_cells(this, ms, is, js, ks) result(num)
@@ -323,16 +285,19 @@ module csr_module
     end function count_new_cells
 
 
-    pure function get_item(this, material_type, i, j, k)
+    function get_item(this, material_type, i, j, k)
         implicit none
         class(csr_t), intent(in) :: this
         integer, intent(in) :: i, j, k, material_type
         real(8) :: get_item
         integer :: idx
         get_item = 0d0
+        ! write(555, *) material_type, i, j, k
         idx = this%idx_map(material_type, i, j, k)
-        
+        ! print*, 'get ' , material_type, i, j, k
         if (idx > -1) get_item = this%nz_values(idx)
+        ! print*, 'get end ' 
+
     end function get_item
 
 
@@ -343,7 +308,7 @@ module csr_module
         integer, dimension(:,:,:,:), pointer   ::   mapper
         integer :: index
 
-        integer :: i,j,k,m
+        integer :: i,j,k,m  
         integer :: unit
 
         index_mapper => get_instance()
@@ -369,6 +334,11 @@ module csr_module
         end do
         
         close (414)
+
+        ! real(8) :: result, total
+        ! total = this%nx*this%ny*this%nz*this%nmats
+        ! result = size(this%nz_values)
+        ! print*, 'csr ratio', result/total
    end subroutine
 
 

@@ -1,14 +1,5 @@
 {
-    "Hel": {
-        "A": 1.0, 
-        "Z_2": 1.0, 
-        "gamma_gas": 1.667, 
-        "rho_0": 1.0, 
-	"sie_0": 1E-3,
-        "Z": 1.0, 
-        "eos_type": "ideal"
-    },
-    "Air": {
+    "AA": {
         "A": 1.0, 
         "Z_2": 1.0, 
         "gamma_gas": 1.667, 
@@ -17,6 +8,52 @@
         "Z": 1.0, 
         "eos_type": "ideal"
     }, 
+    "BB": {
+        "A": 1.0, 
+        "Z_2": 1.0, 
+        "gamma_gas": 1.667, 
+        "rho_0": 1.0, 
+	"sie_0": 1E-3,
+        "Z": 1.0, 
+        "eos_type": "ideal"
+    },
+    "CC": {
+        "A": 1.0, 
+        "Z_2": 1.0, 
+        "gamma_gas": 1.667, 
+        "rho_0": 1.0, 
+	"sie_0": 5.0277E3,
+        "Z": 1.0, 
+        "eos_type": "ideal"
+    }, 
+    "DD": {
+        "A": 1.0, 
+        "Z_2": 1.0, 
+        "gamma_gas": 1.667, 
+        "rho_0": 1.0, 
+	"sie_0": 1E-3,
+        "Z": 1.0, 
+        "eos_type": "ideal"
+    },
+    "EE": {
+        "A": 1.0, 
+        "Z_2": 1.0, 
+        "gamma_gas": 1.667, 
+        "rho_0": 1.0, 
+	"sie_0": 5.0277E3,
+        "Z": 1.0, 
+        "eos_type": "ideal"
+    }, 
+    "FF": {
+        "A": 1.0, 
+        "Z_2": 1.0, 
+        "gamma_gas": 1.667, 
+        "rho_0": 1.0, 
+	"sie_0": 1E-3,
+        "Z": 1.0, 
+        "eos_type": "ideal"
+    },
+
     "switches": {
         "sw_symmetry": 0, 
         "sw_vert_mass": 1, 
@@ -137,25 +174,25 @@
     	"number_layers_j": 2,
         "number_cells_j": [
             1,
-            70
+            79
         ], 
         "number_layers_i": 2, 
         "number_cells_i": [
             1,
-            70
+            79
         ],
         "number_layers_k":2,
         "number_cells_k": [
             1,
-            70
+            79
         ],
         "materials": [
-            "Air", 
-            "Hel", 
-            "Hel",
-            "Hel",
-            "Hel",
-            "Hel"
+            "AA", 
+            "BB", 
+            "BB",
+            "BB",
+            "BB",
+            "BB"
         ]
     }, 
     "data": {

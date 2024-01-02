@@ -191,6 +191,8 @@ contains
         call Constructor%Initialize_communication(df)
         call Constructor%Initialize_openmp(df%threads)
 
+
+
         !Constructor%name = df%name
         !Constructor%name = "a"
         Constructor%emf  = df%emf
@@ -204,15 +206,13 @@ contains
         ny = Constructor%ny
         nz = Constructor%nz
 
+        index_mapper => get_instance(4, nxp, nyp, nzp)    ! TODO: only for CSR
 
         Constructor%dimension  = df%dimension
         Constructor%n_materials = df%reduct_num_mat
         Constructor%wilkins_scheme = df%sw_wilkins
         Constructor%rezone_type = df%rezone_type
         nc = 1
-
-
-
 
         allocate(Constructor%time)
         allocate(Constructor%total_pressure_sum)
@@ -347,7 +347,8 @@ contains
                     Constructor%mat_cells = materials_in_cells_t(nxp, nyp, nzp, bc_c_wrap_arr,Constructor%boundary_params,&
                         1,df%mat_index, Constructor%parallel_params)
                 else
-                    Constructor%mat_cells = materials_in_cells_t(nxp, nyp, nzp, bc_c_wrap_arr,Constructor%boundary_params, Constructor%parallel_params)
+                    Constructor%mat_cells = materials_in_cells_t(nxp, nyp, nzp, bc_c_wrap_arr,Constructor%boundary_params, Constructor%parallel_params, df%number_layers_i, df%number_layers_j, df%number_layers_k, df%number_cells_i&
+                , df%number_cells_j, df%number_cells_k, df%mat_index)
                 end if
             end if
             allocate(mesh_3d)
@@ -365,7 +366,7 @@ contains
         Constructor%total_dt_drho_deriv = data_t  (nxp, nyp, nzp)
 
         call Constructor%mat_cells%Point_to_data(debug_arr)
-        call debug_3d(debug_arr, 'material_results/aaaa.txt', Constructor%nz, Constructor%ny, Constructor%nx)
+        ! call debug_3d(debug_arr, 'material_results/aaaa.txt', Constructor%nz, Constructor%ny, Constructor%nx)
 
          print*, 'WWOWWWWWW'
 
@@ -388,12 +389,7 @@ contains
 
         call Constructor%total_volume%Point_to_data (vol)
 
-        print*, 'KEEP GOING MATE :)'
-        ! print*,  'bbbbbbbbbbbbbbbbbbbbb', num_mat  ! still not right arg
-        ! index_mapper => get_instance(2, nx, ny, nz) 
-        ! call debug(Constructor%materials%vof%data_4d%nz_values, 'material_results/vof1.txt', Constructor%nz, Constructor%ny, Constructor%nx, 2)   
-        
-        index_mapper => get_instance(3, nxp, nyp, nzp)    ! TODO: only for CSR
+!
         call Constructor%Create_materials (df, bc_c_wrap_arr, Constructor%mat_cells)  ! xxxxxxxxxxxxxxxxxxxxxxxxxxxx
         
         ! call debug(Constructor%materials%vof%data_4d%nz_values, 'material_results/vof2.txt', Constructor%nz, Constructor%ny, Constructor%nx, 2)   
@@ -786,9 +782,9 @@ contains
                         !call this%Write_to_files()
         ncyc = 1
         if (this%rezone_type == 0) then
-            max_ncyc = 200
+            max_ncyc = 21
         else
-            max_ncyc = 200
+            max_ncyc = 21
         end if
 
         print*, 'execute ', this%mesh%dimension, ' dimentional problem for ', max_ncyc, ' iterations'
@@ -806,12 +802,12 @@ contains
             do while (this%time%Should_continue() .and. ncyc < max_ncyc)
 
                 reem_start = omp_get_wtime()
-                call this%hydro%do_time_step_3d(this%time)
+                call this%hydro%do_time_step_3d(this%time, ncyc)
                 call this%time%Update_time()
                 !  call this%Write_to_files()
                 counter = counter + 1
                 ncyc = ncyc + 1
-                write(*,*) "Cycle time: ", omp_get_wtime()-reem_start
+                write(*,*) "Cycle ", ncyc, " time: ", omp_get_wtime()-reem_start
             !      call this%cr%Checkpoint(ckpt_name)
             end do
         end if
@@ -938,9 +934,9 @@ contains
         call this%total_sie%Point_to_data(sie)
         call this%total_cell_mass%Point_to_data(cell_mass)
 
-        call sie_vof%print_data('material_results/cc1')
+        ! call sie_vof%print_data('material_results/cc1')
         call this%materials%Apply_eos(this%nx, this%ny, this%nz,emf,.false.)
-        call sie_vof%print_data('material_results/cc2')
+        ! call sie_vof%print_data('material_results/cc2')
 
 
         do k = 1, this%nz

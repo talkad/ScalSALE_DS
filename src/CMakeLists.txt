@@ -12,7 +12,7 @@ add_definitions($ENV{DEFS})
 
 if (CMAKE_Fortran_COMPILER_ID STREQUAL "GNU")
 set(ENV{JSONFORTRAN} "/home/talkad/LIGHTBITS_SHARE/DESKTOP_TEMP/json-fortran-gnu/build")
-set(CMAKE_Fortran_FLAGS "-fPIC -cpp -fopenmp -g -shared-libgcc -O2 -ffree-line-length-512")
+set(CMAKE_Fortran_FLAGS "-fPIC -cpp -fopenmp -g3 -shared-libgcc -O0 -gctf -ffree-line-length-512")
 else()
 set(ENV{JSONFORTRAN} "/home/talkad/LIGHTBITS_SHARE/DESKTOP_TEMP/json-fortran-intel/build")
 set(CMAKE_Fortran_FLAGS "-fPIC -cpp -fpp -O2 -g -qopenmp ")

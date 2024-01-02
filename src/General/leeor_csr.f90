@@ -47,6 +47,7 @@ module leeor_csr_module
         procedure :: print_data => print_data
         procedure :: deallocate_data => deallocate_data
         procedure :: who_am_i => who_am_i
+        procedure :: reorder => reorder
 
         procedure, private :: add_boundary
 
@@ -176,23 +177,34 @@ module leeor_csr_module
     end subroutine add_boundary
 
 
-    subroutine add_item(this, material_type, i, j, k, val)
+    subroutine add_item(this, material_type, i, j, k, val, boundry)
         implicit none
         class(leeor_csr_t), intent(inout) :: this
         integer, intent(in) :: i, j, k, material_type
         real(8), intent(in) :: val
+        logical, optional, intent(in) :: boundry
+
+        if (this%grid(i,j,k)%material_idx == -1 .and. val == 0) return 
 
         if (this%grid(i,j,k)%material_idx == -1) then
             this%grid(i,j,k)%material_idx = material_type
             this%grid(i,j,k)%material_val = val
         else
-            if (.not. associated(this%grid(i,j,k)%materials)) then
-                allocate(this%grid(i,j,k)%materials(1:this%nmats))
-                this%grid(i,j,k)%materials = 0d0
-                this%grid(i,j,k)%materials(this%grid(i,j,k)%material_idx) = this%grid(i,j,k)%material_val
+            if (.not. associated(this%grid(i,j,k)%materials) .and. val==0) return
+
+            if (.not. associated(this%grid(i,j,k)%materials) .and. this%grid(i,j,k)%material_idx == material_type)  then
+                this%grid(i,j,k)%material_val = val
+            else
+                if (.not. associated(this%grid(i,j,k)%materials)) then
+                    allocate(this%grid(i,j,k)%materials(1:this%nmats))
+                    this%grid(i,j,k)%materials = 0d0
+                    this%grid(i,j,k)%materials(this%grid(i,j,k)%material_idx) = this%grid(i,j,k)%material_val
+                end if
+
+                this%grid(i,j,k)%materials(material_type) = val
             end if
 
-            this%grid(i,j,k)%materials(material_type) = val
+
         end if
 
     end subroutine add_item
@@ -213,6 +225,11 @@ module leeor_csr_module
 
     end function get_item
 
+    subroutine reorder(this, update_mapper)
+        implicit none
+        class(leeor_csr_t), intent(inout) :: this
+        logical, intent(in) :: update_mapper
+    end subroutine reorder
 
     subroutine print_data(this, file_name)
         class(leeor_csr_t), intent(inout) :: this
@@ -228,7 +245,7 @@ module leeor_csr_module
             do j = 0, this%ny
                 do i = 0, this%nx
                     do m = 1, this%nmats
-                        write(414,*) this%get_item(m, i, j, k)                      
+                        write(414,*) m, i, j, k, this%get_item(m, i, j, k)                      
                     end do
                 end do
             end do

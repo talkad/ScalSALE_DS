@@ -16,12 +16,14 @@ program program
     
     
     allocate(A(-1:3))
-    A = (/56,1,2,3,4/)
+    A = (/56,0,2,3,4/)
 
-    B => A
+    ! B => A
 
-    print*, A(0)
-    print*, B(0)
+    ! print*, A(0)
+    ! print*, B(0)
+
+    print*, count(A(:) .ne. 0)
 end program 
 
 

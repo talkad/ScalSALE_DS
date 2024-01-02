@@ -41,6 +41,7 @@ module data_4d_module
       procedure :: print_data => print_data
       procedure :: deallocate_data => deallocate_data
       procedure :: who_am_i => who_am_i
+        procedure :: reorder => reorder
 
    end type data_4d_t
 
@@ -95,12 +96,13 @@ contains
 
 
 
-    pure subroutine add_item(this, material_type, i, j, k, val)
+    pure subroutine add_item(this, material_type, i, j, k, val, boundry)
         implicit none
         class(data_4d_t), intent(inout) :: this
         integer, intent(in) :: i, j, k, material_type
         real(8), intent(in) :: val
- 
+         logical, optional, intent(in) ::  boundry
+         
          this%values(material_type, i, j, k) = val
     end subroutine add_item
 
@@ -115,6 +117,12 @@ contains
         get_item = this%values(material_type, i, j, k)
     end function get_item
 
+
+    subroutine reorder(this, update_mapper)
+        implicit none
+        class(data_4d_t), intent(inout) :: this
+        logical, intent(in) :: update_mapper
+    end subroutine reorder
 
     subroutine print_data(this, file_name)
          class(data_4d_t), intent(inout) :: this

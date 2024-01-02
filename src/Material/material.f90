@@ -99,6 +99,7 @@ contains
         type(ideal_gas_t), target                                       :: ig_eos_c
 
         integer                                                      :: i, j, k, m
+        character (len = 40) :: type 
 
 
 
@@ -118,37 +119,38 @@ contains
         allocate(Constructor%atomic_mass(nmats))
         allocate(eos_wrapper_t :: Constructor%equation_of_state (nmats))
 
-        print*, 'build materials.f90'
-        call Constructor%Init_material_base(nxp, nyp, nzp, nmats, mat_ids, bc_cell, bc_params)
-        print*, 'dp_de'
-        Constructor%dp_de   = material_quantity_t(0d0, nxp, nyp, nzp, nmats, "leeor_csr") ! block_csr
-        print*, 'dp_drho'
-        Constructor%dp_drho = material_quantity_t(0d0, nxp, nyp, nzp, nmats, "leeor_csr")
-        print*, 'dt_de'
-        Constructor%dt_de   = material_quantity_t(0d0, nxp, nyp, nzp, nmats, "leeor_csr")
-        print*, 'dt_drho'
-        Constructor%dt_drho = material_quantity_t(0d0, nxp, nyp, nzp, nmats, "leeor_csr")
+        type = "block_csr"
+        !        ! print*, 'build materials.f90'
+        call Constructor%Init_material_base(nxp, nyp, nzp, nmats, mat_ids, bc_cell, bc_params, type)
 
-        print*, 'density'
-        Constructor%density = material_quantity_t(0d0, nxp, nyp, nzp, nmats, bc_cell, bc_params, "leeor_csr")
-        print*, 'pressure'
-        Constructor%pressure = material_quantity_t (0d0, nxp, nyp, nzp, nmats, bc_cell, bc_params, "leeor_csr")
-        print*, 'temperature'
-        Constructor%temperature = material_quantity_t (0d0, nxp, nyp, nzp, nmats, bc_cell, bc_params, "leeor_csr")
-        print*, 'temperature_old'
-        Constructor%temperature_old = material_quantity_t (0d0, nxp, nyp, nzp, nmats, bc_cell, bc_params, "leeor_csr")
-        print*, 'sound_vel'
-        Constructor%sound_vel = material_quantity_t (0d0, nxp, nyp, nzp, nmats, bc_cell, bc_params, "leeor_csr")
+        ! print*, 'dp_de'
+        Constructor%dp_de   = material_quantity_t(0d0, nxp, nyp, nzp, nmats, type)
+        ! print*, 'dp_drho'
+        Constructor%dp_drho = material_quantity_t(0d0, nxp, nyp, nzp, nmats, type)
+        ! print*, 'dt_de'
+        Constructor%dt_de   = material_quantity_t(0d0, nxp, nyp, nzp, nmats, type)
+        ! print*, 'dt_drho'
+        Constructor%dt_drho = material_quantity_t(0d0, nxp, nyp, nzp, nmats, type)
 
-        print*, 'dt_de:'
+        ! print*, 'density'
+        Constructor%density = material_quantity_t(0d0, nxp, nyp, nzp, nmats, bc_cell, bc_params, type)
+        ! print*, 'pressure'
+        Constructor%pressure = material_quantity_t (0d0, nxp, nyp, nzp, nmats, bc_cell, bc_params, type)
+        ! print*, 'temperature'
+        Constructor%temperature = material_quantity_t (0d0, nxp, nyp, nzp, nmats, bc_cell, bc_params, type)
+        ! print*, 'temperature_old'
+        Constructor%temperature_old = material_quantity_t (0d0, nxp, nyp, nzp, nmats, bc_cell, bc_params, type)
+        ! print*, 'sound_vel'
+        Constructor%sound_vel = material_quantity_t (0d0, nxp, nyp, nzp, nmats, bc_cell, bc_params, type)
+        ! print*, 'dt_de:'
         call Constructor%dt_de%who_am_i()
-        print*, 'density:'
+        ! print*, 'density:'
         call Constructor%density%who_am_i()
-        print*, 'pressure:'
+        ! print*, 'pressure:'
         call Constructor%pressure%who_am_i()
-        print*, 'temperature:'
+        ! print*, 'temperature:'
         call Constructor%temperature%who_am_i()
-        print*, 'sound_vel:'
+        ! print*, 'sound_vel:'
         call Constructor%sound_vel%who_am_i()
 
         allocate(eos_c_wrap)
@@ -169,8 +171,8 @@ contains
         call Constructor%sie%get_quantity_grid(sie_vof)
         call mat_cells%Point_to_data(mat_cell)
         
-        call density_vof%print_data('material_results/density_vof_1')
-        call sie_vof%print_data('material_results/sie_vof_1')
+        ! call density_vof%print_data('material_results/density_vof_1')
+        ! call sie_vof%print_data('material_results/sie_vof_1')
         ! call mat_cell%print_data('aa3')
 
         do k = 1, nzp
@@ -178,7 +180,7 @@ contains
                 do i = 1, nxp
                     do m = 1, nmats
 
-                        if (mat_cell(i, j, k) == mat_ids(m)) then
+                        if (mat_cell(i, j, k) == m) then
                             
                             call density_vof%add_item(m, i, j , k, rho_0(m))
                             
@@ -198,13 +200,12 @@ contains
             end do
         end do
 
-        call density_vof%print_data('material_results/density_vof_2')
-        call sie_vof%print_data('material_results/sie_vof_2')
+        ! call density_vof%print_data('material_results/density_vof_2')
+        ! call sie_vof%print_data('material_results/sie_vof_2')
 
         ! call mat_cell%print_data('bb3')
 
     end function
-
 
 
 

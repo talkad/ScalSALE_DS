@@ -10,6 +10,7 @@ module quantity_module
     use data_4d_module, only : data_4d_t
     use csr_module, only : csr_t
     use block_csr_module, only : block_csr_t
+    use mat_4d_module, only : mat_4d_t
     use leeor_csr_module, only : leeor_csr_t
     
     use indexer_module
@@ -192,8 +193,10 @@ contains
         nullify(this%data)
         
         if (.not. present(data_type) .or. data_type == "full_grid") then            
-            allocate (data_4d_t :: this%data_4d)
-            this%data_4d => data_4d_t(initial_val, d1, d2, d3, d4)
+            ! allocate (data_4d_t :: this%data_4d)
+            ! this%data_4d => data_4d_t(initial_val, d1, d2, d3, d4)
+            allocate (mat_4d_t :: this%data_4d)
+            this%data_4d => mat_4d_t(initial_val, d1, d2, d3, d4)
         else if (data_type == "csr") then
             index_mapper => get_instance()
             
@@ -249,7 +252,6 @@ contains
             allocate (leeor_csr_t :: this%data_4d)
             this%data_4d => leeor_csr_t(initial_val, d1, d2, d3, d4)
         end if 
-
 
         this%d1 = d1 - 1
         this%d2 = d2 - 1
@@ -351,7 +353,7 @@ contains
     subroutine Ptr_coordinates_numeric_4d (this, ptr_x)
         class (quantity_t)         , intent(in out) :: this
         real(8), dimension(:,:,:,:), pointer, intent(out)    :: ptr_x
-
+        
         call this%data_4d%Point_to_data (ptr_x)
     end subroutine Ptr_coordinates_numeric_4d
 
@@ -363,17 +365,14 @@ contains
         type(communication_parameters_t), pointer :: comm_params
         integer :: i
 
-        print*, 'TFIIII'
         if (associated(this%data)) then
             do i=1, this%number_of_axises
                 call this%data(i)%Set_communication (comm, comm_params)
             end do
         else
-            print*, 'tachinu ta tachat ze heil avir'
             call this%data_4d%Set_communication(comm, comm_params)
         end if
         this%parallel_params => comm%parallel_params
-        print*, 'BNEI AMALEK'
     end subroutine Set_communication
 
 
